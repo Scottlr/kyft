@@ -1,0 +1,44 @@
+using Kyft;
+
+namespace Kyft.Tests.Runtime;
+
+public sealed class CustomKeyComparerTests
+{
+    [Fact]
+    public void WindowCanUseCustomKeyComparer()
+    {
+        var pipeline = Kyft
+            .For<PriceTick>()
+            .Window(
+                "SelectionSuspension",
+                key: tick => tick.SelectionId,
+                isActive: tick => tick.Price == 0m,
+                comparer: StringComparer.OrdinalIgnoreCase)
+            .Build();
+
+        pipeline.Ingest(new PriceTick("Selection-1", 0m));
+        var result = pipeline.Ingest(new PriceTick("selection-1", 0m));
+
+        Assert.Empty(result.Emissions);
+    }
+
+    [Fact]
+    public void WindowUsesDefaultComparerWhenCustomComparerIsOmitted()
+    {
+        var pipeline = Kyft
+            .For<PriceTick>()
+            .Window(
+                "SelectionSuspension",
+                key: tick => tick.SelectionId,
+                isActive: tick => tick.Price == 0m)
+            .Build();
+
+        pipeline.Ingest(new PriceTick("Selection-1", 0m));
+        var result = pipeline.Ingest(new PriceTick("selection-1", 0m));
+
+        var emission = Assert.Single(result.Emissions);
+        Assert.Equal("selection-1", emission.Key);
+    }
+
+    private sealed record PriceTick(string SelectionId, decimal Price);
+}

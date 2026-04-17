@@ -1,0 +1,12 @@
+bin/
+obj/
+artifacts/
+TestResults/
+/discovery/
+/specs/
+
+*.user
+*.suo
+*.rsuser
+
+.DS_Store
