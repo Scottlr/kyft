@@ -12,7 +12,7 @@ public sealed class IntervalRecordingTests
         pipeline.Ingest(new PriceTick("selection-1", 0m), source: "provider-a", partition: "p1");
         pipeline.Ingest(new PriceTick("selection-1", 1.01m), source: "provider-a", partition: "p1");
 
-        var interval = Assert.Single(pipeline.Intervals.ClosedChunks);
+        var interval = Assert.Single(pipeline.Intervals.ClosedWindows);
         Assert.Equal("SelectionSuspension", interval.WindowName);
         Assert.Equal("selection-1", interval.Key);
         Assert.Equal(1, interval.StartPosition);
@@ -28,9 +28,9 @@ public sealed class IntervalRecordingTests
 
         pipeline.Ingest(new PriceTick("selection-1", 0m));
 
-        Assert.Empty(pipeline.Intervals.ClosedChunks);
+        Assert.Empty(pipeline.Intervals.ClosedWindows);
 
-        var open = Assert.Single(pipeline.Intervals.OpenChunks);
+        var open = Assert.Single(pipeline.Intervals.OpenWindows);
         Assert.Equal("SelectionSuspension", open.WindowName);
         Assert.Equal(1, open.StartPosition);
     }
@@ -49,7 +49,7 @@ public sealed class IntervalRecordingTests
         pipeline.Ingest(new PriceTick("selection-1", 0m));
         pipeline.Ingest(new PriceTick("selection-1", 1.01m));
 
-        Assert.Empty(pipeline.Intervals.ClosedChunks);
+        Assert.Empty(pipeline.Intervals.ClosedWindows);
     }
 
     private static EventPipeline<PriceTick> CreatePipeline()

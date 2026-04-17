@@ -2,37 +2,37 @@ using Kyft;
 
 namespace Kyft.Tests.Intervals;
 
-public sealed class ChunkTests
+public sealed class WindowRecordTests
 {
     [Fact]
-    public void ClosedChunksStemFromChunk()
+    public void ClosedWindowsStemFromWindowRecord()
     {
-        var interval = new ClosedChunk(
+        var interval = new ClosedWindow(
             "DeviceOffline",
             "device-1",
             StartPosition: 1,
             EndPosition: 2);
 
-        var chunk = Assert.IsAssignableFrom<Chunk>(interval);
-        Assert.True(chunk.IsClosed);
-        Assert.Equal(2, chunk.EndPosition);
+        var window = Assert.IsAssignableFrom<WindowRecord>(interval);
+        Assert.True(window.IsClosed);
+        Assert.Equal(2, window.EndPosition);
     }
 
     [Fact]
-    public void OpenChunksStemFromChunk()
+    public void OpenWindowsStemFromWindowRecord()
     {
-        var interval = new OpenChunk(
+        var interval = new OpenWindow(
             "DeviceOffline",
             "device-1",
             StartPosition: 1);
 
-        var chunk = Assert.IsAssignableFrom<Chunk>(interval);
-        Assert.False(chunk.IsClosed);
-        Assert.Null(chunk.EndPosition);
+        var window = Assert.IsAssignableFrom<WindowRecord>(interval);
+        Assert.False(window.IsClosed);
+        Assert.Null(window.EndPosition);
     }
 
     [Fact]
-    public void HistoryExposesOpenAndClosedChunksTogether()
+    public void HistoryExposesOpenAndClosedWindowsTogether()
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
@@ -47,7 +47,7 @@ public sealed class ChunkTests
         pipeline.Ingest(new DeviceSignal("device-2", IsOnline: false));
 
         Assert.Collection(
-            pipeline.Intervals.Chunks,
+            pipeline.Intervals.Windows,
             closed => Assert.True(closed.IsClosed),
             open => Assert.False(open.IsClosed));
     }

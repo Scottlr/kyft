@@ -22,7 +22,7 @@ public sealed class EventTimeIntervalTests
         pipeline.Ingest(new PriceTick("selection-1", 0m, openedAt));
         pipeline.Ingest(new PriceTick("selection-1", 1.01m, closedAt));
 
-        var interval = Assert.Single(pipeline.Intervals.ClosedChunks);
+        var interval = Assert.Single(pipeline.Intervals.ClosedWindows);
         Assert.Equal(openedAt, interval.StartTime);
         Assert.Equal(closedAt, interval.EndTime);
         Assert.Equal(1, interval.StartPosition);
@@ -44,7 +44,7 @@ public sealed class EventTimeIntervalTests
         pipeline.Ingest(new PriceTick("selection-1", 0m, DateTimeOffset.UtcNow));
         pipeline.Ingest(new PriceTick("selection-1", 1.01m, DateTimeOffset.UtcNow));
 
-        var interval = Assert.Single(pipeline.Intervals.ClosedChunks);
+        var interval = Assert.Single(pipeline.Intervals.ClosedWindows);
         Assert.Null(interval.StartTime);
         Assert.Null(interval.EndTime);
     }

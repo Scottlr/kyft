@@ -1,7 +1,7 @@
 namespace Kyft;
 
 /// <summary>
-/// Describes a target-source chunk segment left after comparison overlap is removed.
+/// Describes a target-source window segment left after comparison overlap is removed.
 /// </summary>
 /// <param name="WindowName">The configured window name.</param>
 /// <param name="Key">The logical key for the window.</param>

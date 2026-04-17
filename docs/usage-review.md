@@ -50,9 +50,9 @@ a duplicate of the child window.
 Callbacks are in a reasonable place now: local reactions belong in window
 options, while `.OnEmission(...)` remains useful as a global sink.
 
-Window history now has a clearer primitive: `Chunk`. Open chunks and
-closed chunks both stem from that shared type, and
-`pipeline.Intervals.Chunks` gives future overlap, weighted-average, and hook
+Window history now has a clearer primitive: `WindowRecord`. Open windows and
+closed windows both stem from that shared type, and
+`pipeline.Intervals.Windows` gives future overlap, weighted-average, and hook
 features a single object shape to build on.
 
 ## Example Direction

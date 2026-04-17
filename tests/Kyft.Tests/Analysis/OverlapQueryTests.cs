@@ -5,7 +5,7 @@ namespace Kyft.Tests.Analysis;
 public sealed class OverlapQueryTests
 {
     [Fact]
-    public void FindOverlapsReturnsOverlappingClosedChunksInSameScope()
+    public void FindOverlapsReturnsOverlappingClosedWindowsInSameScope()
     {
         var history = new WindowIntervalHistory(enabled: true);
         var tick = new PriceTick("selection-1");
