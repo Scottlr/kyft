@@ -1,4 +1,4 @@
-using Kyft.Internal.Intervals;
+using Kyft.Internal.Recording;
 
 namespace Kyft;
 
@@ -8,7 +8,7 @@ namespace Kyft;
 public sealed class WindowIntervalHistory
 {
     private readonly bool enabled;
-    private readonly Dictionary<IntervalStateKey, OpenWindow> openIntervals;
+    private readonly Dictionary<WindowRecordingKey, OpenWindow> openIntervals;
     private readonly List<ClosedWindow> closedIntervals;
 
     internal WindowIntervalHistory(bool enabled)
@@ -179,7 +179,7 @@ public sealed class WindowIntervalHistory
 
         foreach (var emission in emissions)
         {
-            var key = new IntervalStateKey(
+            var key = new WindowRecordingKey(
                 emission.WindowName,
                 emission.Key,
                 emission.Source,

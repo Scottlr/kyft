@@ -1,6 +1,6 @@
-namespace Kyft.Internal.Intervals;
+namespace Kyft.Internal.Recording;
 
-internal sealed record IntervalStateKey(
+internal sealed record WindowRecordingKey(
     string WindowName,
     object Key,
     object? Source,
