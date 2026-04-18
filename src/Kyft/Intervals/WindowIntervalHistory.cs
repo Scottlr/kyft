@@ -70,6 +70,21 @@ public sealed class WindowIntervalHistory
     }
 
     /// <summary>
+    /// Starts a staged comparison over this recorded window history.
+    /// </summary>
+    /// <param name="name">A human-readable name for the comparison.</param>
+    /// <returns>A comparison builder for the recorded history.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="name" /> is empty or only whitespace.
+    /// </exception>
+    public WindowComparisonBuilder Compare(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return new WindowComparisonBuilder(this, name);
+    }
+
+    /// <summary>
     /// Finds overlapping closed windows within the same window scope.
     /// </summary>
     /// <returns>The overlapping interval pairs.</returns>
