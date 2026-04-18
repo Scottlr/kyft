@@ -191,6 +191,18 @@ public readonly record struct ComparisonSelector
     }
 
     /// <summary>
+    /// Creates a copy of this selector with a different display name.
+    /// </summary>
+    /// <param name="name">The selector name.</param>
+    /// <returns>A selector with the supplied name.</returns>
+    public ComparisonSelector WithName(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return new ComparisonSelector(name, Description, IsSerializable, this.predicate);
+    }
+
+    /// <summary>
     /// Creates a selector that requires both selectors to match.
     /// </summary>
     /// <param name="other">The selector to combine with this selector.</param>
