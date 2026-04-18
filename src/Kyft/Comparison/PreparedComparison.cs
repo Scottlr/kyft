@@ -17,4 +17,14 @@ public sealed record PreparedComparison(
     IReadOnlyList<ComparisonPlanDiagnostic> Diagnostics,
     IReadOnlyList<WindowRecord> SelectedWindows,
     IReadOnlyList<ExcludedWindowRecord> ExcludedWindows,
-    IReadOnlyList<NormalizedWindowRecord> NormalizedWindows);
+    IReadOnlyList<NormalizedWindowRecord> NormalizedWindows)
+{
+    /// <summary>
+    /// Aligns normalized windows into reusable temporal segments.
+    /// </summary>
+    /// <returns>The aligned comparison.</returns>
+    public AlignedComparison Align()
+    {
+        return ComparisonAligner.Align(this);
+    }
+}
