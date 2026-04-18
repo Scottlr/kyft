@@ -153,8 +153,7 @@ public sealed class WindowComparisonBuilder
     /// <returns>A prepared comparison shell for the current plan.</returns>
     public PreparedComparison Prepare()
     {
-        var plan = Build();
-        return new PreparedComparison(plan, plan.Validate());
+        return ComparisonPreparer.Prepare(History, Build());
     }
 
     /// <summary>

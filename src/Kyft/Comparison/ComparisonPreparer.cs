@@ -1,0 +1,217 @@
+using System.Globalization;
+
+namespace Kyft;
+
+internal static class ComparisonPreparer
+{
+    internal static PreparedComparison Prepare(WindowIntervalHistory history, ComparisonPlan plan)
+    {
+        var diagnostics = new List<ComparisonPlanDiagnostic>(plan.Validate());
+        var selected = new List<WindowRecord>();
+        var excluded = new List<ExcludedWindowRecord>();
+        var normalized = new List<NormalizedWindowRecord>();
+
+        if (plan.Target is null || plan.Scope is null)
+        {
+            return Create(plan, diagnostics, selected, excluded, normalized);
+        }
+
+        if (plan.Scope.TimeAxis != plan.Normalization.TimeAxis)
+        {
+            diagnostics.Add(new ComparisonPlanDiagnostic(
+                ComparisonPlanValidationCode.MixedTimeAxes,
+                "Comparison scope and normalization policy use different temporal axes.",
+                "normalization.timeAxis",
+                ComparisonPlanDiagnosticSeverity.Error));
+        }
+
+        var windows = history.Windows
+            .OrderBy(static window => window.WindowName, StringComparer.Ordinal)
+            .ThenBy(static window => StableObjectValue(window.Key), StringComparer.Ordinal)
+            .ThenBy(static window => StableObjectValue(window.Source), StringComparer.Ordinal)
+            .ThenBy(static window => StableObjectValue(window.Partition), StringComparer.Ordinal)
+            .ThenBy(static window => window.StartPosition)
+            .ThenBy(static window => window.EndPosition ?? long.MaxValue)
+            .ToArray();
+
+        foreach (var window in windows)
+        {
+            if (!IsInScope(window, plan.Scope))
+            {
+                excluded.Add(new ExcludedWindowRecord(window, "Window is outside the comparison scope."));
+                continue;
+            }
+
+            var matched = false;
+            if (plan.Target.Value.Matches(window))
+            {
+                matched = true;
+                AddNormalized(window, plan.Target.Value.Name, ComparisonSide.Target, plan, diagnostics, selected, excluded, normalized);
+            }
+
+            for (var i = 0; i < plan.Against.Count; i++)
+            {
+                var selector = plan.Against[i];
+                if (!selector.Matches(window))
+                {
+                    continue;
+                }
+
+                matched = true;
+                AddNormalized(window, selector.Name, ComparisonSide.Against, plan, diagnostics, selected, excluded, normalized);
+            }
+
+            if (!matched)
+            {
+                excluded.Add(new ExcludedWindowRecord(window, "Window did not match target or comparison selectors."));
+            }
+        }
+
+        return Create(plan, diagnostics, selected, excluded, normalized);
+    }
+
+    private static void AddNormalized(
+        WindowRecord window,
+        string selectorName,
+        ComparisonSide side,
+        ComparisonPlan plan,
+        List<ComparisonPlanDiagnostic> diagnostics,
+        List<WindowRecord> selected,
+        List<ExcludedWindowRecord> excluded,
+        List<NormalizedWindowRecord> normalized)
+    {
+        if (!TryCreateRange(window, plan.Normalization, diagnostics, excluded, out var range))
+        {
+            return;
+        }
+
+        if (!selected.Contains(window))
+        {
+            selected.Add(window);
+        }
+
+        normalized.Add(new NormalizedWindowRecord(window, window.Id, selectorName, side, range));
+    }
+
+    private static bool TryCreateRange(
+        WindowRecord window,
+        ComparisonNormalizationPolicy policy,
+        List<ComparisonPlanDiagnostic> diagnostics,
+        List<ExcludedWindowRecord> excluded,
+        out TemporalRange range)
+    {
+        range = default;
+
+        if (policy.TimeAxis == TemporalAxis.Timestamp)
+        {
+            return TryCreateTimestampRange(window, policy, diagnostics, excluded, out range);
+        }
+
+        var start = TemporalPoint.ForPosition(window.StartPosition);
+        if (window.EndPosition.HasValue)
+        {
+            range = TemporalRange.Closed(start, TemporalPoint.ForPosition(window.EndPosition.Value));
+            return true;
+        }
+
+        if (policy.OpenWindowPolicy == ComparisonOpenWindowPolicy.ClipToHorizon
+            && policy.OpenWindowHorizon.HasValue)
+        {
+            range = TemporalRange.WithEffectiveEnd(
+                start,
+                policy.OpenWindowHorizon.Value,
+                TemporalRangeEndStatus.OpenAtHorizon);
+            return true;
+        }
+
+        AddExclusion(window, "Open windows require an explicit clipping policy.", ComparisonPlanValidationCode.OpenWindowsWithoutPolicy, diagnostics, excluded);
+        return false;
+    }
+
+    private static bool TryCreateTimestampRange(
+        WindowRecord window,
+        ComparisonNormalizationPolicy policy,
+        List<ComparisonPlanDiagnostic> diagnostics,
+        List<ExcludedWindowRecord> excluded,
+        out TemporalRange range)
+    {
+        range = default;
+
+        if (!window.StartTime.HasValue || (!window.EndTime.HasValue && window.IsClosed))
+        {
+            AddExclusion(
+                window,
+                "Event-time comparison requires recorded event timestamps.",
+                ComparisonPlanValidationCode.MissingEventTime,
+                diagnostics,
+                excluded,
+                policy.NullTimestampPolicy == ComparisonNullTimestampPolicy.Reject
+                    ? ComparisonPlanDiagnosticSeverity.Error
+                    : ComparisonPlanDiagnosticSeverity.Warning);
+            return false;
+        }
+
+        var start = TemporalPoint.ForTimestamp(window.StartTime.Value);
+        if (window.EndTime.HasValue)
+        {
+            range = TemporalRange.Closed(start, TemporalPoint.ForTimestamp(window.EndTime.Value));
+            return true;
+        }
+
+        if (policy.OpenWindowPolicy == ComparisonOpenWindowPolicy.ClipToHorizon
+            && policy.OpenWindowHorizon.HasValue)
+        {
+            range = TemporalRange.WithEffectiveEnd(
+                start,
+                policy.OpenWindowHorizon.Value,
+                TemporalRangeEndStatus.OpenAtHorizon);
+            return true;
+        }
+
+        AddExclusion(window, "Open windows require an explicit clipping policy.", ComparisonPlanValidationCode.OpenWindowsWithoutPolicy, diagnostics, excluded);
+        return false;
+    }
+
+    private static void AddExclusion(
+        WindowRecord window,
+        string reason,
+        ComparisonPlanValidationCode code,
+        List<ComparisonPlanDiagnostic> diagnostics,
+        List<ExcludedWindowRecord> excluded,
+        ComparisonPlanDiagnosticSeverity severity = ComparisonPlanDiagnosticSeverity.Error)
+    {
+        excluded.Add(new ExcludedWindowRecord(window, reason, code));
+        diagnostics.Add(new ComparisonPlanDiagnostic(code, reason, $"window[{window.Id}]", severity));
+    }
+
+    private static bool IsInScope(WindowRecord window, ComparisonScope scope)
+    {
+        return scope.WindowName is null
+            || string.Equals(window.WindowName, scope.WindowName, StringComparison.Ordinal);
+    }
+
+    private static PreparedComparison Create(
+        ComparisonPlan plan,
+        List<ComparisonPlanDiagnostic> diagnostics,
+        List<WindowRecord> selected,
+        List<ExcludedWindowRecord> excluded,
+        List<NormalizedWindowRecord> normalized)
+    {
+        return new PreparedComparison(
+            plan,
+            diagnostics.ToArray(),
+            selected.ToArray(),
+            excluded.ToArray(),
+            normalized.ToArray());
+    }
+
+    private static string StableObjectValue(object? value)
+    {
+        return value switch
+        {
+            null => "<null>",
+            IFormattable formattable => value.GetType().FullName + ":" + formattable.ToString(null, CultureInfo.InvariantCulture),
+            _ => value.GetType().FullName + ":" + value
+        };
+    }
+}
