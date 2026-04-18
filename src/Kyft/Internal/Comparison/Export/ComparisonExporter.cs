@@ -88,6 +88,28 @@ internal static class ComparisonExporter
                 writer.WriteEndObject();
             });
         }
+
+        for (var i = 0; i < result.GapRows.Count; i++)
+        {
+            var row = result.GapRows[i];
+            yield return ExportJsonLine(writer =>
+            {
+                WriteRowEnvelopeStart(writer, "gap", i);
+                WriteGapRowFields(writer, row);
+                writer.WriteEndObject();
+            });
+        }
+
+        for (var i = 0; i < result.SymmetricDifferenceRows.Count; i++)
+        {
+            var row = result.SymmetricDifferenceRows[i];
+            yield return ExportJsonLine(writer =>
+            {
+                WriteRowEnvelopeStart(writer, "symmetric-difference", i);
+                WriteSymmetricDifferenceRowFields(writer, row);
+                writer.WriteEndObject();
+            });
+        }
     }
 
     private static void EnsureExportable(ComparisonPlan plan)
@@ -183,6 +205,8 @@ internal static class ComparisonExporter
         writer.WriteNumber("residualRowCount", result.ResidualRows.Count);
         writer.WriteNumber("missingRowCount", result.MissingRows.Count);
         writer.WriteNumber("coverageRowCount", result.CoverageRows.Count);
+        writer.WriteNumber("gapRowCount", result.GapRows.Count);
+        writer.WriteNumber("symmetricDifferenceRowCount", result.SymmetricDifferenceRows.Count);
         writer.WriteEndObject();
     }
 
@@ -437,6 +461,22 @@ internal static class ComparisonExporter
         }
 
         writer.WriteEndArray();
+        writer.WritePropertyName("gap");
+        writer.WriteStartArray();
+        for (var i = 0; i < result.GapRows.Count; i++)
+        {
+            WriteRowObject(writer, "gap", i, () => WriteGapRowFields(writer, result.GapRows[i]));
+        }
+
+        writer.WriteEndArray();
+        writer.WritePropertyName("symmetricDifference");
+        writer.WriteStartArray();
+        for (var i = 0; i < result.SymmetricDifferenceRows.Count; i++)
+        {
+            WriteRowObject(writer, "symmetricDifference", i, () => WriteSymmetricDifferenceRowFields(writer, result.SymmetricDifferenceRows[i]));
+        }
+
+        writer.WriteEndArray();
         writer.WriteEndObject();
     }
 
@@ -472,6 +512,19 @@ internal static class ComparisonExporter
         WriteCommonRowFields(writer, row.WindowName, row.Key, row.Partition, row.Range);
         writer.WriteNumber("targetMagnitude", row.TargetMagnitude);
         writer.WriteNumber("coveredMagnitude", row.CoveredMagnitude);
+        WriteIds(writer, "targetRecordIds", row.TargetRecordIds);
+        WriteIds(writer, "againstRecordIds", row.AgainstRecordIds);
+    }
+
+    private static void WriteGapRowFields(Utf8JsonWriter writer, GapRow row)
+    {
+        WriteCommonRowFields(writer, row.WindowName, row.Key, row.Partition, row.Range);
+    }
+
+    private static void WriteSymmetricDifferenceRowFields(Utf8JsonWriter writer, SymmetricDifferenceRow row)
+    {
+        WriteCommonRowFields(writer, row.WindowName, row.Key, row.Partition, row.Range);
+        writer.WriteString("side", row.Side.ToString());
         WriteIds(writer, "targetRecordIds", row.TargetRecordIds);
         WriteIds(writer, "againstRecordIds", row.AgainstRecordIds);
     }

@@ -9,7 +9,9 @@ internal static class ComparisonRuntime
         "overlap",
         "residual",
         "missing",
-        "coverage"
+        "coverage",
+        "gap",
+        "symmetric-difference"
     };
 
     internal static ComparisonResult Run(PreparedComparison prepared)
@@ -22,6 +24,8 @@ internal static class ComparisonRuntime
         var missingRows = new List<MissingRow>();
         var coverageRows = new List<CoverageRow>();
         var coverageSummaries = new List<CoverageSummary>();
+        var gapRows = new List<GapRow>();
+        var symmetricDifferenceRows = new List<SymmetricDifferenceRow>();
 
         for (var i = 0; i < prepared.Plan.Comparators.Count; i++)
         {
@@ -68,6 +72,22 @@ internal static class ComparisonRuntime
                 continue;
             }
 
+            if (string.Equals(comparator, "gap", StringComparison.Ordinal))
+            {
+                var before = gapRows.Count;
+                AddGapRows(aligned, gapRows);
+                summaries.Add(new ComparatorSummary(comparator, gapRows.Count - before));
+                continue;
+            }
+
+            if (string.Equals(comparator, "symmetric-difference", StringComparison.Ordinal))
+            {
+                var before = symmetricDifferenceRows.Count;
+                AddSymmetricDifferenceRows(aligned, symmetricDifferenceRows);
+                summaries.Add(new ComparatorSummary(comparator, symmetricDifferenceRows.Count - before));
+                continue;
+            }
+
             summaries.Add(new ComparatorSummary(comparator, RowCount: 0));
         }
 
@@ -81,7 +101,9 @@ internal static class ComparisonRuntime
             residualRows.ToArray(),
             missingRows.ToArray(),
             coverageRows.ToArray(),
-            coverageSummaries.ToArray());
+            coverageSummaries.ToArray(),
+            gapRows.ToArray(),
+            symmetricDifferenceRows.ToArray());
     }
 
     private static void AddOverlapRows(AlignedComparison aligned, List<OverlapRow> rows)
@@ -187,11 +209,71 @@ internal static class ComparisonRuntime
         }
     }
 
+    private static void AddGapRows(AlignedComparison aligned, List<GapRow> rows)
+    {
+        for (var i = 0; i < aligned.Segments.Count - 1; i++)
+        {
+            var current = aligned.Segments[i];
+            var next = aligned.Segments[i + 1];
+
+            if (!IsSameScope(current, next) || !current.Range.End.HasValue)
+            {
+                continue;
+            }
+
+            var gapStart = current.Range.End.Value;
+            var gapEnd = next.Range.Start;
+            if (gapStart.CompareTo(gapEnd) >= 0)
+            {
+                continue;
+            }
+
+            rows.Add(new GapRow(
+                current.WindowName,
+                current.Key,
+                current.Partition,
+                TemporalRange.Closed(gapStart, gapEnd)));
+        }
+    }
+
+    private static void AddSymmetricDifferenceRows(
+        AlignedComparison aligned,
+        List<SymmetricDifferenceRow> rows)
+    {
+        for (var i = 0; i < aligned.Segments.Count; i++)
+        {
+            var segment = aligned.Segments[i];
+            var hasTarget = segment.TargetRecordIds.Count > 0;
+            var hasAgainst = segment.AgainstRecordIds.Count > 0;
+
+            if (hasTarget == hasAgainst)
+            {
+                continue;
+            }
+
+            rows.Add(new SymmetricDifferenceRow(
+                segment.WindowName,
+                segment.Key,
+                segment.Partition,
+                segment.Range,
+                hasTarget ? ComparisonSide.Target : ComparisonSide.Against,
+                segment.TargetRecordIds,
+                segment.AgainstRecordIds));
+        }
+    }
+
     private static double Measure(TemporalRange range)
     {
         return range.Axis == TemporalAxis.Timestamp
             ? range.GetTimeDuration().Ticks
             : range.GetPositionLength();
+    }
+
+    private static bool IsSameScope(AlignedSegment first, AlignedSegment second)
+    {
+        return string.Equals(first.WindowName, second.WindowName, StringComparison.Ordinal)
+            && EqualityComparer<object>.Default.Equals(first.Key, second.Key)
+            && EqualityComparer<object?>.Default.Equals(first.Partition, second.Partition);
     }
 
     private sealed record CoverageScope(string WindowName, object Key, object? Partition);

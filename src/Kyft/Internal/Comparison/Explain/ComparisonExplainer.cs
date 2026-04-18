@@ -153,6 +153,8 @@ internal static class ComparisonExplainer
         writer.Item("missing rows", result.MissingRows.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("coverage rows", result.CoverageRows.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("coverage summaries", result.CoverageSummaries.Count.ToString(CultureInfo.InvariantCulture));
+        writer.Item("gap rows", result.GapRows.Count.ToString(CultureInfo.InvariantCulture));
+        writer.Item("symmetric difference rows", result.SymmetricDifferenceRows.Count.ToString(CultureInfo.InvariantCulture));
 
         for (var i = 0; i < result.ComparatorSummaries.Count; i++)
         {
@@ -210,6 +212,31 @@ internal static class ComparisonExplainer
                     + "; range=" + FormatRange(row.Range)
                     + "; targetMagnitude=" + row.TargetMagnitude.ToString("R", CultureInfo.InvariantCulture)
                     + "; coveredMagnitude=" + row.CoveredMagnitude.ToString("R", CultureInfo.InvariantCulture)
+                    + "; target=" + FormatIds(row.TargetRecordIds)
+                    + "; against=" + FormatIds(row.AgainstRecordIds));
+        }
+
+        for (var i = 0; i < result.GapRows.Count; i++)
+        {
+            var row = result.GapRows[i];
+            writer.Item(
+                "gap[" + i.ToString(CultureInfo.InvariantCulture) + "]",
+                "window=" + row.WindowName
+                    + "; key=" + StableObjectValue(row.Key)
+                    + "; partition=" + StableObjectValue(row.Partition)
+                    + "; range=" + FormatRange(row.Range));
+        }
+
+        for (var i = 0; i < result.SymmetricDifferenceRows.Count; i++)
+        {
+            var row = result.SymmetricDifferenceRows[i];
+            writer.Item(
+                "symmetricDifference[" + i.ToString(CultureInfo.InvariantCulture) + "]",
+                "window=" + row.WindowName
+                    + "; key=" + StableObjectValue(row.Key)
+                    + "; partition=" + StableObjectValue(row.Partition)
+                    + "; range=" + FormatRange(row.Range)
+                    + "; side=" + row.Side
                     + "; target=" + FormatIds(row.TargetRecordIds)
                     + "; against=" + FormatIds(row.AgainstRecordIds));
         }

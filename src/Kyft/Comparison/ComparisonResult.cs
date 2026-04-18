@@ -25,6 +25,8 @@ public sealed class ComparisonResult
     /// <param name="missingRows">Rows emitted by the missing comparator.</param>
     /// <param name="coverageRows">Rows emitted by the coverage comparator.</param>
     /// <param name="coverageSummaries">Summaries emitted by the coverage comparator.</param>
+    /// <param name="gapRows">Rows emitted by the gap comparator.</param>
+    /// <param name="symmetricDifferenceRows">Rows emitted by the symmetric-difference comparator.</param>
     public ComparisonResult(
         ComparisonPlan plan,
         IEnumerable<ComparisonPlanDiagnostic> diagnostics,
@@ -35,7 +37,9 @@ public sealed class ComparisonResult
         IEnumerable<ResidualRow>? residualRows = null,
         IEnumerable<MissingRow>? missingRows = null,
         IEnumerable<CoverageRow>? coverageRows = null,
-        IEnumerable<CoverageSummary>? coverageSummaries = null)
+        IEnumerable<CoverageSummary>? coverageSummaries = null,
+        IEnumerable<GapRow>? gapRows = null,
+        IEnumerable<SymmetricDifferenceRow>? symmetricDifferenceRows = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -50,6 +54,8 @@ public sealed class ComparisonResult
         MissingRows = Materialize(missingRows);
         CoverageRows = Materialize(coverageRows);
         CoverageSummaries = Materialize(coverageSummaries);
+        GapRows = Materialize(gapRows);
+        SymmetricDifferenceRows = Materialize(symmetricDifferenceRows);
     }
 
     /// <summary>
@@ -101,6 +107,16 @@ public sealed class ComparisonResult
     /// Gets summaries emitted by the coverage comparator.
     /// </summary>
     public IReadOnlyList<CoverageSummary> CoverageSummaries { get; }
+
+    /// <summary>
+    /// Gets rows emitted by the gap comparator.
+    /// </summary>
+    public IReadOnlyList<GapRow> GapRows { get; }
+
+    /// <summary>
+    /// Gets rows emitted by the symmetric-difference comparator.
+    /// </summary>
+    public IReadOnlyList<SymmetricDifferenceRow> SymmetricDifferenceRows { get; }
 
     /// <summary>
     /// Gets whether the result has no error diagnostics.

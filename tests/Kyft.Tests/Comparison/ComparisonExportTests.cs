@@ -41,6 +41,8 @@ public sealed class ComparisonExportTests
         Assert.Equal(0, root.GetProperty("rows").GetProperty("residual").GetArrayLength());
         Assert.Equal(0, root.GetProperty("rows").GetProperty("missing").GetArrayLength());
         Assert.Equal(0, root.GetProperty("rows").GetProperty("coverage").GetArrayLength());
+        Assert.Equal(0, root.GetProperty("rows").GetProperty("gap").GetArrayLength());
+        Assert.Equal(0, root.GetProperty("rows").GetProperty("symmetricDifference").GetArrayLength());
     }
 
     [Fact]

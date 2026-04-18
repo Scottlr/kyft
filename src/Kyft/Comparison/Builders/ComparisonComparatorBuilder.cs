@@ -47,6 +47,34 @@ public sealed class ComparisonComparatorBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds the gap comparator.
+    /// </summary>
+    /// <remarks>
+    /// Gap rows report spaces where neither side is active inside an observed
+    /// comparison scope envelope.
+    /// </remarks>
+    /// <returns>This builder.</returns>
+    public ComparisonComparatorBuilder Gap()
+    {
+        this.comparators.Add("gap");
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the symmetric-difference comparator.
+    /// </summary>
+    /// <remarks>
+    /// Symmetric-difference rows report both target-only and comparison-only
+    /// disagreement segments.
+    /// </remarks>
+    /// <returns>This builder.</returns>
+    public ComparisonComparatorBuilder SymmetricDifference()
+    {
+        this.comparators.Add("symmetric-difference");
+        return this;
+    }
+
     internal IReadOnlyList<string> Build()
     {
         return this.comparators.ToArray();

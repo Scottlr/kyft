@@ -71,3 +71,39 @@ window name, key, and partition.
 
 Use coverage when the question is "how much of the target did the comparison
 source cover?"
+
+## Gap
+
+`Gap()` emits rows for uncovered spaces inside an observed scope envelope.
+
+Each `GapRow` contains:
+
+- `WindowName`
+- `Key`
+- `Partition`
+- `Range`
+
+Gap is not the same as residual. Residual means the target was active without
+comparison coverage. Gap means neither side was active between observed
+segments. Kyft does not invent boundary gaps before the first observed segment
+or after the last observed segment unless a later query-scope policy makes those
+boundaries explicit.
+
+## Symmetric Difference
+
+`SymmetricDifference()` emits target-only and comparison-only disagreement rows
+in one result set.
+
+Each `SymmetricDifferenceRow` contains:
+
+- `WindowName`
+- `Key`
+- `Partition`
+- `Range`
+- `Side`
+- `TargetRecordIds`
+- `AgainstRecordIds`
+
+Use symmetric difference when the question is "where did these histories
+disagree at all?" It is equivalent to looking at target residuals and
+comparison-only missing segments together.
