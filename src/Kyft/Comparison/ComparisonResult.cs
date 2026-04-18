@@ -17,5 +17,6 @@ public sealed record ComparisonResult(
     /// <summary>
     /// Gets whether the plan produced no validation diagnostics.
     /// </summary>
-    public bool IsValid => Diagnostics.Count == 0;
+    public bool IsValid => Diagnostics.All(static diagnostic =>
+        diagnostic.Severity != ComparisonPlanDiagnosticSeverity.Error);
 }

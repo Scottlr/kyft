@@ -94,13 +94,17 @@ public sealed class ComparisonPlan
     public IReadOnlyList<ComparisonPlanDiagnostic> Validate()
     {
         var diagnostics = new List<ComparisonPlanDiagnostic>();
+        var exportabilitySeverity = IsStrict
+            ? ComparisonPlanDiagnosticSeverity.Error
+            : ComparisonPlanDiagnosticSeverity.Warning;
 
         if (string.IsNullOrWhiteSpace(Name))
         {
             diagnostics.Add(new ComparisonPlanDiagnostic(
                 ComparisonPlanValidationCode.MissingName,
                 "Comparison plan name is required.",
-                "name"));
+                "name",
+                ComparisonPlanDiagnosticSeverity.Error));
         }
 
         if (!Target.HasValue)
@@ -108,14 +112,16 @@ public sealed class ComparisonPlan
             diagnostics.Add(new ComparisonPlanDiagnostic(
                 ComparisonPlanValidationCode.MissingTarget,
                 "Comparison plan target selector is required.",
-                "target"));
+                "target",
+                ComparisonPlanDiagnosticSeverity.Error));
         }
         else if (!Target.Value.IsSerializable)
         {
             diagnostics.Add(new ComparisonPlanDiagnostic(
                 ComparisonPlanValidationCode.NonSerializableSelector,
                 "Target selector is runtime-only and cannot be exported as plan data.",
-                "target"));
+                "target",
+                exportabilitySeverity));
         }
 
         if (Against.Count == 0)
@@ -123,7 +129,8 @@ public sealed class ComparisonPlan
             diagnostics.Add(new ComparisonPlanDiagnostic(
                 ComparisonPlanValidationCode.MissingAgainst,
                 "At least one comparison selector is required.",
-                "against"));
+                "against",
+                ComparisonPlanDiagnosticSeverity.Error));
         }
         else
         {
@@ -137,7 +144,8 @@ public sealed class ComparisonPlan
                 diagnostics.Add(new ComparisonPlanDiagnostic(
                     ComparisonPlanValidationCode.NonSerializableSelector,
                     "Comparison selector is runtime-only and cannot be exported as plan data.",
-                    $"against[{i}]"));
+                    $"against[{i}]",
+                    exportabilitySeverity));
             }
         }
 
@@ -146,7 +154,8 @@ public sealed class ComparisonPlan
             diagnostics.Add(new ComparisonPlanDiagnostic(
                 ComparisonPlanValidationCode.MissingScope,
                 "Comparison scope is required.",
-                "scope"));
+                "scope",
+                ComparisonPlanDiagnosticSeverity.Error));
         }
 
         if (Comparators.Count == 0)
@@ -154,7 +163,8 @@ public sealed class ComparisonPlan
             diagnostics.Add(new ComparisonPlanDiagnostic(
                 ComparisonPlanValidationCode.MissingComparator,
                 "At least one comparator is required.",
-                "comparators"));
+                "comparators",
+                ComparisonPlanDiagnosticSeverity.Error));
         }
 
         return diagnostics.ToArray();
