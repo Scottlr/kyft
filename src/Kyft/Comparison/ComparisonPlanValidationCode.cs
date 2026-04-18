@@ -63,5 +63,10 @@ public enum ComparisonPlanValidationCode
     /// <summary>
     /// Indicates that a recorded window was clipped by policy.
     /// </summary>
-    ClippedWindow = 11
+    ClippedWindow = 11,
+
+    /// <summary>
+    /// Indicates that a comparator declaration is not registered.
+    /// </summary>
+    UnknownComparator = 12
 }

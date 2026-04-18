@@ -162,7 +162,6 @@ public sealed class WindowComparisonBuilder
     /// <returns>A comparison result shell for the current plan.</returns>
     public ComparisonResult Run()
     {
-        var prepared = Prepare();
-        return new ComparisonResult(prepared.Plan, prepared.Diagnostics);
+        return ComparisonRuntime.Run(Prepare());
     }
 }

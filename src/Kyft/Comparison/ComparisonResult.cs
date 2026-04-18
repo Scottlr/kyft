@@ -10,9 +10,15 @@ namespace Kyft;
 /// </remarks>
 /// <param name="Plan">The comparison plan.</param>
 /// <param name="Diagnostics">The validation diagnostics.</param>
+/// <param name="Prepared">The prepared comparison artifact, when execution reached preparation.</param>
+/// <param name="Aligned">The aligned comparison artifact, when execution reached alignment.</param>
+/// <param name="ComparatorSummaries">The comparator summaries.</param>
 public sealed record ComparisonResult(
     ComparisonPlan Plan,
-    IReadOnlyList<ComparisonPlanDiagnostic> Diagnostics)
+    IReadOnlyList<ComparisonPlanDiagnostic> Diagnostics,
+    PreparedComparison? Prepared = null,
+    AlignedComparison? Aligned = null,
+    IReadOnlyList<ComparatorSummary>? ComparatorSummaries = null)
 {
     /// <summary>
     /// Gets whether the plan produced no validation diagnostics.
