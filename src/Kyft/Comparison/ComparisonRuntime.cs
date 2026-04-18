@@ -18,6 +18,8 @@ internal static class ComparisonRuntime
         var overlapRows = new List<OverlapRow>();
         var residualRows = new List<ResidualRow>();
         var missingRows = new List<MissingRow>();
+        var coverageRows = new List<CoverageRow>();
+        var coverageSummaries = new List<CoverageSummary>();
 
         for (var i = 0; i < prepared.Plan.Comparators.Count; i++)
         {
@@ -56,6 +58,14 @@ internal static class ComparisonRuntime
                 continue;
             }
 
+            if (string.Equals(comparator, "coverage", StringComparison.Ordinal))
+            {
+                var before = coverageRows.Count;
+                AddCoverageRows(aligned, coverageRows, coverageSummaries);
+                summaries.Add(new ComparatorSummary(comparator, coverageRows.Count - before));
+                continue;
+            }
+
             summaries.Add(new ComparatorSummary(comparator, RowCount: 0));
         }
 
@@ -67,7 +77,9 @@ internal static class ComparisonRuntime
             summaries.ToArray(),
             overlapRows.ToArray(),
             residualRows.ToArray(),
-            missingRows.ToArray());
+            missingRows.ToArray(),
+            coverageRows.ToArray(),
+            coverageSummaries.ToArray());
     }
 
     private static void AddOverlapRows(AlignedComparison aligned, List<OverlapRow> rows)
@@ -127,4 +139,58 @@ internal static class ComparisonRuntime
                 segment.AgainstRecordIds));
         }
     }
+
+    private static void AddCoverageRows(
+        AlignedComparison aligned,
+        List<CoverageRow> rows,
+        List<CoverageSummary> summaries)
+    {
+        var summary = new Dictionary<CoverageScope, (double Target, double Covered)>();
+
+        for (var i = 0; i < aligned.Segments.Count; i++)
+        {
+            var segment = aligned.Segments[i];
+            if (segment.TargetRecordIds.Count == 0)
+            {
+                continue;
+            }
+
+            var targetMagnitude = Measure(segment.Range);
+            var coveredMagnitude = segment.AgainstRecordIds.Count > 0 ? targetMagnitude : 0d;
+
+            rows.Add(new CoverageRow(
+                segment.WindowName,
+                segment.Key,
+                segment.Partition,
+                segment.Range,
+                targetMagnitude,
+                coveredMagnitude,
+                segment.TargetRecordIds,
+                segment.AgainstRecordIds));
+
+            var key = new CoverageScope(segment.WindowName, segment.Key, segment.Partition);
+            summary.TryGetValue(key, out var totals);
+            summary[key] = (totals.Target + targetMagnitude, totals.Covered + coveredMagnitude);
+        }
+
+        foreach (var item in summary.OrderBy(static pair => pair.Key.WindowName, StringComparer.Ordinal))
+        {
+            summaries.Add(new CoverageSummary(
+                item.Key.WindowName,
+                item.Key.Key,
+                item.Key.Partition,
+                item.Value.Target,
+                item.Value.Covered,
+                item.Value.Target == 0d ? 0d : item.Value.Covered / item.Value.Target));
+        }
+    }
+
+    private static double Measure(TemporalRange range)
+    {
+        return range.Axis == TemporalAxis.Timestamp
+            ? range.GetTimeDuration().Ticks
+            : range.GetPositionLength();
+    }
+
+    private sealed record CoverageScope(string WindowName, object Key, object? Partition);
 }

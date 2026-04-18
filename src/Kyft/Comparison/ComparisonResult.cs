@@ -16,6 +16,8 @@ namespace Kyft;
 /// <param name="OverlapRows">Rows emitted by the overlap comparator.</param>
 /// <param name="ResidualRows">Rows emitted by the residual comparator.</param>
 /// <param name="MissingRows">Rows emitted by the missing comparator.</param>
+/// <param name="CoverageRows">Rows emitted by the coverage comparator.</param>
+/// <param name="CoverageSummaries">Summaries emitted by the coverage comparator.</param>
 public sealed record ComparisonResult(
     ComparisonPlan Plan,
     IReadOnlyList<ComparisonPlanDiagnostic> Diagnostics,
@@ -24,7 +26,9 @@ public sealed record ComparisonResult(
     IReadOnlyList<ComparatorSummary>? ComparatorSummaries = null,
     IReadOnlyList<OverlapRow>? OverlapRows = null,
     IReadOnlyList<ResidualRow>? ResidualRows = null,
-    IReadOnlyList<MissingRow>? MissingRows = null)
+    IReadOnlyList<MissingRow>? MissingRows = null,
+    IReadOnlyList<CoverageRow>? CoverageRows = null,
+    IReadOnlyList<CoverageSummary>? CoverageSummaries = null)
 {
     /// <summary>
     /// Gets whether the plan produced no validation diagnostics.
