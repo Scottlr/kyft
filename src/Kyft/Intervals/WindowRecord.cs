@@ -22,6 +22,15 @@ public abstract record WindowRecord(
     DateTimeOffset? EndTime = null)
 {
     /// <summary>
+    /// Gets the deterministic identity for this recorded window.
+    /// </summary>
+    /// <remarks>
+    /// The identity is stable for the same recorded window data in a
+    /// deterministic replay. It is not a distributed global identifier.
+    /// </remarks>
+    public WindowRecordId Id => WindowRecordId.From(this);
+
+    /// <summary>
     /// Gets whether this window has an end position.
     /// </summary>
     public bool IsClosed => EndPosition.HasValue;
