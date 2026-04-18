@@ -14,13 +14,17 @@ namespace Kyft;
 /// <param name="Aligned">The aligned comparison artifact, when execution reached alignment.</param>
 /// <param name="ComparatorSummaries">The comparator summaries.</param>
 /// <param name="OverlapRows">Rows emitted by the overlap comparator.</param>
+/// <param name="ResidualRows">Rows emitted by the residual comparator.</param>
+/// <param name="MissingRows">Rows emitted by the missing comparator.</param>
 public sealed record ComparisonResult(
     ComparisonPlan Plan,
     IReadOnlyList<ComparisonPlanDiagnostic> Diagnostics,
     PreparedComparison? Prepared = null,
     AlignedComparison? Aligned = null,
     IReadOnlyList<ComparatorSummary>? ComparatorSummaries = null,
-    IReadOnlyList<OverlapRow>? OverlapRows = null)
+    IReadOnlyList<OverlapRow>? OverlapRows = null,
+    IReadOnlyList<ResidualRow>? ResidualRows = null,
+    IReadOnlyList<MissingRow>? MissingRows = null)
 {
     /// <summary>
     /// Gets whether the plan produced no validation diagnostics.
