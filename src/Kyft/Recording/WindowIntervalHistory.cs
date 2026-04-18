@@ -5,6 +5,11 @@ namespace Kyft;
 /// <summary>
 /// Stores recorded open and closed windows and exposes window queries.
 /// </summary>
+/// <remarks>
+/// History is append-oriented from pipeline ingestion. Query and comparison
+/// APIs return materialized snapshots so callers can inspect the current
+/// recorded state without mutating the active runtime.
+/// </remarks>
 public sealed class WindowIntervalHistory
 {
     private readonly bool enabled;

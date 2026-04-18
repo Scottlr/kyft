@@ -3,6 +3,11 @@ namespace Kyft;
 /// <summary>
 /// Describes how the end of a temporal range was determined.
 /// </summary>
+/// <remarks>
+/// End status preserves finality lineage. A closed range came from a recorded
+/// window close, while effective ends such as horizons are policy decisions
+/// made during analysis.
+/// </remarks>
 public enum TemporalRangeEndStatus
 {
     /// <summary>

@@ -5,7 +5,9 @@ namespace Kyft;
 /// </summary>
 /// <remarks>
 /// A comparison plan is the question Kyft should answer. It does not execute
-/// the comparison or enumerate recorded window history.
+/// the comparison or enumerate recorded window history. Plans are deterministic
+/// data contracts when all selectors are serializable, which makes them suitable
+/// for review, CI fixtures, and later execution against recorded window history.
 /// </remarks>
 public sealed class ComparisonPlan
 {
@@ -81,8 +83,13 @@ public sealed class ComparisonPlan
     public bool IsStrict { get; }
 
     /// <summary>
-    /// Gets whether every selector in the plan can be exported as data.
+    /// Gets whether every selector in the plan can be exported as portable data.
     /// </summary>
+    /// <remarks>
+    /// Runtime-only selectors may still execute locally, but deterministic JSON
+    /// export rejects them because the predicate delegate cannot be represented
+    /// as a portable comparison contract.
+    /// </remarks>
     public bool IsSerializable => !Target.HasValue
         ? Against.All(static selector => selector.IsSerializable)
         : Target.Value.IsSerializable && Against.All(static selector => selector.IsSerializable);
@@ -90,6 +97,11 @@ public sealed class ComparisonPlan
     /// <summary>
     /// Validates the structural completeness of the comparison plan.
     /// </summary>
+    /// <remarks>
+    /// Diagnostics are returned in stable path order so tooling can snapshot and
+    /// compare validation output. Strict plans promote selector exportability
+    /// issues to errors, while non-strict plans keep them visible as warnings.
+    /// </remarks>
     /// <returns>The validation diagnostics in stable order.</returns>
     public IReadOnlyList<ComparisonPlanDiagnostic> Validate()
     {

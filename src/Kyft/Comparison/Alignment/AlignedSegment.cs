@@ -3,6 +3,10 @@ namespace Kyft;
 /// <summary>
 /// Describes one aligned temporal segment and the normalized windows active within it.
 /// </summary>
+/// <remarks>
+/// Segments use half-open temporal ranges. Target and comparison record IDs
+/// provide lineage back to the selected recorded windows.
+/// </remarks>
 /// <param name="WindowName">The configured window name.</param>
 /// <param name="Key">The logical window key.</param>
 /// <param name="Partition">The optional partition identity.</param>

@@ -3,6 +3,11 @@ namespace Kyft;
 /// <summary>
 /// Describes how recorded windows are normalized before comparison.
 /// </summary>
+/// <remarks>
+/// Normalization is where Kyft chooses the temporal axis, open-window finality
+/// policy, missing timestamp behavior, and duplicate handling before windows are
+/// aligned into deterministic comparison segments.
+/// </remarks>
 /// <param name="RequireClosedWindows">Whether open windows are rejected during historical comparison.</param>
 /// <param name="UseHalfOpenRanges">Whether ranges use half-open start-inclusive, end-exclusive semantics.</param>
 /// <param name="TimeAxis">The temporal axis used for normalized ranges.</param>

@@ -6,7 +6,9 @@ namespace Kyft;
 /// <remarks>
 /// Comparison results are immutable snapshots. Row and summary collections are
 /// materialized so consumers can inspect the result deterministically without
-/// re-running comparison logic.
+/// re-running comparison logic. Rows keep stable row positions and source
+/// record IDs so a result can be exported, explained, and reviewed without a
+/// debugger.
 /// </remarks>
 public sealed class ComparisonResult
 {
@@ -103,6 +105,10 @@ public sealed class ComparisonResult
     /// <summary>
     /// Gets whether the result has no error diagnostics.
     /// </summary>
+    /// <remarks>
+    /// Warnings remain visible in <see cref="Diagnostics" /> and explain/export
+    /// output, but they do not make the result invalid.
+    /// </remarks>
     public bool IsValid => Diagnostics.All(static diagnostic =>
         diagnostic.Severity != ComparisonPlanDiagnosticSeverity.Error);
 

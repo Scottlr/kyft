@@ -3,6 +3,11 @@ namespace Kyft;
 /// <summary>
 /// Identifies the temporal axis used to order a point in a Kyft analysis.
 /// </summary>
+/// <remarks>
+/// Points on different axes are intentionally not comparable. A comparison plan
+/// must choose one axis for scope and normalization before ranges can be
+/// aligned.
+/// </remarks>
 public enum TemporalAxis
 {
     /// <summary>

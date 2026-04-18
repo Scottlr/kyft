@@ -7,7 +7,10 @@ namespace Kyft;
 /// </summary>
 /// <remarks>
 /// This artifact carries the plan, validation diagnostics, selected windows,
-/// excluded windows, and normalized windows ready for alignment.
+/// excluded windows, and normalized windows ready for alignment. Preparation is
+/// the first stage that enumerates recorded history and turns open or timestamp
+/// records into deterministic temporal ranges according to the normalization
+/// policy.
 /// </remarks>
 /// <param name="Plan">The comparison plan.</param>
 /// <param name="Diagnostics">The validation diagnostics.</param>
@@ -24,6 +27,11 @@ public sealed record PreparedComparison(
     /// <summary>
     /// Aligns normalized windows into reusable temporal segments.
     /// </summary>
+    /// <remarks>
+    /// Alignment preserves comparison scope boundaries and emits half-open
+    /// segments in deterministic order by window name, key, partition, and
+    /// temporal position.
+    /// </remarks>
     /// <returns>The aligned comparison.</returns>
     public AlignedComparison Align()
     {

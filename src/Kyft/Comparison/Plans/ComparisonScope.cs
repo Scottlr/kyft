@@ -3,6 +3,11 @@ namespace Kyft;
 /// <summary>
 /// Describes the temporal scope for a comparison plan.
 /// </summary>
+/// <remarks>
+/// Scope selects the window family and temporal axis for the question. The
+/// normalization policy must use the same axis before preparation can produce
+/// comparable ranges.
+/// </remarks>
 /// <param name="WindowName">Optional window name restriction.</param>
 /// <param name="TimeAxis">The temporal axis used by the comparison.</param>
 public sealed record ComparisonScope(

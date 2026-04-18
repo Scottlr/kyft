@@ -8,7 +8,9 @@ namespace Kyft;
 /// <remarks>
 /// The builder captures the comparison question without mutating or enumerating
 /// the source history. Later stages add target, comparison sources,
-/// normalization, and comparator choices before execution.
+/// normalization, and comparator choices before execution. This staged flow is
+/// intended to keep "what are we comparing?" separate from "how should windows
+/// be normalized and measured?".
 /// </remarks>
 public sealed class WindowComparisonBuilder
 {
@@ -152,16 +154,24 @@ public sealed class WindowComparisonBuilder
     /// <summary>
     /// Prepares the current plan enough to inspect validation diagnostics.
     /// </summary>
-    /// <returns>A prepared comparison shell for the current plan.</returns>
+    /// <remarks>
+    /// Preparation enumerates recorded history, applies selectors and scope,
+    /// normalizes windows, and records exclusions without running comparators.
+    /// </remarks>
+    /// <returns>A prepared comparison artifact for the current plan.</returns>
     public PreparedComparison Prepare()
     {
         return ComparisonPreparer.Prepare(History, Build());
     }
 
     /// <summary>
-    /// Runs the current plan through the available high-level validation stage.
+    /// Runs the current plan through preparation, alignment, and comparator execution.
     /// </summary>
-    /// <returns>A comparison result shell for the current plan.</returns>
+    /// <remarks>
+    /// The returned result materializes row collections so repeated inspection,
+    /// explain output, and export do not re-enumerate the source history.
+    /// </remarks>
+    /// <returns>A comparison result for the current plan.</returns>
     public ComparisonResult Run()
     {
         return ComparisonRuntime.Run(Prepare());
