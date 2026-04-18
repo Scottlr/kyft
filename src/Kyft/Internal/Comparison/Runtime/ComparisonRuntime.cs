@@ -1,4 +1,6 @@
-namespace Kyft;
+using Kyft;
+
+namespace Kyft.Internal.Comparison;
 
 internal static class ComparisonRuntime
 {

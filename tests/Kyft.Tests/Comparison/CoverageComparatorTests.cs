@@ -70,7 +70,7 @@ public sealed class CoverageComparatorTests
     {
         var method = typeof(WindowComparisonBuilder)
             .Assembly
-            .GetType("Kyft.ComparisonRuntime")!
+            .GetType("Kyft.Internal.Comparison.ComparisonRuntime")!
             .GetMethod("Run", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
 
         return (ComparisonResult)method.Invoke(null, [prepared])!;
