@@ -1,6 +1,6 @@
 using Kyft;
 
-namespace Kyft.Tests.Intervals;
+namespace Kyft.Tests.Recording;
 
 public sealed class IntervalRecordingTests
 {
