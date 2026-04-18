@@ -109,3 +109,52 @@ intervals also include event timestamps.
 Closed interval history supports basic overlap queries and residual analysis for
 source comparisons. These query helpers are intentionally separate from the main
 pipeline builder surface.
+
+## Comparison Quickstart
+
+Record intervals when you want to compare how different sources, providers, or
+pipeline stages described the same window.
+
+```csharp
+using Kyft;
+
+var pipeline = Kyft
+    .For<DeviceSignal>()
+    .RecordIntervals()
+    .TrackWindow(
+        "DeviceOffline",
+        signal => signal.DeviceId,
+        signal => !signal.IsOnline);
+
+pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
+pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-a");
+
+var result = pipeline.Intervals
+    .Compare("Source coverage")
+    .Target("all-offline", selector => selector.WindowName("DeviceOffline"))
+    .Against("provider-a", selector => selector.Source("provider-a"))
+    .Within(scope => scope.Window("DeviceOffline"))
+    .Using(comparators => comparators
+        .Overlap()
+        .Coverage())
+    .Run();
+
+foreach (var row in result.OverlapRows)
+{
+    Console.WriteLine($"{row.WindowName} {row.Range.Start.Position}..{row.Range.End!.Value.Position}");
+}
+
+var markdown = result.ExportMarkdown();
+
+public sealed record DeviceSignal(string DeviceId, bool IsOnline);
+```
+
+Comparison uses half-open ranges: the start is included and the end is excluded.
+Open windows are rejected by default for historical comparison; opt into an
+explicit horizon when analysing an ongoing live window.
+
+More detail:
+
+- [Comparison guide](docs/comparison-guide.md)
+- [Comparator reference](docs/comparator-reference.md)
+- [Agent guidance](docs/agent-guidance.md)
