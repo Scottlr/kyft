@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Kyft/Kyft.csproj" />
+    <Project Path="src/Kyft.Testing/Kyft.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Kyft.Tests/Kyft.Tests.csproj" />

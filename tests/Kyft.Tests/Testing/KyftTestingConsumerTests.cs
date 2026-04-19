@@ -1,0 +1,68 @@
+using Kyft.Testing;
+
+namespace Kyft.Tests.Testing;
+
+public sealed class KyftTestingConsumerTests
+{
+    [Fact]
+    public void ConsumerCanAssertComparisonResult()
+    {
+        var history = new WindowHistoryFixtureBuilder()
+            .AddClosedWindow("DeviceOffline", "device-1", 1, 5, source: "provider-a")
+            .AddClosedWindow("DeviceOffline", "device-1", 3, 7, source: "provider-b")
+            .Build();
+
+        var result = history.Compare("Provider QA")
+            .Target("provider-a", selector => selector.Source("provider-a"))
+            .Against("provider-b", selector => selector.Source("provider-b"))
+            .Within(scope => scope.Window("DeviceOffline"))
+            .Using(comparators => comparators.Overlap())
+            .Run();
+
+        KyftAssert.IsValid(result);
+        KyftAssert.HasNoDiagnostics(result);
+        KyftAssert.HasRowCount(result, "overlap", 1);
+    }
+
+    [Fact]
+    public void SnapshotHelperNormalizesRecordIds()
+    {
+        const string firstId = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        const string secondId = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+        KyftSnapshot.AssertEqual(
+            "ids: <record-id:1> <record-id:2>\n",
+            "ids: " + firstId + " " + secondId);
+    }
+
+    [Fact]
+    public void VirtualClockProducesDeterministicHorizons()
+    {
+        var clock = new VirtualComparisonClock(initialPosition: 5);
+
+        Assert.Equal(TemporalPoint.ForPosition(5), clock.Horizon);
+        Assert.Equal(TemporalPoint.ForPosition(8), clock.AdvanceBy(3));
+        Assert.Throws<ArgumentOutOfRangeException>(() => clock.AdvanceTo(7));
+    }
+
+    [Fact]
+    public void PackageAssertionsThrowFrameworkNeutralException()
+    {
+        var result = new ComparisonResult(
+            new ComparisonPlan(
+                "Invalid",
+                ComparisonSelector.ForSource("provider-a"),
+                [ComparisonSelector.ForSource("provider-b")],
+                ComparisonScope.Window("DeviceOffline"),
+                ComparisonNormalizationPolicy.Default,
+                ["overlap"],
+                ComparisonOutputOptions.Default),
+            [new ComparisonPlanDiagnostic(
+                ComparisonPlanValidationCode.Unknown,
+                "Invalid",
+                "result",
+                ComparisonPlanDiagnosticSeverity.Error)]);
+
+        Assert.Throws<KyftAssertionException>(() => KyftAssert.IsValid(result));
+    }
+}
