@@ -92,6 +92,61 @@ public sealed class KyftCliTests
     }
 
     [Fact]
+    public void ComparePreservesAdvancedComparatorDeclarationsFromFixturePlan()
+    {
+        var fixturePath = TempFixturePath();
+        try
+        {
+            File.WriteAllText(fixturePath, """
+                {
+                  "schema": "kyft.contract-fixture",
+                  "schemaVersion": 1,
+                  "name": "advanced-comparators",
+                  "windows": [
+                    {
+                      "windowName": "DeviceOffline",
+                      "key": "device-1",
+                      "source": "provider-a",
+                      "startPosition": 1,
+                      "endPosition": 5
+                    },
+                    {
+                      "windowName": "DeviceOffline",
+                      "key": "device-1",
+                      "source": "provider-b",
+                      "startPosition": 1,
+                      "endPosition": 5
+                    }
+                  ],
+                  "plan": {
+                    "name": "Advanced Provider QA",
+                    "targetSource": "provider-a",
+                    "againstSources": [ "provider-b" ],
+                    "scopeWindow": "DeviceOffline",
+                    "comparators": [ "containment", "lead-lag:Start:ProcessingPosition:5" ],
+                    "strict": false
+                  }
+                }
+                """);
+
+            var (exitCode, output, error) = Run("compare", fixturePath, "--format", "json");
+
+            Assert.Equal(0, exitCode);
+            Assert.Equal(string.Empty, error);
+            using var document = JsonDocument.Parse(output);
+            var comparators = document.RootElement
+                .GetProperty("plan")
+                .GetProperty("comparators");
+            Assert.Equal("containment", comparators[0].GetString());
+            Assert.Equal("lead-lag:Start:ProcessingPosition:5", comparators[1].GetString());
+        }
+        finally
+        {
+            File.Delete(fixturePath);
+        }
+    }
+
+    [Fact]
     public void ExplainRunsFixtureAndWritesMarkdown()
     {
         var (exitCode, output, error) = Run("explain", FixturePath("basic-overlap.json"));

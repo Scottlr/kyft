@@ -53,6 +53,29 @@ public sealed class FluentComparisonBuilderTests
     }
 
     [Fact]
+    public void ComparatorDeclarationsCanBePassedThrough()
+    {
+        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+
+        var plan = history.Compare("Extension QA")
+            .Target("provider-a", s => s.Source("provider-a"))
+            .Against("provider-b", s => s.Source("provider-b"))
+            .Within(s => s.Window("DeviceOffline"))
+            .Using(c => c.Overlap().Declaration("odds:edge"))
+            .Build();
+
+        Assert.Equal(["overlap", "odds:edge"], plan.Comparators);
+    }
+
+    [Fact]
+    public void BlankComparatorDeclarationsAreRejected()
+    {
+        var builder = new ComparisonComparatorBuilder();
+
+        Assert.Throws<ArgumentException>(() => builder.Declaration(" "));
+    }
+
+    [Fact]
     public void BuildDoesNotExecuteOrMutateHistory()
     {
         var pipeline = Kyft

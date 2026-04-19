@@ -150,6 +150,25 @@ public sealed class ComparisonComparatorBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds a comparator declaration by name.
+    /// </summary>
+    /// <remarks>
+    /// Use this when replaying persisted plans, CLI fixtures, or extension
+    /// declarations that are not represented by a strongly typed helper yet.
+    /// Unknown declarations remain visible in the plan and are diagnosed by
+    /// the comparison runtime instead of being silently discarded.
+    /// </remarks>
+    /// <param name="declaration">The comparator declaration to add.</param>
+    /// <returns>This builder.</returns>
+    public ComparisonComparatorBuilder Declaration(string declaration)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(declaration);
+
+        this.comparators.Add(declaration);
+        return this;
+    }
+
     internal IReadOnlyList<string> Build()
     {
         return this.comparators.ToArray();

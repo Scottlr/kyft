@@ -136,31 +136,7 @@ public static class KyftCli
         var builder = new ComparisonComparatorBuilder();
         for (var i = 0; i < comparators.Count; i++)
         {
-            var comparator = comparators[i];
-            if (string.Equals(comparator, "overlap", StringComparison.Ordinal))
-            {
-                builder.Overlap();
-            }
-            else if (string.Equals(comparator, "residual", StringComparison.Ordinal))
-            {
-                builder.Residual();
-            }
-            else if (string.Equals(comparator, "missing", StringComparison.Ordinal))
-            {
-                builder.Missing();
-            }
-            else if (string.Equals(comparator, "coverage", StringComparison.Ordinal))
-            {
-                builder.Coverage();
-            }
-            else if (string.Equals(comparator, "gap", StringComparison.Ordinal))
-            {
-                builder.Gap();
-            }
-            else if (string.Equals(comparator, "symmetric-difference", StringComparison.Ordinal))
-            {
-                builder.SymmetricDifference();
-            }
+            builder.Declaration(comparators[i]);
         }
 
         return builder;
