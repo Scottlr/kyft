@@ -1,14 +1,9 @@
 namespace Kyft.Internal.Keys;
 
-internal sealed class ObjectKeyComparer<TKey> : IEqualityComparer<object>
+internal sealed class ObjectKeyComparer<TKey>(IEqualityComparer<TKey> comparer) : IEqualityComparer<object>
     where TKey : notnull
 {
-    private readonly IEqualityComparer<TKey> comparer;
-
-    public ObjectKeyComparer(IEqualityComparer<TKey> comparer)
-    {
-        this.comparer = comparer;
-    }
+    private readonly IEqualityComparer<TKey> comparer = comparer;
 
     public new bool Equals(object? x, object? y)
     {
