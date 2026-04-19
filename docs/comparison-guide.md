@@ -113,6 +113,14 @@ var result = pipeline.Intervals
 The result carries `EvaluationHorizon` and row finality metadata so consumers can
 separate current-state insight from final historical evidence.
 
+## Live Revisions
+
+Use `ComparisonChangelog.Create(previous.RowFinalities, current.RowFinalities)`
+to audit how live row metadata changed between snapshots. Revised entries
+supersede earlier row versions, and retracted entries remove rows that no longer
+exist in the current snapshot. `ComparisonChangelog.Replay(...)` rebuilds the
+active row-finality view from a prior snapshot plus its changelog entries.
+
 ## Inspectability
 
 Use `Validate()` before execution when building plans dynamically. Use

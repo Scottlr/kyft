@@ -573,6 +573,8 @@ internal static class ComparisonExporter
             writer.WriteString("rowId", finality.RowId);
             writer.WriteString("finality", finality.Finality.ToString());
             writer.WriteString("reason", finality.Reason);
+            writer.WriteNumber("version", finality.Version);
+            WriteNullableString(writer, "supersedesRowId", finality.SupersedesRowId);
             writer.WriteEndObject();
         }
 
