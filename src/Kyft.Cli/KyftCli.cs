@@ -78,9 +78,16 @@ public static class KyftCli
     {
         var history = CreateHistory(fixture.GetProperty("windows"));
         var plan = CreatePlan(fixture.GetProperty("plan"));
-        return history.Compare(plan.Name)
-            .Target(plan.Target!.Value.Name, _ => plan.Target.Value)
-            .Against(plan.Against[0].Name, _ => plan.Against[0])
+        var builder = history.Compare(plan.Name)
+            .Target(plan.Target!.Value.Name, _ => plan.Target.Value);
+
+        for (var i = 0; i < plan.Against.Count; i++)
+        {
+            var selector = plan.Against[i];
+            builder.Against(selector.Name, _ => selector);
+        }
+
+        return builder
             .Within(_ => plan.Scope!)
             .Using(_ => BuildComparators(plan.Comparators))
             .Normalize(_ => BuildNormalization(plan.Normalization))

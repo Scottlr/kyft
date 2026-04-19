@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 using Kyft.Cli;
 
@@ -25,6 +26,69 @@ public sealed class KyftCliTests
         Assert.Contains("\"schema\": \"kyft.comparison.result\"", output);
         Assert.Contains("\"overlap\"", output);
         Assert.Equal(string.Empty, error);
+    }
+
+    [Fact]
+    public void CompareHonorsEveryAgainstSourceInFixturePlan()
+    {
+        var fixturePath = TempFixturePath();
+        try
+        {
+            File.WriteAllText(fixturePath, """
+                {
+                  "schema": "kyft.contract-fixture",
+                  "schemaVersion": 1,
+                  "name": "multi-source-overlap",
+                  "windows": [
+                    {
+                      "windowName": "DeviceOffline",
+                      "key": "device-1",
+                      "source": "provider-a",
+                      "startPosition": 1,
+                      "endPosition": 5
+                    },
+                    {
+                      "windowName": "DeviceOffline",
+                      "key": "device-1",
+                      "source": "provider-b",
+                      "startPosition": 3,
+                      "endPosition": 7
+                    },
+                    {
+                      "windowName": "DeviceOffline",
+                      "key": "device-1",
+                      "source": "provider-c",
+                      "startPosition": 2,
+                      "endPosition": 4
+                    }
+                  ],
+                  "plan": {
+                    "name": "Provider QA",
+                    "targetSource": "provider-a",
+                    "againstSources": [ "provider-b", "provider-c" ],
+                    "scopeWindow": "DeviceOffline",
+                    "comparators": [ "overlap" ],
+                    "strict": false
+                  }
+                }
+                """);
+
+            var (exitCode, output, error) = Run("compare", fixturePath, "--format", "json");
+
+            Assert.Equal(0, exitCode);
+            Assert.Equal(string.Empty, error);
+            using var document = JsonDocument.Parse(output);
+            var against = document.RootElement
+                .GetProperty("plan")
+                .GetProperty("against");
+            Assert.Equal(2, against.GetArrayLength());
+            Assert.Equal("source:provider-b", against[0].GetProperty("name").GetString());
+            Assert.Equal("source:provider-c", against[1].GetProperty("name").GetString());
+        }
+        finally
+        {
+            File.Delete(fixturePath);
+        }
     }
 
     [Fact]
@@ -63,5 +127,10 @@ public sealed class KyftCliTests
             "Comparison",
             "Fixtures",
             name);
+    }
+
+    private static string TempFixturePath()
+    {
+        return Path.Combine(Path.GetTempPath(), "kyft-cli-" + Guid.NewGuid().ToString("N") + ".json");
     }
 }
