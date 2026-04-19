@@ -83,4 +83,48 @@ public static class ComparisonExportExtensions
 
         return ComparisonExporter.ExportJsonLines(result);
     }
+
+    /// <summary>
+    /// Exports a comparison result as a self-contained debug HTML document.
+    /// </summary>
+    /// <remarks>
+    /// The document is intended for workflow-boundary debugging, issue reports,
+    /// live incident inspection, and agent handoff. It includes inline styles
+    /// and does not require a web server, CDN, JavaScript package, or external
+    /// asset.
+    /// </remarks>
+    /// <param name="result">The result to export.</param>
+    /// <returns>A self-contained HTML document for visual comparison debugging.</returns>
+    public static string ExportDebugHtml(this ComparisonResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        return ComparisonExporter.ExportDebugHtml(result);
+    }
+
+    /// <summary>
+    /// Writes a comparison result as a self-contained debug HTML document.
+    /// </summary>
+    /// <remarks>
+    /// Parent directories are created automatically. The resulting file can be
+    /// opened directly in a browser and is intended for debug artifacts rather
+    /// than ingestion hot paths.
+    /// </remarks>
+    /// <param name="result">The result to export.</param>
+    /// <param name="path">The destination HTML file path.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="path" /> is empty.</exception>
+    public static void ExportDebugHtml(this ComparisonResult result, string path)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        var fullPath = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        File.WriteAllText(fullPath, result.ExportDebugHtml());
+    }
 }

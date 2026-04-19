@@ -145,6 +145,11 @@ internal static class ComparisonExporter
         }
     }
 
+    internal static string ExportDebugHtml(ComparisonResult result)
+    {
+        return ComparisonDebugHtmlExporter.Export(result);
+    }
+
     private static void EnsureExportable(ComparisonPlan plan)
     {
         if (plan.IsSerializable)

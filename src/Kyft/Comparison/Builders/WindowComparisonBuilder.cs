@@ -198,6 +198,25 @@ public sealed class WindowComparisonBuilder
     }
 
     /// <summary>
+    /// Runs the current plan and optionally writes a debug HTML artifact.
+    /// </summary>
+    /// <remarks>
+    /// Use this overload when application configuration controls whether live
+    /// or historical comparison runs should emit a visual debug file.
+    /// </remarks>
+    /// <param name="debugHtml">The optional debug HTML export configuration.</param>
+    /// <returns>A comparison result for the current plan.</returns>
+    public ComparisonResult Run(ComparisonDebugHtmlOptions debugHtml)
+    {
+        ArgumentNullException.ThrowIfNull(debugHtml);
+
+        var result = Run();
+        debugHtml.ExportIfEnabled(result);
+
+        return result;
+    }
+
+    /// <summary>
     /// Runs the current plan as a live snapshot at an evaluation horizon.
     /// </summary>
     /// <remarks>
@@ -210,6 +229,28 @@ public sealed class WindowComparisonBuilder
     public ComparisonResult RunLive(TemporalPoint evaluationHorizon)
     {
         return ComparisonRuntime.Run(PrepareLive(evaluationHorizon));
+    }
+
+    /// <summary>
+    /// Runs the current plan as a live snapshot and optionally writes a debug HTML artifact.
+    /// </summary>
+    /// <remarks>
+    /// Debug export is useful for incident inspection because live rows may be
+    /// provisional while the final source windows are still open.
+    /// </remarks>
+    /// <param name="evaluationHorizon">The exclusive horizon used to evaluate open windows.</param>
+    /// <param name="debugHtml">The optional debug HTML export configuration.</param>
+    /// <returns>A comparison result with evaluation-horizon and row-finality metadata.</returns>
+    public ComparisonResult RunLive(
+        TemporalPoint evaluationHorizon,
+        ComparisonDebugHtmlOptions debugHtml)
+    {
+        ArgumentNullException.ThrowIfNull(debugHtml);
+
+        var result = RunLive(evaluationHorizon);
+        debugHtml.ExportIfEnabled(result);
+
+        return result;
     }
 
     private ComparisonPlan BuildLivePlan(TemporalPoint evaluationHorizon)

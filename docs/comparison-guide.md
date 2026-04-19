@@ -161,6 +161,38 @@ var explanation = prepared.Explain(); // Render deterministic diagnostic text.
 `Explain()` returns deterministic diagnostic text. It is not generated prose.
 `ExportJson()` returns deterministic JSON for CI artifacts, issue reports, and
 agent workflows. `ExportJsonLines()` streams result rows for larger outputs.
+`ExportDebugHtml()` writes a standalone visual artifact for browser-based
+debugging.
+
+```csharp
+var result = pipeline.Intervals // Start from recorded windows.
+    .Compare("Provider QA") // Name the comparison.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
+    .Within(scope => scope.Window("DeviceOffline")) // Limit the scope to one window family.
+    .Using(comparators => comparators.Overlap().Residual().Missing()) // Request visible agreement and divergence rows.
+    .Run(); // Execute the comparison.
+
+result.ExportDebugHtml("artifacts/provider-qa.html"); // Write a self-contained HTML graph for debugging.
+```
+
+When configuration should control whether a run writes a debug artifact, pass
+options to `Run()` or `RunLive()`:
+
+```csharp
+var debugHtml = ComparisonDebugHtmlOptions.ToFile("artifacts/provider-qa.html"); // Enable a visual artifact for this run.
+var resultWithDebug = pipeline.Intervals // Start from recorded windows.
+    .Compare("Provider QA") // Name the comparison.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
+    .Within(scope => scope.Window("DeviceOffline")) // Limit the scope to one window family.
+    .Using(comparators => comparators.Overlap().Residual()) // Request agreement and target-only rows.
+    .Run(debugHtml); // Execute and write the debug file.
+```
+
+Use debug HTML at workflow boundaries, test failure boundaries, notebook
+boundaries, incident handoff boundaries, or agent handoff boundaries. Avoid
+writing it on every ingestion event.
 
 Use `ErrorDiagnostics()`, `WarningDiagnostics()`,
 `ProvisionalRowFinalities()`, and `FinalRowFinalities()` when a consumer only

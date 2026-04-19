@@ -109,7 +109,30 @@ The result is structured data:
 - comparator rows
 - summaries
 - finality metadata
-- deterministic JSON, JSON Lines, and Markdown exports
+- deterministic JSON, JSON Lines, Markdown, and debug HTML exports
+
+For visual debugging, export the result as a standalone HTML artifact:
+
+```csharp
+result.ExportDebugHtml("artifacts/provider-qa.html"); // Write a browser-readable timeline and segment graph.
+```
+
+You can also make debug output a configuration-driven execution option:
+
+```csharp
+var debugHtml = ComparisonDebugHtmlOptions.ToFile("artifacts/provider-qa.html"); // Enable a visual artifact for this run.
+var comparison = pipeline.Intervals // Start from recorded windows.
+    .Compare("Provider QA") // Name the comparison.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
+    .Within(scope => scope.Window("DeviceOffline")) // Limit analysis to one window family.
+    .Using(comparators => comparators.Overlap().Residual()); // Request agreement and target-only rows.
+var resultWithDebug = comparison.Run(debugHtml); // Execute and write the debug file.
+```
+
+The debug HTML file is useful when you need to see why a comparison produced a
+row: which source window was active, where the overlap started, where a gap
+appeared, and whether live rows are still provisional.
 
 ## What Makes Kyft Different?
 
@@ -199,6 +222,8 @@ foreach (var finality in live.ProvisionalRowFinalities()) // Inspect rows that m
 {
     Console.WriteLine($"{finality.RowId} is provisional: {finality.Reason}"); // Explain why the row is provisional.
 }
+
+live.ExportDebugHtml("artifacts/live-provider-qa.html"); // Capture the current live window graph for debugging.
 ```
 
 The same plan converges with batch execution when all source windows close.

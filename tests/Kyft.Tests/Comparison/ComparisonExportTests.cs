@@ -101,6 +101,48 @@ public sealed class ComparisonExportTests
         Assert.Equal("overlap[0]", row.RootElement.GetProperty("rowId").GetString());
     }
 
+    [Fact]
+    public void ResultDebugHtmlExportProducesStableVisualDocument()
+    {
+        var result = CreateResult();
+
+        var first = result.ExportDebugHtml();
+        var second = result.ExportDebugHtml();
+
+        Assert.Equal(first, second);
+        Assert.Contains("<!doctype html>", first);
+        Assert.Contains("Provider QA", first);
+        Assert.Contains("Window Timeline", first);
+        Assert.Contains("Aligned Segments", first);
+        Assert.Contains("source:provider-a", first);
+        Assert.Contains("target only", first);
+        Assert.Contains("comparison only", first);
+        Assert.DoesNotContain("<script", first, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ResultDebugHtmlExportWritesFileAndCreatesDirectory()
+    {
+        var result = CreateResult();
+        var directory = Path.Combine(Path.GetTempPath(), "kyft-debug-" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "comparison.html");
+
+        try
+        {
+            result.ExportDebugHtml(path);
+
+            Assert.True(File.Exists(path));
+            Assert.Contains("Rows And Finality", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
     private static ComparisonPlan CreatePlan()
     {
         return new ComparisonPlan(

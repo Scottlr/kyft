@@ -115,5 +115,43 @@ public sealed class FluentComparisonBuilderTests
         Assert.Equal("Provider QA", result.Plan.Name);
     }
 
+    [Fact]
+    public void RunCanWriteDebugHtmlWhenConfigured()
+    {
+        var pipeline = Kyft
+            .For<DeviceSignal>()
+            .RecordIntervals()
+            .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
+        var directory = Path.Combine(Path.GetTempPath(), "kyft-run-debug-" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "provider-qa.html");
+
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-b");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-b");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-a");
+
+        try
+        {
+            var result = pipeline.Intervals
+                .Compare("Provider QA")
+                .Target("provider-a", selector => selector.Source("provider-a"))
+                .Against("provider-b", selector => selector.Source("provider-b"))
+                .Within(scope => scope.Window("DeviceOffline"))
+                .Using(comparators => comparators.Overlap().Residual())
+                .Run(ComparisonDebugHtmlOptions.ToFile(path));
+
+            Assert.True(result.IsValid);
+            Assert.True(File.Exists(path));
+            Assert.Contains("Provider QA", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
     private sealed record DeviceSignal(string DeviceId, bool IsOnline);
 }
