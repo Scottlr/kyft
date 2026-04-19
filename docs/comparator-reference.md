@@ -131,7 +131,7 @@ Statuses are:
 - `RightOverhang`: the target continues after container coverage
 - `NotContained`: the target segment is uncovered but is not at either edge
 
-Use containment for invariants such as "bettable only while market open" or
+Use containment for invariants such as "task running only while host online" or
 "child state only while parent state is active."
 
 ## Lead/Lag

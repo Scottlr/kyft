@@ -14,23 +14,23 @@ state-driven mental model:
 The small inline case is compact:
 
 ```csharp
-var pipeline = Kyft
-    .For<DeviceSignal>()
-    .TrackWindow(
-        "DeviceOffline",
-        signal => signal.DeviceId,
-        signal => !signal.IsOnline);
+var pipeline = Kyft // Start a Kyft pipeline definition.
+    .For<DeviceSignal>() // Configure the ingested event type.
+    .TrackWindow( // Define a single state-driven window.
+        "DeviceOffline", // Name the active state.
+        signal => signal.DeviceId, // Track each device independently.
+        signal => !signal.IsOnline); // Open while the device is offline.
 ```
 
 The reusable type path gives larger domains a place to put naming, key
 selection, active-state logic, and callbacks:
 
 ```csharp
-var pipeline = Kyft
-    .For<DeviceSignal>()
-    .Window<DeviceOffline>()
-    .RollUp<ZoneOutage>()
-    .Build();
+var pipeline = Kyft // Start a Kyft pipeline definition.
+    .For<DeviceSignal>() // Configure the ingested event type.
+    .Window<DeviceOffline>() // Add a reusable child window definition.
+    .RollUp<ZoneOutage>() // Add a reusable parent roll-up definition.
+    .Build(); // Materialize the pipeline.
 ```
 
 This is a good split. Lambdas are still low-friction for simple windows, while
@@ -57,9 +57,8 @@ features a single object shape to build on.
 
 ## Example Direction
 
-The public documentation now uses device telemetry instead of pricing,
-selections, and markets. Device telemetry is a neutral example domain and maps
-clearly onto Kyft concepts:
+The public documentation now uses device telemetry and operations monitoring.
+Those are neutral example domains and map clearly onto Kyft concepts:
 
 - `DeviceSignal` is the event
 - `DeviceOffline` is the source window

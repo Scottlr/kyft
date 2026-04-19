@@ -11,12 +11,11 @@ Evaluate one parent roll-up from one child window.
 
 ## Acceptance
 
-- Tests cover all children active opening a market window.
-- Tests cover one child becoming inactive closing the market window.
+- Tests cover all children active opening a region window.
+- Tests cover one child becoming inactive closing the region window.
 - Parent state is partitioned by parent key.
 
 ## Out Of Scope
 
 - Multiple roll-ups from one child.
 - Multi-level roll-up chains.
-

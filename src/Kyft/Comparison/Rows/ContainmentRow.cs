@@ -6,8 +6,8 @@ namespace Kyft;
 /// <remarks>
 /// Containment is directional: target records are the windows being checked,
 /// and comparison records are the expected container windows. For example,
-/// "bettable" target windows can be checked against "market open" container
-/// windows.
+/// "job running" target windows can be checked against "worker online"
+/// container windows.
 /// </remarks>
 /// <param name="WindowName">The configured window name.</param>
 /// <param name="Key">The logical window key.</param>

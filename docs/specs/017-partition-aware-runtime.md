@@ -11,11 +11,10 @@ Allow the same logical key to be tracked independently by partition.
 
 ## Acceptance
 
-- Tests cover the same selection key in two partitions opening independently.
+- Tests cover the same device key in two partitions opening independently.
 - Closing one partition does not close the other.
 
 ## Out Of Scope
 
 - Partition-aware roll-up merging.
 - Distributed execution.
-

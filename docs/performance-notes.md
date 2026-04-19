@@ -27,13 +27,13 @@ The benchmark project covers:
 Run the suite with:
 
 ```bash
-dotnet run -c Release --project benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj
+dotnet run -c Release --project benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj # Run the full benchmark suite.
 ```
 
 For focused work, filter by class or method:
 
 ```bash
-dotnet run -c Release --project benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj -- --filter "*ComparisonBenchmarks.RunLiveResidual*"
+dotnet run -c Release --project benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj -- --filter "*ComparisonBenchmarks.RunLiveResidual*" # Run one benchmark target.
 ```
 
 ## Current Optimization Work

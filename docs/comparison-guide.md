@@ -11,13 +11,13 @@ Kyft comparisons answer staged questions over recorded windows:
 The API keeps these stages visible:
 
 ```csharp
-var result = pipeline.Intervals
-    .Compare("Provider QA")
-    .Target("provider-a", selector => selector.Source("provider-a"))
-    .Against("provider-b", selector => selector.Source("provider-b"))
-    .Within(scope => scope.Window("DeviceOffline"))
-    .Using(comparators => comparators.Overlap().Residual().Coverage())
-    .Run();
+var result = pipeline.Intervals // Start from the recorded window history.
+    .Compare("Provider QA") // Name the comparison for exports and diagnostics.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select the baseline source.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
+    .Within(scope => scope.Window("DeviceOffline")) // Limit analysis to one window family.
+    .Using(comparators => comparators.Overlap().Residual().Coverage()) // Request agreement, residual, and coverage rows.
+    .Run(); // Execute the comparison.
 ```
 
 Use descriptor selectors such as `Source`, `WindowName`, `Key`, `Partition`,
@@ -34,14 +34,14 @@ ingestion and are deterministic for a replay of the same event order.
 Event-time comparisons require timestamps:
 
 ```csharp
-var result = pipeline.Intervals
-    .Compare("Event-time QA")
-    .Target("provider-a", selector => selector.Source("provider-a"))
-    .Against("provider-b", selector => selector.Source("provider-b"))
-    .Within(scope => scope.Window("DeviceOffline"))
-    .Normalize(normalization => normalization.OnEventTime())
-    .Using(comparators => comparators.Overlap())
-    .Run();
+var result = pipeline.Intervals // Start from recorded windows.
+    .Compare("Event-time QA") // Name the event-time comparison.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select provider A as target.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select provider B as comparison.
+    .Within(scope => scope.Window("DeviceOffline")) // Scope to one window family.
+    .Normalize(normalization => normalization.OnEventTime()) // Compare on event timestamps instead of positions.
+    .Using(comparators => comparators.Overlap()) // Emit rows where both sources were active.
+    .Run(); // Execute the comparison.
 ```
 
 Scope and normalization must use the same temporal axis. Kyft rejects mixed-axis
@@ -59,14 +59,14 @@ silently treating an ongoing window as final.
 For live or horizon-based analysis, choose an explicit end:
 
 ```csharp
-var prepared = pipeline.Intervals
-    .Compare("Live QA")
-    .Target("provider-a", selector => selector.Source("provider-a"))
-    .Against("provider-b", selector => selector.Source("provider-b"))
-    .Within(scope => scope.Window("DeviceOffline"))
-    .Normalize(normalization => normalization.ClipOpenWindowsTo(TemporalPoint.ForPosition(100)))
-    .Using(comparators => comparators.Coverage())
-    .Prepare();
+var prepared = pipeline.Intervals // Start from recorded windows.
+    .Compare("Live QA") // Name the live preparation.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select the baseline source.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
+    .Within(scope => scope.Window("DeviceOffline")) // Analyze one window family.
+    .Normalize(normalization => normalization.ClipOpenWindowsTo(TemporalPoint.ForPosition(100))) // Bound open windows at position 100.
+    .Using(comparators => comparators.Coverage()) // Request coverage metrics.
+    .Prepare(); // Stop after selection and normalization for inspection.
 ```
 
 The resulting range records that its end came from the horizon policy, not from
@@ -80,14 +80,14 @@ available when their close position has been processed; open windows are
 available from their start position.
 
 ```csharp
-var prepared = pipeline.Intervals
-    .Compare("Decision audit")
-    .Target("provider-a", selector => selector.Source("provider-a"))
-    .Against("provider-b", selector => selector.Source("provider-b"))
-    .Within(scope => scope.Window("DeviceOffline"))
-    .Normalize(normalization => normalization.KnownAtPosition(42))
-    .Using(comparators => comparators.Overlap())
-    .Prepare();
+var prepared = pipeline.Intervals // Start from recorded windows.
+    .Compare("Decision audit") // Name the point-in-time audit.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
+    .Within(scope => scope.Window("DeviceOffline")) // Audit one window family.
+    .Normalize(normalization => normalization.KnownAtPosition(42)) // Exclude windows unavailable at position 42.
+    .Using(comparators => comparators.Overlap()) // Emit agreement rows.
+    .Prepare(); // Inspect prepared data and diagnostics without comparator execution.
 ```
 
 Records unavailable at the known-at point are excluded with diagnostics so
@@ -101,13 +101,13 @@ windows as provisional. Closed-window rows remain final, and the same comparison
 converges with batch execution once all windows close.
 
 ```csharp
-var result = pipeline.Intervals
-    .Compare("Live QA")
-    .Target("provider-a", selector => selector.Source("provider-a"))
-    .Against("provider-b", selector => selector.Source("provider-b"))
-    .Within(scope => scope.Window("DeviceOffline"))
-    .Using(comparators => comparators.Residual())
-    .RunLive(TemporalPoint.ForPosition(100));
+var result = pipeline.Intervals // Start from current recorded history.
+    .Compare("Live QA") // Name the live comparison.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select provider A as target.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select provider B as comparison.
+    .Within(scope => scope.Window("DeviceOffline")) // Scope to device-offline windows.
+    .Using(comparators => comparators.Residual()) // Emit target-only rows.
+    .RunLive(TemporalPoint.ForPosition(100)); // Clip open windows to position 100.
 ```
 
 The result carries `EvaluationHorizon` and row finality metadata so consumers can
@@ -147,15 +147,15 @@ Use `Validate()` before execution when building plans dynamically. Use
 Use `Run()` when comparator rows are needed.
 
 ```csharp
-var prepared = pipeline.Intervals
-    .Compare("Provider QA")
-    .Target("provider-a", selector => selector.Source("provider-a"))
-    .Against("provider-b", selector => selector.Source("provider-b"))
-    .Within(scope => scope.Window("DeviceOffline"))
-    .Using(comparators => comparators.Overlap())
-    .Prepare();
+var prepared = pipeline.Intervals // Start from recorded windows.
+    .Compare("Provider QA") // Name the comparison.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
+    .Within(scope => scope.Window("DeviceOffline")) // Limit the scope to one window family.
+    .Using(comparators => comparators.Overlap()) // Request overlap rows.
+    .Prepare(); // Materialize selected, excluded, and normalized windows.
 
-var explanation = prepared.Explain();
+var explanation = prepared.Explain(); // Render deterministic diagnostic text.
 ```
 
 `Explain()` returns deterministic diagnostic text. It is not generated prose.
@@ -179,10 +179,10 @@ Use a source matrix when the same pairwise comparison needs to be read across
 several sources:
 
 ```csharp
-var matrix = pipeline.Intervals.CompareSources(
-    "Provider matrix",
-    "DeviceOffline",
-    ["provider-a", "provider-b", "provider-c"]);
+var matrix = pipeline.Intervals.CompareSources( // Build a directional source matrix.
+    "Provider matrix", // Name the matrix for reports.
+    "DeviceOffline", // Compare one window family.
+    ["provider-a", "provider-b", "provider-c"]); // Include these sources as rows and columns.
 ```
 
 Cells are directional. The row source is the target and the column source is
@@ -196,10 +196,10 @@ Use hierarchy comparison to explain parent rollup activity from child
 contribution windows:
 
 ```csharp
-var hierarchy = pipeline.Intervals.CompareHierarchy(
-    "Market explanation",
-    parentWindowName: "MarketSuspension",
-    childWindowName: "SelectionSuspension");
+var hierarchy = pipeline.Intervals.CompareHierarchy( // Explain parent activity from child windows.
+    "Region explanation", // Name the hierarchy report.
+    parentWindowName: "RegionImpacted", // Select the parent roll-up window.
+    childWindowName: "DeviceOffline"); // Select the child contribution window.
 ```
 
 Rows are emitted as explained parent activity, unexplained parent duration, or

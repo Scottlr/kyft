@@ -10,11 +10,10 @@ Extend roll-ups so a parent can itself feed another parent.
 
 ## Acceptance
 
-- Tests cover selection to market to fixture roll-up.
+- Tests cover device to region to cluster roll-up.
 - Closing behavior propagates upward.
 
 ## Out Of Scope
 
 - Roll-up DAGs with shared parents.
 - Cycles or complex graph validation beyond simple chains.
-

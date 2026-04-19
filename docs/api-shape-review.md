@@ -31,13 +31,13 @@ The current naming is coherent enough to keep:
 The comparison builder flow remains the right shape:
 
 ```csharp
-history.Compare("Provider QA")
-    .Target("provider-a", selector => selector.Source("provider-a"))
-    .Against("provider-b", selector => selector.Source("provider-b"))
-    .Within(scope => scope.Window("MarketSuspended"))
-    .Normalize(normalization => normalization.KnownAtPosition(42))
-    .Using(comparators => comparators.Overlap().Coverage())
-    .Run();
+history.Compare("Provider QA") // Start a staged comparison over recorded windows.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select the baseline source.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
+    .Within(scope => scope.Window("DeviceOffline")) // Limit the question to one window family.
+    .Normalize(normalization => normalization.KnownAtPosition(42)) // Restrict records to what was known at position 42.
+    .Using(comparators => comparators.Overlap().Coverage()) // Emit agreement and coverage metrics.
+    .Run(); // Execute the comparison.
 ```
 
 It reads in the order an analyst thinks: baseline, comparison source, scope,

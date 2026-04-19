@@ -5,6 +5,8 @@ agent-readable regression cases.
 
 ## Shape
 
+JSON examples are left uncommented because JSON fixtures must remain valid JSON.
+
 ```json
 {
   "schema": "kyft.contract-fixture",
@@ -12,10 +14,10 @@ agent-readable regression cases.
   "name": "basic-overlap",
   "windows": [
     {
-      "windowName": "SelectionUnavailable",
-      "key": "home-win",
+      "windowName": "DeviceOffline",
+      "key": "device-1",
       "source": "provider-a",
-      "partition": "fixture-101",
+      "partition": "fleet-a",
       "startPosition": 1,
       "endPosition": 5
     }
@@ -24,7 +26,7 @@ agent-readable regression cases.
     "name": "Provider QA",
     "targetSource": "provider-a",
     "againstSources": [ "provider-b" ],
-    "scopeWindow": "SelectionUnavailable",
+    "scopeWindow": "DeviceOffline",
     "comparators": [ "overlap", "residual", "coverage" ],
     "strict": false
   }
@@ -37,8 +39,8 @@ Use `null` for `endPosition` when a window is still open:
 
 ```json
 {
-  "windowName": "SelectionUnavailable",
-  "key": "home-win",
+  "windowName": "DeviceOffline",
+  "key": "device-1",
   "source": "provider-a",
   "startPosition": 10,
   "endPosition": null
@@ -51,9 +53,9 @@ Historical runs keep Kyft's normal safety behavior. Live fixture runs should add
 ## Commands
 
 ```bash
-dotnet run --project src/Kyft.Cli/Kyft.Cli.csproj -- validate-plan fixture.json
-dotnet run --project src/Kyft.Cli/Kyft.Cli.csproj -- compare fixture.json --format json
-dotnet run --project src/Kyft.Cli/Kyft.Cli.csproj -- explain fixture.json
+dotnet run --project src/Kyft.Cli/Kyft.Cli.csproj -- validate-plan fixture.json # Validate the fixture plan.
+dotnet run --project src/Kyft.Cli/Kyft.Cli.csproj -- compare fixture.json --format json # Execute and export JSON.
+dotnet run --project src/Kyft.Cli/Kyft.Cli.csproj -- explain fixture.json # Execute and export Markdown.
 ```
 
 The CLI validates required fixture properties before execution and returns JSON

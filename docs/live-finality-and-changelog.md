@@ -17,18 +17,18 @@ Rows emitted by `RunLive(...)` carry finality metadata:
 Use helpers when a report or agent only needs one view:
 
 ```csharp
-var live = history.Compare("Live QA")
-    .Target("provider-a", selector => selector.Source("provider-a"))
-    .Against("provider-b", selector => selector.Source("provider-b"))
-    .Within(scope => scope.Window("SelectionUnavailable"))
-    .Using(comparators => comparators.Residual())
-    .RunLive(TemporalPoint.ForPosition(100));
+var live = history.Compare("Live QA") // Start a comparison over recorded history.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Treat provider A as the baseline.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Compare provider B against it.
+    .Within(scope => scope.Window("DeviceOffline")) // Limit analysis to one window family.
+    .Using(comparators => comparators.Residual()) // Emit target-only rows.
+    .RunLive(TemporalPoint.ForPosition(100)); // Clip open windows to a deterministic horizon.
 
-if (live.HasProvisionalRows())
+if (live.HasProvisionalRows()) // Check whether any rows depend on open windows.
 {
-    foreach (var finality in live.ProvisionalRowFinalities())
+    foreach (var finality in live.ProvisionalRowFinalities()) // Iterate only provisional metadata.
     {
-        Console.WriteLine($"{finality.RowId}: {finality.Reason}");
+        Console.WriteLine($"{finality.RowId}: {finality.Reason}"); // Explain why each row can change.
     }
 }
 ```
@@ -58,7 +58,7 @@ CLI fixture plans can include `liveHorizonPosition`:
     "name": "Live Provider QA",
     "targetSource": "provider-a",
     "againstSources": [ "provider-b" ],
-    "scopeWindow": "SelectionUnavailable",
+    "scopeWindow": "DeviceOffline",
     "comparators": [ "residual" ],
     "strict": false,
     "liveHorizonPosition": 100

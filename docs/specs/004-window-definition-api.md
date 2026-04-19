@@ -11,7 +11,7 @@ Add the public API for defining a state-driven event window.
 
 ## Acceptance
 
-- A test can define `SelectionSuspension` using an event key and `isActive`.
+- A test can define `DeviceOffline` using an event key and `isActive`.
 - Null argument validation is covered.
 - No events are processed yet.
 
@@ -20,4 +20,3 @@ Add the public API for defining a state-driven event window.
 - Multiple windows.
 - Roll-ups.
 - Build output behavior.
-

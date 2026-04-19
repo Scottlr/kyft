@@ -5,7 +5,7 @@ Finish the first usable package shape and examples.
 ## Scope
 
 - Add package metadata needed for local packing.
-- Add README examples for a selection-to-market suspension pipeline.
+- Add README examples for a device-to-region outage pipeline.
 - Add a short design note explaining state-driven windows and roll-ups.
 - Ensure public XML documentation is present for the core API.
 
@@ -18,4 +18,3 @@ Finish the first usable package shape and examples.
 
 - Publishing automation.
 - Performance benchmarking.
-

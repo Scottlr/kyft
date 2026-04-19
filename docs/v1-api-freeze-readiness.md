@@ -17,10 +17,10 @@ needed before a freeze decision.
 ## Baseline Commands
 
 ```bash
-dotnet test
-dotnet build benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj
-dotnet pack src/Kyft/Kyft.csproj
-dotnet pack src/Kyft.Testing/Kyft.Testing.csproj
+dotnet test # Run the complete test suite.
+dotnet build benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj # Verify benchmark sources compile.
+dotnet pack src/Kyft/Kyft.csproj # Build the primary package.
+dotnet pack src/Kyft.Testing/Kyft.Testing.csproj # Build the testing helper package.
 ```
 
 ## Complexity Notes
