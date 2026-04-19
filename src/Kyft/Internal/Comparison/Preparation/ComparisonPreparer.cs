@@ -150,11 +150,13 @@ internal static class ComparisonPreparer
         if (policy.OpenWindowPolicy == ComparisonOpenWindowPolicy.ClipToHorizon
             && policy.OpenWindowHorizon.HasValue)
         {
-            range = TemporalRange.WithEffectiveEnd(
+            return TryCreateClippedRange(
+                window,
                 start,
                 policy.OpenWindowHorizon.Value,
-                TemporalRangeEndStatus.OpenAtHorizon);
-            return true;
+                diagnostics,
+                excluded,
+                out range);
         }
 
         AddExclusion(window, "Open windows require an explicit clipping policy.", ComparisonPlanValidationCode.OpenWindowsWithoutPolicy, diagnostics, excluded);
@@ -194,15 +196,53 @@ internal static class ComparisonPreparer
         if (policy.OpenWindowPolicy == ComparisonOpenWindowPolicy.ClipToHorizon
             && policy.OpenWindowHorizon.HasValue)
         {
-            range = TemporalRange.WithEffectiveEnd(
+            return TryCreateClippedRange(
+                window,
                 start,
                 policy.OpenWindowHorizon.Value,
-                TemporalRangeEndStatus.OpenAtHorizon);
-            return true;
+                diagnostics,
+                excluded,
+                out range);
         }
 
         AddExclusion(window, "Open windows require an explicit clipping policy.", ComparisonPlanValidationCode.OpenWindowsWithoutPolicy, diagnostics, excluded);
         return false;
+    }
+
+    private static bool TryCreateClippedRange(
+        WindowRecord window,
+        TemporalPoint start,
+        TemporalPoint horizon,
+        List<ComparisonPlanDiagnostic> diagnostics,
+        List<ExcludedWindowRecord> excluded,
+        out TemporalRange range)
+    {
+        range = default;
+
+        if (horizon.Axis != start.Axis)
+        {
+            AddExclusion(
+                window,
+                "Open-window horizon must use the same temporal axis as the normalized range.",
+                ComparisonPlanValidationCode.MixedTimeAxes,
+                diagnostics,
+                excluded);
+            return false;
+        }
+
+        if (horizon.CompareTo(start) < 0)
+        {
+            AddExclusion(
+                window,
+                "Open-window horizon cannot be earlier than the window start.",
+                ComparisonPlanValidationCode.InvalidRangeDuration,
+                diagnostics,
+                excluded);
+            return false;
+        }
+
+        range = TemporalRange.WithEffectiveEnd(start, horizon, TemporalRangeEndStatus.OpenAtHorizon);
+        return true;
     }
 
     private static void AddExclusion(

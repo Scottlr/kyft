@@ -30,6 +30,11 @@ public sealed class ComparisonNormalizationBuilder
     /// <summary>
     /// Clips open windows to an explicit horizon.
     /// </summary>
+    /// <remarks>
+    /// Open windows are not treated as infinite. The supplied horizon becomes
+    /// the exclusive effective end for open windows, and the normalized range is
+    /// marked with <see cref="TemporalRangeEndStatus.OpenAtHorizon" />.
+    /// </remarks>
     /// <param name="horizon">The effective end for open windows.</param>
     /// <returns>This builder.</returns>
     public ComparisonNormalizationBuilder ClipOpenWindowsTo(TemporalPoint horizon)

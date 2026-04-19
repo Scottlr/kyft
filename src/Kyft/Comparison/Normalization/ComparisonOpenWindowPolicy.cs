@@ -11,7 +11,7 @@ public enum ComparisonOpenWindowPolicy
     RequireClosed = 0,
 
     /// <summary>
-    /// Clips open windows to an explicit evaluation horizon.
+    /// Clips open windows to an explicit exclusive evaluation horizon.
     /// </summary>
     ClipToHorizon = 1
 }

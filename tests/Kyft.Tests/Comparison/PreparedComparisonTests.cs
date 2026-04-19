@@ -86,6 +86,50 @@ public sealed class PreparedComparisonTests
     }
 
     [Fact]
+    public void ClosedWindowsAreUnaffectedByOpenWindowHorizon()
+    {
+        var history = BuildHistory();
+
+        var prepared = history.Compare("Provider QA")
+            .Target("provider-a", s => s.Source("provider-a"))
+            .Against("provider-b", s => s.Source("provider-b"))
+            .Within(s => s.Window("DeviceOffline"))
+            .Normalize(n => n.ClipOpenWindowsTo(TemporalPoint.ForPosition(100)))
+            .Using(c => c.Overlap())
+            .Prepare();
+
+        Assert.Equal(2, prepared.NormalizedWindows.Count);
+        Assert.All(prepared.NormalizedWindows, normalized =>
+        {
+            Assert.Equal(TemporalRangeEndStatus.Closed, normalized.Range.EndStatus);
+            Assert.Equal(normalized.Window.EndPosition, normalized.Range.End!.Value.Position);
+        });
+    }
+
+    [Fact]
+    public void HorizonBeforeOpenWindowStartIsDiagnosed()
+    {
+        var pipeline = Kyft
+            .For<DeviceSignal>()
+            .RecordIntervals()
+            .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
+
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
+
+        var prepared = pipeline.Intervals.Compare("Provider QA")
+            .Target("provider-a", s => s.Source("provider-a"))
+            .Against("provider-b", s => s.Source("provider-b"))
+            .Within(s => s.Window("DeviceOffline"))
+            .Normalize(n => n.ClipOpenWindowsTo(TemporalPoint.ForPosition(0)))
+            .Using(c => c.Overlap())
+            .Prepare();
+
+        Assert.Empty(prepared.NormalizedWindows);
+        Assert.Contains(prepared.Diagnostics, diagnostic =>
+            diagnostic.Code == ComparisonPlanValidationCode.InvalidRangeDuration);
+    }
+
+    [Fact]
     public void MissingEventTimeProducesDiagnosticInEventTimeMode()
     {
         var history = BuildHistory();
