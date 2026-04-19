@@ -396,6 +396,7 @@
     "asOf": []
   },
   "rowFinalities": [],
+  "extensionMetadata": [],
   "coverageSummaries": [
     {
       "windowName": "DeviceOffline",
@@ -459,6 +460,7 @@
 - lead lag summaries: 0
 - as of rows: 0
 - row finalities: 0
+- extension metadata: 0
 - summary[0]: overlap rows=1
 - summary[1]: residual rows=1
 - summary[2]: coverage rows=2

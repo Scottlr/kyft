@@ -32,6 +32,7 @@ public sealed class ComparisonResult
     /// <param name="leadLagSummaries">Summaries emitted by the lead/lag comparator.</param>
     /// <param name="asOfRows">Rows emitted by the as-of comparator.</param>
     /// <param name="rowFinalities">Finality metadata for materialized rows.</param>
+    /// <param name="extensionMetadata">Serializable metadata emitted by comparison extensions.</param>
     public ComparisonResult(
         ComparisonPlan plan,
         IEnumerable<ComparisonPlanDiagnostic> diagnostics,
@@ -49,7 +50,8 @@ public sealed class ComparisonResult
         IEnumerable<LeadLagRow>? leadLagRows = null,
         IEnumerable<LeadLagSummary>? leadLagSummaries = null,
         IEnumerable<AsOfRow>? asOfRows = null,
-        IEnumerable<ComparisonRowFinality>? rowFinalities = null)
+        IEnumerable<ComparisonRowFinality>? rowFinalities = null,
+        IEnumerable<ComparisonExtensionMetadata>? extensionMetadata = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -71,6 +73,7 @@ public sealed class ComparisonResult
         LeadLagSummaries = Materialize(leadLagSummaries);
         AsOfRows = Materialize(asOfRows);
         RowFinalities = Materialize(rowFinalities);
+        ExtensionMetadata = Materialize(extensionMetadata);
     }
 
     /// <summary>
@@ -178,6 +181,11 @@ public sealed class ComparisonResult
     /// Gets finality metadata for emitted result rows.
     /// </summary>
     public IReadOnlyList<ComparisonRowFinality> RowFinalities { get; }
+
+    /// <summary>
+    /// Gets serializable metadata emitted by comparison extensions.
+    /// </summary>
+    public IReadOnlyList<ComparisonExtensionMetadata> ExtensionMetadata { get; }
 
     /// <summary>
     /// Gets whether the result has no error diagnostics.

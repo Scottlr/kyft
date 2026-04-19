@@ -130,6 +130,13 @@ horizon, and incompatible timestamp clocks. Non-strict execution carries these
 diagnostics as warnings. Use `Strict()` when warnings should block alignment and
 comparator rows.
 
+## Extension Metadata
+
+Domain packages can describe their own selectors, comparator declarations, and
+metadata keys with `ComparisonExtensionBuilder`. Core Kyft stays domain-neutral;
+extension descriptors document how a package attaches to plans, while result
+`ExtensionMetadata` keeps compact domain metadata serializable and explainable.
+
 ## Inspectability
 
 Use `Validate()` before execution when building plans dynamically. Use

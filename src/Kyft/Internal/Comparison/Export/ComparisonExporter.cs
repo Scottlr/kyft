@@ -226,6 +226,7 @@ internal static class ComparisonExporter
         WriteComparatorSummaries(writer, result.ComparatorSummaries);
         WriteRows(writer, result);
         WriteRowFinalities(writer, result.RowFinalities);
+        WriteExtensionMetadata(writer, result.ExtensionMetadata);
         WriteCoverageSummaries(writer, result.CoverageSummaries);
         WriteLeadLagSummaries(writer, result.LeadLagSummaries);
         writer.WriteEndObject();
@@ -575,6 +576,23 @@ internal static class ComparisonExporter
             writer.WriteString("reason", finality.Reason);
             writer.WriteNumber("version", finality.Version);
             WriteNullableString(writer, "supersedesRowId", finality.SupersedesRowId);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private static void WriteExtensionMetadata(Utf8JsonWriter writer, IReadOnlyList<ComparisonExtensionMetadata> metadata)
+    {
+        writer.WritePropertyName("extensionMetadata");
+        writer.WriteStartArray();
+        for (var i = 0; i < metadata.Count; i++)
+        {
+            var item = metadata[i];
+            writer.WriteStartObject();
+            writer.WriteString("extensionId", item.ExtensionId);
+            writer.WriteString("key", item.Key);
+            writer.WriteString("value", item.Value);
             writer.WriteEndObject();
         }
 

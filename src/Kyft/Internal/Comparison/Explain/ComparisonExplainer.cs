@@ -161,6 +161,7 @@ internal static class ComparisonExplainer
         writer.Item("lead lag summaries", result.LeadLagSummaries.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("as of rows", result.AsOfRows.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("row finalities", result.RowFinalities.Count.ToString(CultureInfo.InvariantCulture));
+        writer.Item("extension metadata", result.ExtensionMetadata.Count.ToString(CultureInfo.InvariantCulture));
 
         for (var i = 0; i < result.ComparatorSummaries.Count; i++)
         {
@@ -176,6 +177,14 @@ internal static class ComparisonExplainer
             writer.Item(
                 "finality[" + i.ToString(CultureInfo.InvariantCulture) + "]",
                 finality.RowId + "=" + finality.Finality + "; reason=" + finality.Reason);
+        }
+
+        for (var i = 0; i < result.ExtensionMetadata.Count; i++)
+        {
+            var item = result.ExtensionMetadata[i];
+            writer.Item(
+                "extensionMetadata[" + i.ToString(CultureInfo.InvariantCulture) + "]",
+                item.ExtensionId + "." + item.Key + "=" + item.Value);
         }
 
         for (var i = 0; i < result.OverlapRows.Count; i++)
