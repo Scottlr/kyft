@@ -9,12 +9,22 @@
     <PackageProjectUrl>https://github.com/Scottlr/kyft</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Scottlr/kyft</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <Copyright>Copyright (c) 2026 Kyft contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageTags>events;windows;analytics;testing</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Initial preview testing helpers for Kyft comparison fixtures, assertions, snapshots, and virtual live horizons.</PackageReleaseNotes>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarningsAsErrors>$(WarningsAsErrors);CS1591</WarningsAsErrors>
     <IsPackable>true</IsPackable>
     <IsTestProject>false</IsTestProject>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +33,10 @@
 
   <ItemGroup>
     <ProjectReference Include="../Kyft/Kyft.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

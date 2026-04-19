@@ -9,8 +9,12 @@
     <PackageProjectUrl>https://github.com/Scottlr/kyft</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Scottlr/kyft</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <Copyright>Copyright (c) 2026 Kyft contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageTags>events;windows;rollups;analytics</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Initial preview for stateful event windows, comparison plans, live finality, and testing helpers.</PackageReleaseNotes>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarningsAsErrors>$(WarningsAsErrors);CS1591</WarningsAsErrors>
     <IncludeSymbols>true</IncludeSymbols>
