@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\benchmarks\Kyft.Benchmarks\Kyft.Benchmarks.csproj" />
+    <ProjectReference Include="..\..\src\Kyft.Cli\Kyft.Cli.csproj" />
     <ProjectReference Include="..\..\src\Kyft\Kyft.csproj" />
     <ProjectReference Include="..\..\src\Kyft.Testing\Kyft.Testing.csproj" />
   </ItemGroup>
