@@ -1,0 +1,40 @@
+{
+  "schema": "kyft.contract-fixture",
+  "schemaVersion": 1,
+  "name": "strict-broad-scope",
+  "windows": [
+    {
+      "windowName": "DeviceOffline",
+      "key": "device-1",
+      "source": "provider-a",
+      "startPosition": 1,
+      "endPosition": 5
+    },
+    {
+      "windowName": "DeviceOffline",
+      "key": "device-1",
+      "source": "provider-b",
+      "startPosition": 3,
+      "endPosition": 7
+    }
+  ],
+  "plan": {
+    "name": "Strict Broad QA",
+    "targetSource": "provider-a",
+    "againstSources": [ "provider-b" ],
+    "scopeWindow": null,
+    "comparators": [ "overlap" ],
+    "strict": true
+  },
+  "expected": {
+    "isValid": false,
+    "diagnostics": [
+      "BroadSelector"
+    ],
+    "summaries": [],
+    "rows": {
+      "overlap": [],
+      "residual": []
+    }
+  }
+}
