@@ -158,6 +158,7 @@ internal static class ComparisonExplainer
         writer.Item("containment rows", result.ContainmentRows.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("lead lag rows", result.LeadLagRows.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("lead lag summaries", result.LeadLagSummaries.Count.ToString(CultureInfo.InvariantCulture));
+        writer.Item("as of rows", result.AsOfRows.Count.ToString(CultureInfo.InvariantCulture));
 
         for (var i = 0; i < result.ComparatorSummaries.Count; i++)
         {
@@ -294,6 +295,25 @@ internal static class ComparisonExplainer
                     + "; outsideTolerance=" + summary.OutsideToleranceCount.ToString(CultureInfo.InvariantCulture)
                     + "; minDelta=" + (summary.MinimumDeltaMagnitude?.ToString(CultureInfo.InvariantCulture) ?? "<none>")
                     + "; maxDelta=" + (summary.MaximumDeltaMagnitude?.ToString(CultureInfo.InvariantCulture) ?? "<none>"));
+        }
+
+        for (var i = 0; i < result.AsOfRows.Count; i++)
+        {
+            var row = result.AsOfRows[i];
+            writer.Item(
+                "asOf[" + i.ToString(CultureInfo.InvariantCulture) + "]",
+                "window=" + row.WindowName
+                    + "; key=" + StableObjectValue(row.Key)
+                    + "; partition=" + StableObjectValue(row.Partition)
+                    + "; axis=" + row.Axis
+                    + "; direction=" + row.Direction
+                    + "; targetPoint=" + FormatPoint(row.TargetPoint)
+                    + "; matchedPoint=" + (row.MatchedPoint.HasValue ? FormatPoint(row.MatchedPoint.Value) : "<missing>")
+                    + "; distance=" + (row.DistanceMagnitude?.ToString(CultureInfo.InvariantCulture) ?? "<missing>")
+                    + "; tolerance=" + row.ToleranceMagnitude.ToString(CultureInfo.InvariantCulture)
+                    + "; status=" + row.Status
+                    + "; target=" + row.TargetRecordId
+                    + "; match=" + (row.MatchedRecordId?.ToString() ?? "<missing>"));
         }
 
         for (var i = 0; i < result.CoverageSummaries.Count; i++)

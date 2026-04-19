@@ -120,6 +120,36 @@ public sealed class ComparisonComparatorBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds the as-of lookup comparator with explicit direction, axis, and tolerance.
+    /// </summary>
+    /// <remarks>
+    /// Use <see cref="AsOfDirection.Previous" /> for point-in-time enrichment
+    /// that must reject future comparison records.
+    /// </remarks>
+    /// <param name="direction">The eligible comparison direction.</param>
+    /// <param name="axis">The temporal axis to use.</param>
+    /// <param name="toleranceMagnitude">The maximum allowed distance.</param>
+    /// <returns>This builder.</returns>
+    public ComparisonComparatorBuilder AsOf(
+        AsOfDirection direction,
+        TemporalAxis axis,
+        long toleranceMagnitude)
+    {
+        if (axis == TemporalAxis.Unknown)
+        {
+            throw new ArgumentException("As-of lookup requires an explicit temporal axis.", nameof(axis));
+        }
+
+        if (toleranceMagnitude < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(toleranceMagnitude), "As-of tolerance cannot be negative.");
+        }
+
+        this.comparators.Add($"asof:{direction}:{axis}:{toleranceMagnitude}");
+        return this;
+    }
+
     internal IReadOnlyList<string> Build()
     {
         return this.comparators.ToArray();

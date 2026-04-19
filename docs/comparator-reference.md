@@ -162,3 +162,29 @@ timestamp comparisons, tolerance is measured in ticks.
 
 Lead/lag is transition-based and does not prove causality. Use it to quantify
 provider latency, sequencing drift, or replay skew.
+
+## As-Of
+
+`AsOf(direction, axis, toleranceMagnitude)` performs point-in-time lookup from
+each target start point to comparison start points in the same window name, key,
+and partition.
+
+Each `AsOfRow` contains:
+
+- `WindowName`
+- `Key`
+- `Partition`
+- `Axis`
+- `Direction`
+- `TargetPoint`
+- `MatchedPoint`
+- `DistanceMagnitude`
+- `ToleranceMagnitude`
+- `Status`
+- `TargetRecordId`
+- `MatchedRecordId`
+
+Use `AsOfDirection.Previous` for point-in-time enrichment that must not leak
+future comparison records into the target. `Next` explicitly allows future
+matches. `Nearest` can match on either side and reports ambiguous equal-distance
+matches with a diagnostic while choosing deterministically.

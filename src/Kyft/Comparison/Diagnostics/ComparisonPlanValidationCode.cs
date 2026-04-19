@@ -68,5 +68,10 @@ public enum ComparisonPlanValidationCode
     /// <summary>
     /// Indicates that a comparator declaration is not registered.
     /// </summary>
-    UnknownComparator = 12
+    UnknownComparator = 12,
+
+    /// <summary>
+    /// Indicates that an as-of lookup had multiple equally eligible matches.
+    /// </summary>
+    AmbiguousAsOfMatch = 13
 }

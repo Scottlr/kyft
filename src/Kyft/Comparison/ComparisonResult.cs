@@ -30,6 +30,7 @@ public sealed class ComparisonResult
     /// <param name="containmentRows">Rows emitted by the containment comparator.</param>
     /// <param name="leadLagRows">Rows emitted by the lead/lag comparator.</param>
     /// <param name="leadLagSummaries">Summaries emitted by the lead/lag comparator.</param>
+    /// <param name="asOfRows">Rows emitted by the as-of comparator.</param>
     public ComparisonResult(
         ComparisonPlan plan,
         IEnumerable<ComparisonPlanDiagnostic> diagnostics,
@@ -45,7 +46,8 @@ public sealed class ComparisonResult
         IEnumerable<SymmetricDifferenceRow>? symmetricDifferenceRows = null,
         IEnumerable<ContainmentRow>? containmentRows = null,
         IEnumerable<LeadLagRow>? leadLagRows = null,
-        IEnumerable<LeadLagSummary>? leadLagSummaries = null)
+        IEnumerable<LeadLagSummary>? leadLagSummaries = null,
+        IEnumerable<AsOfRow>? asOfRows = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -65,6 +67,7 @@ public sealed class ComparisonResult
         ContainmentRows = Materialize(containmentRows);
         LeadLagRows = Materialize(leadLagRows);
         LeadLagSummaries = Materialize(leadLagSummaries);
+        AsOfRows = Materialize(asOfRows);
     }
 
     /// <summary>
@@ -141,6 +144,11 @@ public sealed class ComparisonResult
     /// Gets summaries emitted by the lead/lag comparator.
     /// </summary>
     public IReadOnlyList<LeadLagSummary> LeadLagSummaries { get; }
+
+    /// <summary>
+    /// Gets rows emitted by the as-of comparator.
+    /// </summary>
+    public IReadOnlyList<AsOfRow> AsOfRows { get; }
 
     /// <summary>
     /// Gets whether the result has no error diagnostics.

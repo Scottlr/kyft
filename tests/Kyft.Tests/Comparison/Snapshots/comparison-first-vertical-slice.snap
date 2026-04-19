@@ -385,7 +385,8 @@
     "gap": [],
     "symmetricDifference": [],
     "containment": [],
-    "leadLag": []
+    "leadLag": [],
+    "asOf": []
   },
   "coverageSummaries": [
     {
@@ -447,6 +448,7 @@
 - containment rows: 0
 - lead lag rows: 0
 - lead lag summaries: 0
+- as of rows: 0
 - summary[0]: overlap rows=1
 - summary[1]: residual rows=1
 - summary[2]: coverage rows=2

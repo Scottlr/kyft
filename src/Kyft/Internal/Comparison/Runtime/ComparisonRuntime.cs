@@ -30,17 +30,28 @@ internal static class ComparisonRuntime
         var containmentRows = new List<ContainmentRow>();
         var leadLagRows = new List<LeadLagRow>();
         var leadLagSummaries = new List<LeadLagSummary>();
+        var asOfRows = new List<AsOfRow>();
 
         for (var i = 0; i < prepared.Plan.Comparators.Count; i++)
         {
             var comparator = prepared.Plan.Comparators[i];
-            if (!KnownComparators.Contains(comparator) && !TryParseLeadLag(comparator, out _))
+            if (!KnownComparators.Contains(comparator)
+                && !TryParseLeadLag(comparator, out _)
+                && !TryParseAsOf(comparator, out _))
             {
                 diagnostics.Add(new ComparisonPlanDiagnostic(
                     ComparisonPlanValidationCode.UnknownComparator,
                     $"Comparator '{comparator}' is not registered.",
                     $"comparators[{i}]",
                     ComparisonPlanDiagnosticSeverity.Error));
+                continue;
+            }
+
+            if (TryParseAsOf(comparator, out var asOf))
+            {
+                var before = asOfRows.Count;
+                AddAsOfRows(prepared, asOf, asOfRows, diagnostics);
+                summaries.Add(new ComparatorSummary(comparator, asOfRows.Count - before));
                 continue;
             }
 
@@ -126,7 +137,8 @@ internal static class ComparisonRuntime
             symmetricDifferenceRows.ToArray(),
             containmentRows.ToArray(),
             leadLagRows.ToArray(),
-            leadLagSummaries.ToArray());
+            leadLagSummaries.ToArray(),
+            asOfRows.ToArray());
     }
 
     private static void AddOverlapRows(AlignedComparison aligned, List<OverlapRow> rows)
@@ -446,6 +458,172 @@ internal static class ComparisonRuntime
         summaries.Add(CreateLeadLagSummary(options, rows, before));
     }
 
+    private static void AddAsOfRows(
+        PreparedComparison prepared,
+        AsOfOptions options,
+        List<AsOfRow> rows,
+        List<ComparisonPlanDiagnostic> diagnostics)
+    {
+        var comparisonTransitions = new Dictionary<TransitionScope, List<TransitionPoint>>();
+
+        for (var i = 0; i < prepared.NormalizedWindows.Count; i++)
+        {
+            var window = prepared.NormalizedWindows[i];
+            if (window.Side != ComparisonSide.Against || window.Range.Axis != options.Axis)
+            {
+                continue;
+            }
+
+            var scope = new TransitionScope(window.Window.WindowName, window.Window.Key, window.Window.Partition);
+            if (!comparisonTransitions.TryGetValue(scope, out var transitions))
+            {
+                transitions = [];
+                comparisonTransitions.Add(scope, transitions);
+            }
+
+            transitions.Add(new TransitionPoint(window.RecordId, window.Range.Start));
+        }
+
+        foreach (var pair in comparisonTransitions)
+        {
+            pair.Value.Sort(static (left, right) =>
+            {
+                var pointComparison = left.Point.CompareTo(right.Point);
+                return pointComparison != 0
+                    ? pointComparison
+                    : string.CompareOrdinal(left.RecordId.Value, right.RecordId.Value);
+            });
+        }
+
+        for (var i = 0; i < prepared.NormalizedWindows.Count; i++)
+        {
+            var target = prepared.NormalizedWindows[i];
+            if (target.Side != ComparisonSide.Target || target.Range.Axis != options.Axis)
+            {
+                continue;
+            }
+
+            var scope = new TransitionScope(target.Window.WindowName, target.Window.Key, target.Window.Partition);
+            if (!comparisonTransitions.TryGetValue(scope, out var candidates) || candidates.Count == 0)
+            {
+                rows.Add(CreateAsOfRow(target, options, target.Range.Start, null, null, AsOfMatchStatus.NoMatch));
+                continue;
+            }
+
+            var candidate = FindAsOfCandidate(candidates, target.Range.Start, options, out var ambiguous, out var futureRejected);
+            if (!candidate.HasValue)
+            {
+                var future = futureRejected.HasValue
+                    ? GetAbsoluteDistance(target.Range.Start, futureRejected.Value.Point, options.Axis)
+                    : (long?)null;
+                rows.Add(CreateAsOfRow(target, options, target.Range.Start, null, future, futureRejected.HasValue
+                    ? AsOfMatchStatus.FutureRejected
+                    : AsOfMatchStatus.NoMatch));
+                continue;
+            }
+
+            var distance = GetAbsoluteDistance(target.Range.Start, candidate.Value.Point, options.Axis);
+            if (distance > options.ToleranceMagnitude)
+            {
+                rows.Add(CreateAsOfRow(target, options, target.Range.Start, null, distance, AsOfMatchStatus.NoMatch));
+                continue;
+            }
+
+            if (ambiguous)
+            {
+                diagnostics.Add(new ComparisonPlanDiagnostic(
+                    ComparisonPlanValidationCode.AmbiguousAsOfMatch,
+                    "As-of lookup found multiple equally eligible comparison transitions; the selected match is deterministic.",
+                    $"asof[{target.RecordId}]",
+                    ComparisonPlanDiagnosticSeverity.Warning));
+            }
+
+            rows.Add(CreateAsOfRow(
+                target,
+                options,
+                target.Range.Start,
+                candidate.Value,
+                distance,
+                ambiguous
+                    ? AsOfMatchStatus.Ambiguous
+                    : distance == 0
+                        ? AsOfMatchStatus.Exact
+                        : AsOfMatchStatus.Matched));
+        }
+    }
+
+    private static AsOfRow CreateAsOfRow(
+        NormalizedWindowRecord target,
+        AsOfOptions options,
+        TemporalPoint targetPoint,
+        TransitionPoint? match,
+        long? distance,
+        AsOfMatchStatus status)
+    {
+        return new AsOfRow(
+            target.Window.WindowName,
+            target.Window.Key,
+            target.Window.Partition,
+            options.Axis,
+            options.Direction,
+            targetPoint,
+            match?.Point,
+            distance,
+            options.ToleranceMagnitude,
+            status,
+            target.RecordId,
+            match?.RecordId);
+    }
+
+    private static TransitionPoint? FindAsOfCandidate(
+        List<TransitionPoint> candidates,
+        TemporalPoint targetPoint,
+        AsOfOptions options,
+        out bool ambiguous,
+        out TransitionPoint? futureRejected)
+    {
+        ambiguous = false;
+        futureRejected = null;
+        TransitionPoint? best = null;
+        long? bestDistance = null;
+
+        for (var i = 0; i < candidates.Count; i++)
+        {
+            var candidate = candidates[i];
+            var comparison = candidate.Point.CompareTo(targetPoint);
+            if (options.Direction == AsOfDirection.Previous && comparison > 0)
+            {
+                futureRejected ??= candidate;
+                continue;
+            }
+
+            if (options.Direction == AsOfDirection.Next && comparison < 0)
+            {
+                continue;
+            }
+
+            var distance = GetAbsoluteDistance(targetPoint, candidate.Point, options.Axis);
+            if (!bestDistance.HasValue || distance < bestDistance.Value)
+            {
+                best = candidate;
+                bestDistance = distance;
+                ambiguous = false;
+                continue;
+            }
+
+            if (distance == bestDistance.Value)
+            {
+                ambiguous = true;
+                if (best.HasValue && string.CompareOrdinal(candidate.RecordId.Value, best.Value.RecordId.Value) < 0)
+                {
+                    best = candidate;
+                }
+            }
+        }
+
+        return best;
+    }
+
     private static bool TryGetTransitionPoint(
         TemporalRange range,
         LeadLagTransition transition,
@@ -574,6 +752,14 @@ internal static class ComparisonRuntime
             : targetPoint.Position - comparisonPoint.Position;
     }
 
+    private static long GetAbsoluteDistance(
+        TemporalPoint targetPoint,
+        TemporalPoint comparisonPoint,
+        TemporalAxis axis)
+    {
+        return Math.Abs(GetDeltaMagnitude(targetPoint, comparisonPoint, axis));
+    }
+
     private static bool TryParseLeadLag(string comparator, out LeadLagOptions options)
     {
         options = default;
@@ -597,6 +783,29 @@ internal static class ComparisonRuntime
         return true;
     }
 
+    private static bool TryParseAsOf(string comparator, out AsOfOptions options)
+    {
+        options = default;
+
+        var parts = comparator.Split(':');
+        if (parts.Length != 4 || !string.Equals(parts[0], "asof", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (!Enum.TryParse(parts[1], ignoreCase: false, out AsOfDirection direction)
+            || !Enum.TryParse(parts[2], ignoreCase: false, out TemporalAxis axis)
+            || axis == TemporalAxis.Unknown
+            || !long.TryParse(parts[3], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var toleranceMagnitude)
+            || toleranceMagnitude < 0)
+        {
+            return false;
+        }
+
+        options = new AsOfOptions(direction, axis, toleranceMagnitude);
+        return true;
+    }
+
     private static double Measure(TemporalRange range)
     {
         return range.Axis == TemporalAxis.Timestamp
@@ -615,6 +824,11 @@ internal static class ComparisonRuntime
 
     private readonly record struct LeadLagOptions(
         LeadLagTransition Transition,
+        TemporalAxis Axis,
+        long ToleranceMagnitude);
+
+    private readonly record struct AsOfOptions(
+        AsOfDirection Direction,
         TemporalAxis Axis,
         long ToleranceMagnitude);
 

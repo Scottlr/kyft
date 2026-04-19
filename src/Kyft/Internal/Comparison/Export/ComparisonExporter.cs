@@ -132,6 +132,17 @@ internal static class ComparisonExporter
                 writer.WriteEndObject();
             });
         }
+
+        for (var i = 0; i < result.AsOfRows.Count; i++)
+        {
+            var row = result.AsOfRows[i];
+            yield return ExportJsonLine(writer =>
+            {
+                WriteRowEnvelopeStart(writer, "asof", i);
+                WriteAsOfRowFields(writer, row);
+                writer.WriteEndObject();
+            });
+        }
     }
 
     private static void EnsureExportable(ComparisonPlan plan)
@@ -232,6 +243,7 @@ internal static class ComparisonExporter
         writer.WriteNumber("symmetricDifferenceRowCount", result.SymmetricDifferenceRows.Count);
         writer.WriteNumber("containmentRowCount", result.ContainmentRows.Count);
         writer.WriteNumber("leadLagRowCount", result.LeadLagRows.Count);
+        writer.WriteNumber("asOfRowCount", result.AsOfRows.Count);
         writer.WriteEndObject();
     }
 
@@ -518,6 +530,14 @@ internal static class ComparisonExporter
         }
 
         writer.WriteEndArray();
+        writer.WritePropertyName("asOf");
+        writer.WriteStartArray();
+        for (var i = 0; i < result.AsOfRows.Count; i++)
+        {
+            WriteRowObject(writer, "asOf", i, () => WriteAsOfRowFields(writer, result.AsOfRows[i]));
+        }
+
+        writer.WriteEndArray();
         writer.WriteEndObject();
     }
 
@@ -595,6 +615,24 @@ internal static class ComparisonExporter
         writer.WriteString("direction", row.Direction.ToString());
         writer.WriteString("targetRecordId", row.TargetRecordId.ToString());
         WriteNullableString(writer, "comparisonRecordId", row.ComparisonRecordId?.ToString());
+    }
+
+    private static void WriteAsOfRowFields(Utf8JsonWriter writer, AsOfRow row)
+    {
+        writer.WriteString("windowName", row.WindowName);
+        WriteObjectValue(writer, "key", row.Key);
+        WriteObjectValue(writer, "partition", row.Partition);
+        writer.WriteString("axis", row.Axis.ToString());
+        writer.WriteString("direction", row.Direction.ToString());
+        writer.WritePropertyName("targetPoint");
+        WritePoint(writer, row.TargetPoint);
+        writer.WritePropertyName("matchedPoint");
+        WritePoint(writer, row.MatchedPoint);
+        WriteNullableNumber(writer, "distanceMagnitude", row.DistanceMagnitude);
+        writer.WriteNumber("toleranceMagnitude", row.ToleranceMagnitude);
+        writer.WriteString("status", row.Status.ToString());
+        writer.WriteString("targetRecordId", row.TargetRecordId.ToString());
+        WriteNullableString(writer, "matchedRecordId", row.MatchedRecordId?.ToString());
     }
 
     private static void WriteCommonRowFields(
