@@ -121,6 +121,9 @@ supersede earlier row versions, and retracted entries remove rows that no longer
 exist in the current snapshot. `ComparisonChangelog.Replay(...)` rebuilds the
 active row-finality view from a prior snapshot plus its changelog entries.
 
+For practical usage patterns, see
+[Live finality and changelog](live-finality-and-changelog.md).
+
 ## Plan Criticism
 
 Runtime criticism flags plans that are structurally valid but analytically risky:
@@ -158,6 +161,10 @@ var explanation = prepared.Explain();
 `Explain()` returns deterministic diagnostic text. It is not generated prose.
 `ExportJson()` returns deterministic JSON for CI artifacts, issue reports, and
 agent workflows. `ExportJsonLines()` streams result rows for larger outputs.
+
+Use `ErrorDiagnostics()`, `WarningDiagnostics()`,
+`ProvisionalRowFinalities()`, and `FinalRowFinalities()` when a consumer only
+needs a filtered view of the result metadata.
 
 ## Performance Guidance
 

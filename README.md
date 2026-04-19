@@ -155,6 +155,8 @@ dotnet run --project samples/Kyft.BookmakerExample/Kyft.BookmakerExample.csproj
 
 - [Comparison guide](docs/comparison-guide.md)
 - [Comparator reference](docs/comparator-reference.md)
+- [Live finality and changelog](docs/live-finality-and-changelog.md)
+- [Fixture schema](docs/fixture-schema.md)
 - [API shape review](docs/api-shape-review.md)
 - [Performance notes](docs/performance-notes.md)
 - [Agent guidance](docs/agent-guidance.md)
