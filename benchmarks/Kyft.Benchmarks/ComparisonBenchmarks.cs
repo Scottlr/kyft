@@ -7,6 +7,8 @@ namespace Kyft.Benchmarks;
 public class ComparisonBenchmarks
 {
     private ComparisonBenchmarkData data = null!;
+    private ComparisonResult resultForExport = null!;
+    private ComparisonResult liveResultForExport = null!;
 
     [Params(
         ComparisonScenario.Small,
@@ -20,6 +22,12 @@ public class ComparisonBenchmarks
     public void GlobalSetup()
     {
         this.data = ComparisonBenchmarkData.Create(Scenario);
+        this.resultForExport = CreateBaseBuilder()
+            .Using(comparators => comparators.Overlap().Residual().Missing().Coverage().Gap().SymmetricDifference())
+            .Run();
+        this.liveResultForExport = CreateBaseBuilder()
+            .Using(comparators => comparators.Residual())
+            .RunLive(TemporalPoint.ForPosition(this.data.EventCount + 1));
     }
 
     [Benchmark]
@@ -64,11 +72,56 @@ public class ComparisonBenchmarks
     }
 
     [Benchmark]
+    public ComparisonResult RunContainment()
+    {
+        return CreateBaseBuilder()
+            .Using(comparators => comparators.Containment())
+            .Run();
+    }
+
+    [Benchmark]
+    public ComparisonResult RunLeadLag()
+    {
+        return CreateBaseBuilder()
+            .Using(comparators => comparators.LeadLag(
+                LeadLagTransition.Start,
+                TemporalAxis.ProcessingPosition,
+                toleranceMagnitude: 10))
+            .Run();
+    }
+
+    [Benchmark]
+    public ComparisonResult RunLiveResidual()
+    {
+        return CreateBaseBuilder()
+            .Using(comparators => comparators.Residual())
+            .RunLive(TemporalPoint.ForPosition(this.data.EventCount + 1));
+    }
+
+    [Benchmark]
     public ComparisonResult RunMultiComparator()
     {
         return CreateBaseBuilder()
             .Using(comparators => comparators.Overlap().Residual().Missing().Coverage().Gap().SymmetricDifference())
             .Run();
+    }
+
+    [Benchmark]
+    public string ExportJson()
+    {
+        return this.resultForExport.ExportJson();
+    }
+
+    [Benchmark]
+    public string ExportMarkdown()
+    {
+        return this.resultForExport.ExportMarkdown();
+    }
+
+    [Benchmark]
+    public string ExportLiveJson()
+    {
+        return this.liveResultForExport.ExportJson();
     }
 
     public ComparisonBenchmarkData GetDataForSmokeTest()
