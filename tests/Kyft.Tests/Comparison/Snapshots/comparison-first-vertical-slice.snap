@@ -383,7 +383,8 @@
       }
     ],
     "gap": [],
-    "symmetricDifference": []
+    "symmetricDifference": [],
+    "containment": []
   },
   "coverageSummaries": [
     {
@@ -441,6 +442,7 @@
 - coverage summaries: 1
 - gap rows: 0
 - symmetric difference rows: 0
+- containment rows: 0
 - summary[0]: overlap rows=1
 - summary[1]: residual rows=1
 - summary[2]: coverage rows=2

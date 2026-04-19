@@ -75,6 +75,20 @@ public sealed class ComparisonComparatorBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds the containment comparator.
+    /// </summary>
+    /// <remarks>
+    /// Containment is directional: target windows are checked for coverage by
+    /// comparison windows.
+    /// </remarks>
+    /// <returns>This builder.</returns>
+    public ComparisonComparatorBuilder Containment()
+    {
+        this.comparators.Add("containment");
+        return this;
+    }
+
     internal IReadOnlyList<string> Build()
     {
         return this.comparators.ToArray();

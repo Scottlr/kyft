@@ -155,6 +155,7 @@ internal static class ComparisonExplainer
         writer.Item("coverage summaries", result.CoverageSummaries.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("gap rows", result.GapRows.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("symmetric difference rows", result.SymmetricDifferenceRows.Count.ToString(CultureInfo.InvariantCulture));
+        writer.Item("containment rows", result.ContainmentRows.Count.ToString(CultureInfo.InvariantCulture));
 
         for (var i = 0; i < result.ComparatorSummaries.Count; i++)
         {
@@ -239,6 +240,20 @@ internal static class ComparisonExplainer
                     + "; side=" + row.Side
                     + "; target=" + FormatIds(row.TargetRecordIds)
                     + "; against=" + FormatIds(row.AgainstRecordIds));
+        }
+
+        for (var i = 0; i < result.ContainmentRows.Count; i++)
+        {
+            var row = result.ContainmentRows[i];
+            writer.Item(
+                "containment[" + i.ToString(CultureInfo.InvariantCulture) + "]",
+                "window=" + row.WindowName
+                    + "; key=" + StableObjectValue(row.Key)
+                    + "; partition=" + StableObjectValue(row.Partition)
+                    + "; range=" + FormatRange(row.Range)
+                    + "; status=" + row.Status
+                    + "; target=" + FormatIds(row.TargetRecordIds)
+                    + "; container=" + FormatIds(row.ContainerRecordIds));
         }
 
         for (var i = 0; i < result.CoverageSummaries.Count; i++)

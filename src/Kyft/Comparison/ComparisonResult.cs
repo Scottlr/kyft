@@ -27,6 +27,7 @@ public sealed class ComparisonResult
     /// <param name="coverageSummaries">Summaries emitted by the coverage comparator.</param>
     /// <param name="gapRows">Rows emitted by the gap comparator.</param>
     /// <param name="symmetricDifferenceRows">Rows emitted by the symmetric-difference comparator.</param>
+    /// <param name="containmentRows">Rows emitted by the containment comparator.</param>
     public ComparisonResult(
         ComparisonPlan plan,
         IEnumerable<ComparisonPlanDiagnostic> diagnostics,
@@ -39,7 +40,8 @@ public sealed class ComparisonResult
         IEnumerable<CoverageRow>? coverageRows = null,
         IEnumerable<CoverageSummary>? coverageSummaries = null,
         IEnumerable<GapRow>? gapRows = null,
-        IEnumerable<SymmetricDifferenceRow>? symmetricDifferenceRows = null)
+        IEnumerable<SymmetricDifferenceRow>? symmetricDifferenceRows = null,
+        IEnumerable<ContainmentRow>? containmentRows = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -56,6 +58,7 @@ public sealed class ComparisonResult
         CoverageSummaries = Materialize(coverageSummaries);
         GapRows = Materialize(gapRows);
         SymmetricDifferenceRows = Materialize(symmetricDifferenceRows);
+        ContainmentRows = Materialize(containmentRows);
     }
 
     /// <summary>
@@ -117,6 +120,11 @@ public sealed class ComparisonResult
     /// Gets rows emitted by the symmetric-difference comparator.
     /// </summary>
     public IReadOnlyList<SymmetricDifferenceRow> SymmetricDifferenceRows { get; }
+
+    /// <summary>
+    /// Gets rows emitted by the containment comparator.
+    /// </summary>
+    public IReadOnlyList<ContainmentRow> ContainmentRows { get; }
 
     /// <summary>
     /// Gets whether the result has no error diagnostics.

@@ -110,6 +110,17 @@ internal static class ComparisonExporter
                 writer.WriteEndObject();
             });
         }
+
+        for (var i = 0; i < result.ContainmentRows.Count; i++)
+        {
+            var row = result.ContainmentRows[i];
+            yield return ExportJsonLine(writer =>
+            {
+                WriteRowEnvelopeStart(writer, "containment", i);
+                WriteContainmentRowFields(writer, row);
+                writer.WriteEndObject();
+            });
+        }
     }
 
     private static void EnsureExportable(ComparisonPlan plan)
@@ -207,6 +218,7 @@ internal static class ComparisonExporter
         writer.WriteNumber("coverageRowCount", result.CoverageRows.Count);
         writer.WriteNumber("gapRowCount", result.GapRows.Count);
         writer.WriteNumber("symmetricDifferenceRowCount", result.SymmetricDifferenceRows.Count);
+        writer.WriteNumber("containmentRowCount", result.ContainmentRows.Count);
         writer.WriteEndObject();
     }
 
@@ -477,6 +489,14 @@ internal static class ComparisonExporter
         }
 
         writer.WriteEndArray();
+        writer.WritePropertyName("containment");
+        writer.WriteStartArray();
+        for (var i = 0; i < result.ContainmentRows.Count; i++)
+        {
+            WriteRowObject(writer, "containment", i, () => WriteContainmentRowFields(writer, result.ContainmentRows[i]));
+        }
+
+        writer.WriteEndArray();
         writer.WriteEndObject();
     }
 
@@ -527,6 +547,14 @@ internal static class ComparisonExporter
         writer.WriteString("side", row.Side.ToString());
         WriteIds(writer, "targetRecordIds", row.TargetRecordIds);
         WriteIds(writer, "againstRecordIds", row.AgainstRecordIds);
+    }
+
+    private static void WriteContainmentRowFields(Utf8JsonWriter writer, ContainmentRow row)
+    {
+        WriteCommonRowFields(writer, row.WindowName, row.Key, row.Partition, row.Range);
+        writer.WriteString("status", row.Status.ToString());
+        WriteIds(writer, "targetRecordIds", row.TargetRecordIds);
+        WriteIds(writer, "containerRecordIds", row.ContainerRecordIds);
     }
 
     private static void WriteCommonRowFields(

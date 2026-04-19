@@ -107,3 +107,29 @@ Each `SymmetricDifferenceRow` contains:
 Use symmetric difference when the question is "where did these histories
 disagree at all?" It is equivalent to looking at target residuals and
 comparison-only missing segments together.
+
+## Containment
+
+`Containment()` checks whether target windows are covered by comparison windows.
+The direction is intentional: target rows are the windows being validated, and
+comparison rows are the expected containers.
+
+Each `ContainmentRow` contains:
+
+- `WindowName`
+- `Key`
+- `Partition`
+- `Range`
+- `Status`
+- `TargetRecordIds`
+- `ContainerRecordIds`
+
+Statuses are:
+
+- `Contained`: the target segment is covered by at least one comparison window
+- `LeftOverhang`: the target starts before container coverage
+- `RightOverhang`: the target continues after container coverage
+- `NotContained`: the target segment is uncovered but is not at either edge
+
+Use containment for invariants such as "bettable only while market open" or
+"child state only while parent state is active."

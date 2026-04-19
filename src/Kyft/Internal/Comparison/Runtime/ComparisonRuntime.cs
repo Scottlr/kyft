@@ -11,7 +11,8 @@ internal static class ComparisonRuntime
         "missing",
         "coverage",
         "gap",
-        "symmetric-difference"
+        "symmetric-difference",
+        "containment"
     };
 
     internal static ComparisonResult Run(PreparedComparison prepared)
@@ -26,6 +27,7 @@ internal static class ComparisonRuntime
         var coverageSummaries = new List<CoverageSummary>();
         var gapRows = new List<GapRow>();
         var symmetricDifferenceRows = new List<SymmetricDifferenceRow>();
+        var containmentRows = new List<ContainmentRow>();
 
         for (var i = 0; i < prepared.Plan.Comparators.Count; i++)
         {
@@ -88,6 +90,14 @@ internal static class ComparisonRuntime
                 continue;
             }
 
+            if (string.Equals(comparator, "containment", StringComparison.Ordinal))
+            {
+                var before = containmentRows.Count;
+                AddContainmentRows(prepared, aligned, containmentRows);
+                summaries.Add(new ComparatorSummary(comparator, containmentRows.Count - before));
+                continue;
+            }
+
             summaries.Add(new ComparatorSummary(comparator, RowCount: 0));
         }
 
@@ -103,7 +113,8 @@ internal static class ComparisonRuntime
             coverageRows.ToArray(),
             coverageSummaries.ToArray(),
             gapRows.ToArray(),
-            symmetricDifferenceRows.ToArray());
+            symmetricDifferenceRows.ToArray(),
+            containmentRows.ToArray());
     }
 
     private static void AddOverlapRows(AlignedComparison aligned, List<OverlapRow> rows)
@@ -260,6 +271,80 @@ internal static class ComparisonRuntime
                 segment.TargetRecordIds,
                 segment.AgainstRecordIds));
         }
+    }
+
+    private static void AddContainmentRows(
+        PreparedComparison prepared,
+        AlignedComparison aligned,
+        List<ContainmentRow> rows)
+    {
+        var targetRanges = new Dictionary<WindowRecordId, TemporalRange>();
+        for (var i = 0; i < prepared.NormalizedWindows.Count; i++)
+        {
+            var window = prepared.NormalizedWindows[i];
+            if (window.Side == ComparisonSide.Target)
+            {
+                targetRanges[window.RecordId] = window.Range;
+            }
+        }
+
+        for (var i = 0; i < aligned.Segments.Count; i++)
+        {
+            var segment = aligned.Segments[i];
+            if (segment.TargetRecordIds.Count == 0)
+            {
+                continue;
+            }
+
+            if (segment.AgainstRecordIds.Count > 0)
+            {
+                rows.Add(new ContainmentRow(
+                    segment.WindowName,
+                    segment.Key,
+                    segment.Partition,
+                    segment.Range,
+                    ContainmentStatus.Contained,
+                    segment.TargetRecordIds,
+                    segment.AgainstRecordIds));
+                continue;
+            }
+
+            for (var targetIndex = 0; targetIndex < segment.TargetRecordIds.Count; targetIndex++)
+            {
+                var targetId = segment.TargetRecordIds[targetIndex];
+                rows.Add(new ContainmentRow(
+                    segment.WindowName,
+                    segment.Key,
+                    segment.Partition,
+                    segment.Range,
+                    ClassifyUncontainedSegment(targetRanges, targetId, segment.Range),
+                    new[] { targetId },
+                    Array.Empty<WindowRecordId>()));
+            }
+        }
+    }
+
+    private static ContainmentStatus ClassifyUncontainedSegment(
+        Dictionary<WindowRecordId, TemporalRange> targetRanges,
+        WindowRecordId targetId,
+        TemporalRange segmentRange)
+    {
+        if (!targetRanges.TryGetValue(targetId, out var targetRange) || !segmentRange.End.HasValue)
+        {
+            return ContainmentStatus.NotContained;
+        }
+
+        if (segmentRange.Start.CompareTo(targetRange.Start) == 0)
+        {
+            return ContainmentStatus.LeftOverhang;
+        }
+
+        if (targetRange.End.HasValue && segmentRange.End.Value.CompareTo(targetRange.End.Value) == 0)
+        {
+            return ContainmentStatus.RightOverhang;
+        }
+
+        return ContainmentStatus.NotContained;
     }
 
     private static double Measure(TemporalRange range)
