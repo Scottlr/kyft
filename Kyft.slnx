@@ -5,4 +5,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Kyft.Tests/Kyft.Tests.csproj" />
   </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj" />
+  </Folder>
 </Solution>

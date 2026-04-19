@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\benchmarks\Kyft.Benchmarks\Kyft.Benchmarks.csproj" />
     <ProjectReference Include="..\..\src\Kyft\Kyft.csproj" />
   </ItemGroup>
 
