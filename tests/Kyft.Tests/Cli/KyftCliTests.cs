@@ -147,6 +147,56 @@ public sealed class KyftCliTests
     }
 
     [Fact]
+    public void CompareRunsLiveFixtureWhenPlanHasHorizon()
+    {
+        var fixturePath = TempFixturePath();
+        try
+        {
+            File.WriteAllText(fixturePath, """
+                {
+                  "schema": "kyft.contract-fixture",
+                  "schemaVersion": 1,
+                  "name": "live-open-window",
+                  "windows": [
+                    {
+                      "windowName": "DeviceOffline",
+                      "key": "device-1",
+                      "source": "provider-a",
+                      "startPosition": 1,
+                      "endPosition": null
+                    }
+                  ],
+                  "plan": {
+                    "name": "Live Provider QA",
+                    "targetSource": "provider-a",
+                    "againstSources": [ "provider-b" ],
+                    "scopeWindow": "DeviceOffline",
+                    "comparators": [ "residual" ],
+                    "strict": false,
+                    "liveHorizonPosition": 10
+                  }
+                }
+                """);
+
+            var (exitCode, output, error) = Run("compare", fixturePath, "--format", "json");
+
+            Assert.Equal(0, exitCode);
+            Assert.Equal(string.Empty, error);
+            using var document = JsonDocument.Parse(output);
+            Assert.Equal(10, document.RootElement
+                .GetProperty("evaluationHorizon")
+                .GetProperty("position")
+                .GetInt64());
+            var finality = Assert.Single(document.RootElement.GetProperty("rowFinalities").EnumerateArray());
+            Assert.Equal("Provisional", finality.GetProperty("finality").GetString());
+        }
+        finally
+        {
+            File.Delete(fixturePath);
+        }
+    }
+
+    [Fact]
     public void ExplainRunsFixtureAndWritesMarkdown()
     {
         var (exitCode, output, error) = Run("explain", FixturePath("basic-overlap.json"));
@@ -174,6 +224,33 @@ public sealed class KyftCliTests
         Assert.Equal(2, exitCode);
         Assert.Equal(string.Empty, output);
         Assert.Contains("Unknown command: inspect", error);
+    }
+
+    [Fact]
+    public void InvalidFixtureShapeReturnsReadableDiagnostic()
+    {
+        var fixturePath = TempFixturePath();
+        try
+        {
+            File.WriteAllText(fixturePath, """
+                {
+                  "schema": "kyft.contract-fixture",
+                  "schemaVersion": 1,
+                  "windows": []
+                }
+                """);
+
+            var (exitCode, output, error) = Run("validate-plan", fixturePath);
+
+            Assert.Equal(2, exitCode);
+            Assert.Equal(string.Empty, output);
+            Assert.Contains("missing required property", error);
+            Assert.Contains("plan", error);
+        }
+        finally
+        {
+            File.Delete(fixturePath);
+        }
     }
 
     private static (int ExitCode, string Output, string Error) Run(params string[] args)

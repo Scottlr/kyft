@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 using Kyft.Testing;
@@ -30,6 +31,7 @@ public static class KyftCli
             var fixturePath = args[1];
             var format = ReadFormat(args);
             using var fixture = JsonDocument.Parse(File.ReadAllText(fixturePath));
+            ValidateFixture(fixture.RootElement);
             var result = ExecuteFixture(fixture.RootElement);
 
             if (string.Equals(command, "validate-plan", StringComparison.Ordinal))
@@ -90,6 +92,7 @@ public static class KyftCli
     {
         var history = CreateHistory(fixture.GetProperty("windows"));
         var plan = CreatePlan(fixture.GetProperty("plan"));
+        var liveHorizon = ReadLiveHorizon(fixture.GetProperty("plan"));
         var builder = history.Compare(plan.Name)
             .Target(plan.Target!.Value.Name, _ => plan.Target.Value);
 
@@ -99,12 +102,15 @@ public static class KyftCli
             builder.Against(selector.Name, _ => selector);
         }
 
-        return builder
+        builder = builder
             .Within(_ => plan.Scope!)
             .Using(_ => BuildComparators(plan.Comparators))
             .Normalize(_ => BuildNormalization(plan.Normalization))
-            .StrictIf(plan.IsStrict)
-            .Run();
+            .StrictIf(plan.IsStrict);
+
+        return liveHorizon.HasValue
+            ? builder.RunLive(liveHorizon.Value)
+            : builder.Run();
     }
 
     private static WindowIntervalHistory CreateHistory(JsonElement windows)
@@ -112,12 +118,28 @@ public static class KyftCli
         var builder = new WindowHistoryFixtureBuilder();
         foreach (var window in windows.EnumerateArray())
         {
+            var windowName = window.GetProperty("windowName").GetString()!;
+            var key = window.GetProperty("key").GetString()!;
+            var startPosition = window.GetProperty("startPosition").GetInt64();
+            var source = window.GetProperty("source").GetString();
+            var partition = window.TryGetProperty("partition", out var partitionProperty)
+                && partitionProperty.ValueKind != JsonValueKind.Null
+                    ? partitionProperty.GetString()
+                    : null;
+
+            if (window.GetProperty("endPosition").ValueKind == JsonValueKind.Null)
+            {
+                builder.AddOpenWindow(windowName, key, startPosition, source, partition);
+                continue;
+            }
+
             builder.AddClosedWindow(
-                window.GetProperty("windowName").GetString()!,
-                window.GetProperty("key").GetString()!,
-                window.GetProperty("startPosition").GetInt64(),
+                windowName,
+                key,
+                startPosition,
                 window.GetProperty("endPosition").GetInt64(),
-                source: window.GetProperty("source").GetString());
+                source,
+                partition);
         }
 
         return builder.Build();
@@ -141,6 +163,14 @@ public static class KyftCli
             plan.GetProperty("comparators").EnumerateArray().Select(static comparator => comparator.GetString()!),
             ComparisonOutputOptions.Default,
             plan.GetProperty("strict").GetBoolean());
+    }
+
+    private static TemporalPoint? ReadLiveHorizon(JsonElement plan)
+    {
+        return plan.TryGetProperty("liveHorizonPosition", out var horizon)
+            && horizon.ValueKind != JsonValueKind.Null
+                ? TemporalPoint.ForPosition(horizon.GetInt64())
+                : null;
     }
 
     private static ComparisonComparatorBuilder BuildComparators(IReadOnlyList<string> comparators)
@@ -196,6 +226,117 @@ public static class KyftCli
         writer.Write("{\"error\":");
         writer.Write(JsonSerializer.Serialize(message));
         writer.Write('}');
+    }
+
+    private static void ValidateFixture(JsonElement fixture)
+    {
+        RequireKind(fixture, "$", JsonValueKind.Object);
+        RequireProperty(fixture, "schema", "$", JsonValueKind.String);
+        RequireProperty(fixture, "schemaVersion", "$", JsonValueKind.Number);
+        var windows = RequireProperty(fixture, "windows", "$", JsonValueKind.Array);
+        var plan = RequireProperty(fixture, "plan", "$", JsonValueKind.Object);
+
+        ValidateWindows(windows);
+        ValidatePlan(plan);
+    }
+
+    private static void ValidateWindows(JsonElement windows)
+    {
+        var index = 0;
+        foreach (var window in windows.EnumerateArray())
+        {
+            var path = "$.windows[" + index.ToString(CultureInfo.InvariantCulture) + "]";
+            RequireKind(window, path, JsonValueKind.Object);
+            RequireProperty(window, "windowName", path, JsonValueKind.String);
+            RequireProperty(window, "key", path, JsonValueKind.String);
+            RequireProperty(window, "source", path, JsonValueKind.String);
+            var start = RequireProperty(window, "startPosition", path, JsonValueKind.Number).GetInt64();
+            var end = RequireProperty(window, "endPosition", path, JsonValueKind.Number, JsonValueKind.Null);
+
+            if (end.ValueKind == JsonValueKind.Number && end.GetInt64() < start)
+            {
+                throw new ArgumentException(path + ".endPosition must be greater than or equal to startPosition.");
+            }
+
+            if (window.TryGetProperty("partition", out var partition))
+            {
+                RequireKind(partition, path + ".partition", JsonValueKind.String, JsonValueKind.Null);
+            }
+
+            index++;
+        }
+    }
+
+    private static void ValidatePlan(JsonElement plan)
+    {
+        RequireProperty(plan, "name", "$.plan", JsonValueKind.String);
+        RequireProperty(plan, "targetSource", "$.plan", JsonValueKind.String);
+        var against = RequireProperty(plan, "againstSources", "$.plan", JsonValueKind.Array);
+        if (against.GetArrayLength() == 0)
+        {
+            throw new ArgumentException("$.plan.againstSources must contain at least one source.");
+        }
+
+        var againstIndex = 0;
+        foreach (var source in against.EnumerateArray())
+        {
+            RequireKind(
+                source,
+                "$.plan.againstSources[" + againstIndex.ToString(CultureInfo.InvariantCulture) + "]",
+                JsonValueKind.String);
+            againstIndex++;
+        }
+
+        RequireProperty(plan, "scopeWindow", "$.plan", JsonValueKind.String, JsonValueKind.Null);
+        var comparators = RequireProperty(plan, "comparators", "$.plan", JsonValueKind.Array);
+        if (comparators.GetArrayLength() == 0)
+        {
+            throw new ArgumentException("$.plan.comparators must contain at least one comparator.");
+        }
+
+        var comparatorIndex = 0;
+        foreach (var comparator in comparators.EnumerateArray())
+        {
+            RequireKind(
+                comparator,
+                "$.plan.comparators[" + comparatorIndex.ToString(CultureInfo.InvariantCulture) + "]",
+                JsonValueKind.String);
+            comparatorIndex++;
+        }
+
+        RequireProperty(plan, "strict", "$.plan", JsonValueKind.True, JsonValueKind.False);
+        if (plan.TryGetProperty("liveHorizonPosition", out var horizon))
+        {
+            RequireKind(horizon, "$.plan.liveHorizonPosition", JsonValueKind.Number, JsonValueKind.Null);
+        }
+    }
+
+    private static JsonElement RequireProperty(
+        JsonElement element,
+        string propertyName,
+        string path,
+        params JsonValueKind[] expectedKinds)
+    {
+        if (!element.TryGetProperty(propertyName, out var property))
+        {
+            throw new ArgumentException(path + " is missing required property '" + propertyName + "'.");
+        }
+
+        RequireKind(property, path + "." + propertyName, expectedKinds);
+        return property;
+    }
+
+    private static void RequireKind(JsonElement element, string path, params JsonValueKind[] expectedKinds)
+    {
+        for (var i = 0; i < expectedKinds.Length; i++)
+        {
+            if (element.ValueKind == expectedKinds[i])
+            {
+                return;
+            }
+        }
+
+        throw new ArgumentException(path + " has unsupported JSON kind " + element.ValueKind + ".");
     }
 }
 

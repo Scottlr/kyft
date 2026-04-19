@@ -46,6 +46,25 @@ public sealed class KyftTestingConsumerTests
     }
 
     [Fact]
+    public void FixtureBuilderCanCreateOpenWindowHistories()
+    {
+        var history = new WindowHistoryFixtureBuilder()
+            .AddOpenWindow("DeviceOffline", "device-1", 1, source: "provider-a")
+            .Build();
+
+        var result = history.Compare("Live fixture QA")
+            .Target("provider-a", selector => selector.Source("provider-a"))
+            .Against("provider-b", selector => selector.Source("provider-b"))
+            .Within(scope => scope.Window("DeviceOffline"))
+            .Using(comparators => comparators.Residual())
+            .RunLive(TemporalPoint.ForPosition(10));
+
+        Assert.Single(history.OpenWindows);
+        Assert.Single(result.ResidualRows);
+        Assert.True(result.HasProvisionalRows());
+    }
+
+    [Fact]
     public void PackageAssertionsThrowFrameworkNeutralException()
     {
         var result = new ComparisonResult(

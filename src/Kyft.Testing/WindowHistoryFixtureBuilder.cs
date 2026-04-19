@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Reflection;
 
 namespace Kyft.Testing;
@@ -13,6 +14,7 @@ namespace Kyft.Testing;
 public sealed class WindowHistoryFixtureBuilder
 {
     private readonly List<ClosedWindow> closedWindows = [];
+    private readonly List<OpenWindow> openWindows = [];
 
     /// <summary>
     /// Adds a closed window to the fixture history.
@@ -37,7 +39,27 @@ public sealed class WindowHistoryFixtureBuilder
     }
 
     /// <summary>
-    /// Builds a Kyft window history containing the configured closed windows.
+    /// Adds an open window to the fixture history.
+    /// </summary>
+    /// <param name="windowName">The configured window name.</param>
+    /// <param name="key">The window key.</param>
+    /// <param name="startPosition">The inclusive start processing position.</param>
+    /// <param name="source">The optional source identity.</param>
+    /// <param name="partition">The optional partition identity.</param>
+    /// <returns>This builder.</returns>
+    public WindowHistoryFixtureBuilder AddOpenWindow(
+        string windowName,
+        object key,
+        long startPosition,
+        object? source = null,
+        object? partition = null)
+    {
+        this.openWindows.Add(new OpenWindow(windowName, key, startPosition, source, partition));
+        return this;
+    }
+
+    /// <summary>
+    /// Builds a Kyft window history containing the configured windows.
     /// </summary>
     /// <returns>A window history fixture.</returns>
     public WindowIntervalHistory Build()
@@ -60,6 +82,37 @@ public sealed class WindowHistoryFixtureBuilder
             closed.Add(this.closedWindows[i]);
         }
 
+        AddOpenWindows(history);
+
         return history;
+    }
+
+    private void AddOpenWindows(WindowIntervalHistory history)
+    {
+        if (this.openWindows.Count == 0)
+        {
+            return;
+        }
+
+        var keyType = typeof(WindowIntervalHistory).Assembly.GetType("Kyft.Internal.Recording.WindowRecordingKey")
+            ?? throw new InvalidOperationException("Kyft window recording key type was not found.");
+        var field = typeof(WindowIntervalHistory).GetField(
+            "openIntervals",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Kyft open-window storage was not found.");
+        var open = (IDictionary)field.GetValue(history)!;
+
+        for (var i = 0; i < this.openWindows.Count; i++)
+        {
+            var window = this.openWindows[i];
+            var key = Activator.CreateInstance(
+                keyType,
+                window.WindowName,
+                window.Key,
+                window.Source,
+                window.Partition)
+                ?? throw new InvalidOperationException("Kyft window recording key could not be created.");
+            open.Add(key, window);
+        }
     }
 }
