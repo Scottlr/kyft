@@ -90,6 +90,87 @@ public sealed class WindowIntervalHistory
     }
 
     /// <summary>
+    /// Builds a directional source matrix for one recorded window name.
+    /// </summary>
+    /// <remarks>
+    /// Cells are emitted in row-major source order. Each non-diagonal cell
+    /// treats the row source as target and the column source as comparison.
+    /// Diagonal cells are identity rows and do not run pairwise comparators.
+    /// </remarks>
+    /// <param name="name">A human-readable matrix name.</param>
+    /// <param name="windowName">The recorded window name to compare.</param>
+    /// <param name="sources">The sources to include, in row and column order.</param>
+    /// <returns>A directional source matrix.</returns>
+    public SourceMatrixResult CompareSources(
+        string name,
+        string windowName,
+        IEnumerable<object> sources)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(windowName);
+        ArgumentNullException.ThrowIfNull(sources);
+
+        var orderedSources = sources as object[] ?? sources.ToArray();
+        var cells = new List<SourceMatrixCell>(orderedSources.Length * orderedSources.Length);
+        var sourceHasWindows = new Dictionary<object, bool>();
+
+        for (var i = 0; i < orderedSources.Length; i++)
+        {
+            var source = orderedSources[i];
+            ArgumentNullException.ThrowIfNull(source);
+            sourceHasWindows[source] = HasWindowForSource(windowName, source);
+        }
+
+        for (var targetIndex = 0; targetIndex < orderedSources.Length; targetIndex++)
+        {
+            var targetSource = orderedSources[targetIndex];
+            for (var againstIndex = 0; againstIndex < orderedSources.Length; againstIndex++)
+            {
+                var againstSource = orderedSources[againstIndex];
+                var targetHasWindows = sourceHasWindows[targetSource];
+                var againstHasWindows = sourceHasWindows[againstSource];
+
+                if (targetIndex == againstIndex)
+                {
+                    cells.Add(new SourceMatrixCell(
+                        targetSource,
+                        againstSource,
+                        IsDiagonal: true,
+                        targetHasWindows,
+                        againstHasWindows,
+                        OverlapRowCount: 0,
+                        ResidualRowCount: 0,
+                        MissingRowCount: 0,
+                        CoverageRowCount: 0,
+                        CoverageRatio: targetHasWindows ? 1d : null));
+                    continue;
+                }
+
+                var result = Compare(name + " " + targetSource + " vs " + againstSource)
+                    .Target(targetSource.ToString() ?? "target", selector => selector.Source(targetSource))
+                    .Against(againstSource.ToString() ?? "against", selector => selector.Source(againstSource))
+                    .Within(scope => scope.Window(windowName))
+                    .Using(comparators => comparators.Overlap().Residual().Missing().Coverage())
+                    .Run();
+
+                cells.Add(new SourceMatrixCell(
+                    targetSource,
+                    againstSource,
+                    IsDiagonal: false,
+                    targetHasWindows,
+                    againstHasWindows,
+                    result.OverlapRows.Count,
+                    result.ResidualRows.Count,
+                    result.MissingRows.Count,
+                    result.CoverageRows.Count,
+                    GetCoverageRatio(result.CoverageSummaries)));
+            }
+        }
+
+        return new SourceMatrixResult(name, windowName, orderedSources, cells.ToArray());
+    }
+
+    /// <summary>
     /// Finds overlapping closed windows within the same window scope.
     /// </summary>
     /// <returns>The overlapping interval pairs.</returns>
@@ -217,6 +298,34 @@ public sealed class WindowIntervalHistory
                 open.StartTime,
                 eventTime));
         }
+    }
+
+    private bool HasWindowForSource(string windowName, object source)
+    {
+        foreach (var window in Windows)
+        {
+            if (string.Equals(window.WindowName, windowName, StringComparison.Ordinal)
+                && EqualityComparer<object?>.Default.Equals(window.Source, source))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static double? GetCoverageRatio(IReadOnlyList<CoverageSummary> summaries)
+    {
+        var target = 0d;
+        var covered = 0d;
+
+        for (var i = 0; i < summaries.Count; i++)
+        {
+            target += summaries[i].TargetMagnitude;
+            covered += summaries[i].CoveredMagnitude;
+        }
+
+        return target == 0d ? null : covered / target;
     }
 
     private static bool IsSameScope(ClosedWindow first, ClosedWindow second)

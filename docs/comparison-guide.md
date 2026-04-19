@@ -100,3 +100,20 @@ Plans are cheap. Preparation enumerates recorded history and normalization work.
 Comparator execution materializes result rows. Avoid exporting or explaining
 results in ingestion hot paths; build those artifacts at workflow boundaries,
 test failure boundaries, notebook boundaries, or agent handoff points.
+
+## Source Matrix
+
+Use a source matrix when the same pairwise comparison needs to be read across
+several sources:
+
+```csharp
+var matrix = pipeline.Intervals.CompareSources(
+    "Provider matrix",
+    "DeviceOffline",
+    ["provider-a", "provider-b", "provider-c"]);
+```
+
+Cells are directional. The row source is the target and the column source is
+the comparison source. Diagonal cells are identity rows and do not run
+comparators. Missing sources are still emitted as explicit cells so reports do
+not silently drop an expected provider.
