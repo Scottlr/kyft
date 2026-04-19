@@ -76,6 +76,15 @@ public sealed class ComparisonResult
     public ComparisonPlan Plan { get; }
 
     /// <summary>
+    /// Gets the known-at availability point used by the result, when one was configured.
+    /// </summary>
+    /// <remarks>
+    /// Known-at is availability time, not event time. It describes what the
+    /// comparison was allowed to know when the result was produced.
+    /// </remarks>
+    public TemporalPoint? KnownAt => Plan.Normalization.KnownAt;
+
+    /// <summary>
     /// Gets the validation and execution diagnostics.
     /// </summary>
     public IReadOnlyList<ComparisonPlanDiagnostic> Diagnostics { get; }

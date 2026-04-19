@@ -16,6 +16,7 @@ namespace Kyft;
 /// <param name="NullTimestampPolicy">How missing event timestamps are handled in event-time mode.</param>
 /// <param name="CoalesceAdjacentWindows">Whether adjacent windows with the same scope can be coalesced.</param>
 /// <param name="DuplicateWindowPolicy">How duplicate normalized windows are handled.</param>
+/// <param name="KnownAt">The availability point used to prevent future leakage. This is availability time, not event time.</param>
 public sealed record ComparisonNormalizationPolicy(
     bool RequireClosedWindows,
     bool UseHalfOpenRanges,
@@ -24,7 +25,8 @@ public sealed record ComparisonNormalizationPolicy(
     TemporalPoint? OpenWindowHorizon = null,
     ComparisonNullTimestampPolicy NullTimestampPolicy = ComparisonNullTimestampPolicy.Reject,
     bool CoalesceAdjacentWindows = false,
-    ComparisonDuplicateWindowPolicy DuplicateWindowPolicy = ComparisonDuplicateWindowPolicy.Preserve)
+    ComparisonDuplicateWindowPolicy DuplicateWindowPolicy = ComparisonDuplicateWindowPolicy.Preserve,
+    TemporalPoint? KnownAt = null)
 {
     /// <summary>
     /// Gets the default historical comparison normalization policy.

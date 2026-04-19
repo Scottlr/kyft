@@ -78,5 +78,15 @@ public enum ComparisonPlanValidationCode
     /// <summary>
     /// Indicates that hierarchy comparison could not find expected parent or child lineage records.
     /// </summary>
-    MissingLineage = 14
+    MissingLineage = 14,
+
+    /// <summary>
+    /// Indicates that a recorded window was unavailable at the configured known-at point.
+    /// </summary>
+    FutureWindowExcluded = 15,
+
+    /// <summary>
+    /// Indicates that known-at requires processing-position availability information.
+    /// </summary>
+    KnownAtRequiresProcessingPosition = 16
 }

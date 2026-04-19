@@ -212,6 +212,8 @@ internal static class ComparisonExporter
         writer.WriteNumber("schemaVersion", SchemaVersion);
         writer.WriteString("artifact", "result");
         writer.WriteBoolean("isValid", result.IsValid);
+        writer.WritePropertyName("knownAt");
+        WritePoint(writer, result.KnownAt);
         writer.WritePropertyName("plan");
         writer.WriteStartObject();
         WritePlanFields(writer, result.Plan, result.Diagnostics);
@@ -234,6 +236,8 @@ internal static class ComparisonExporter
         writer.WriteString("artifact", "result-summary");
         writer.WriteString("planName", result.Plan.Name);
         writer.WriteBoolean("isValid", result.IsValid);
+        writer.WritePropertyName("knownAt");
+        WritePoint(writer, result.KnownAt);
         writer.WriteNumber("diagnosticCount", result.Diagnostics.Count);
         writer.WriteNumber("overlapRowCount", result.OverlapRows.Count);
         writer.WriteNumber("residualRowCount", result.ResidualRows.Count);
@@ -328,6 +332,8 @@ internal static class ComparisonExporter
         writer.WriteString("nullTimestampPolicy", policy.NullTimestampPolicy.ToString());
         writer.WriteBoolean("coalesceAdjacentWindows", policy.CoalesceAdjacentWindows);
         writer.WriteString("duplicateWindowPolicy", policy.DuplicateWindowPolicy.ToString());
+        writer.WritePropertyName("knownAt");
+        WritePoint(writer, policy.KnownAt);
         writer.WriteEndObject();
     }
 

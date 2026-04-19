@@ -13,6 +13,7 @@ public sealed class ComparisonNormalizationBuilder
     private ComparisonNullTimestampPolicy nullTimestampPolicy = ComparisonNullTimestampPolicy.Reject;
     private bool coalesceAdjacentWindows;
     private ComparisonDuplicateWindowPolicy duplicateWindowPolicy = ComparisonDuplicateWindowPolicy.Preserve;
+    private TemporalPoint? knownAt;
 
     /// <summary>
     /// Requires recorded windows to be closed before historical comparison.
@@ -109,6 +110,38 @@ public sealed class ComparisonNormalizationBuilder
         return this;
     }
 
+    /// <summary>
+    /// Applies a processing-position known-at point to prevent future leakage.
+    /// </summary>
+    /// <remarks>
+    /// Known-at is availability time, not event time. Closed windows become
+    /// available at their close position; open windows are available at their
+    /// start position.
+    /// </remarks>
+    /// <param name="position">The processing position known at decision time.</param>
+    /// <returns>This builder.</returns>
+    public ComparisonNormalizationBuilder KnownAtPosition(long position)
+    {
+        this.knownAt = TemporalPoint.ForPosition(position);
+        return this;
+    }
+
+    /// <summary>
+    /// Applies a known-at point to prevent future leakage.
+    /// </summary>
+    /// <remarks>
+    /// Known-at is availability time, not event time. Processing-position
+    /// known-at points are enforced during preparation; timestamp known-at
+    /// points are diagnosed until explicit availability clocks are available.
+    /// </remarks>
+    /// <param name="point">The availability point known at decision time.</param>
+    /// <returns>This builder.</returns>
+    public ComparisonNormalizationBuilder KnownAt(TemporalPoint point)
+    {
+        this.knownAt = point;
+        return this;
+    }
+
     internal ComparisonNormalizationPolicy Build()
     {
         return new ComparisonNormalizationPolicy(
@@ -119,6 +152,7 @@ public sealed class ComparisonNormalizationBuilder
             this.openWindowHorizon,
             this.nullTimestampPolicy,
             this.coalesceAdjacentWindows,
-            this.duplicateWindowPolicy);
+            this.duplicateWindowPolicy,
+            this.knownAt);
     }
 }

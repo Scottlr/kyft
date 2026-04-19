@@ -375,7 +375,8 @@ internal static class ComparisonExplainer
             + "; horizon=" + (policy.OpenWindowHorizon.HasValue ? FormatPoint(policy.OpenWindowHorizon.Value) : "<none>")
             + "; nullTimestamp=" + policy.NullTimestampPolicy
             + "; coalesceAdjacent=" + FormatBool(policy.CoalesceAdjacentWindows)
-            + "; duplicatePolicy=" + policy.DuplicateWindowPolicy;
+            + "; duplicatePolicy=" + policy.DuplicateWindowPolicy
+            + "; knownAt=" + (policy.KnownAt.HasValue ? FormatPoint(policy.KnownAt.Value) : "<none>");
     }
 
     private static string FormatOutput(ComparisonOutputOptions output)

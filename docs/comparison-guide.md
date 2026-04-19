@@ -72,6 +72,27 @@ var prepared = pipeline.Intervals
 The resulting range records that its end came from the horizon policy, not from
 a closed source window.
 
+## Known-At Safety
+
+Known-at filtering answers "what records were available at this processing
+position?" It is availability time, not event time. Closed windows become
+available when their close position has been processed; open windows are
+available from their start position.
+
+```csharp
+var prepared = pipeline.Intervals
+    .Compare("Decision audit")
+    .Target("provider-a", selector => selector.Source("provider-a"))
+    .Against("provider-b", selector => selector.Source("provider-b"))
+    .Within(scope => scope.Window("DeviceOffline"))
+    .Normalize(normalization => normalization.KnownAtPosition(42))
+    .Using(comparators => comparators.Overlap())
+    .Prepare();
+```
+
+Records unavailable at the known-at point are excluded with diagnostics so
+backtests and decision audits do not silently leak future information.
+
 ## Inspectability
 
 Use `Validate()` before execution when building plans dynamically. Use

@@ -27,6 +27,25 @@ internal static class ComparisonPreparer
                 ComparisonPlanDiagnosticSeverity.Error));
         }
 
+        var knownAt = plan.Normalization.KnownAt;
+        var knownAtFilter = default(TemporalPoint);
+        var canFilterByKnownAt = false;
+
+        if (knownAt.HasValue
+            && knownAt.Value.Axis != TemporalAxis.ProcessingPosition)
+        {
+            diagnostics.Add(new ComparisonPlanDiagnostic(
+                ComparisonPlanValidationCode.KnownAtRequiresProcessingPosition,
+                "Known-at filtering currently requires processing-position availability information.",
+                "normalization.knownAt",
+                ComparisonPlanDiagnosticSeverity.Error));
+        }
+        else if (knownAt.HasValue)
+        {
+            knownAtFilter = knownAt.Value;
+            canFilterByKnownAt = true;
+        }
+
         var windows = history.Windows
             .OrderBy(static window => window.WindowName, StringComparer.Ordinal)
             .ThenBy(static window => StableObjectValue(window.Key), StringComparer.Ordinal)
@@ -38,6 +57,18 @@ internal static class ComparisonPreparer
 
         foreach (var window in windows)
         {
+            if (canFilterByKnownAt && !IsKnownAt(window, knownAtFilter))
+            {
+                AddExclusion(
+                    window,
+                    "Window was not available at the configured known-at point.",
+                    ComparisonPlanValidationCode.FutureWindowExcluded,
+                    diagnostics,
+                    excluded,
+                    ComparisonPlanDiagnosticSeverity.Warning);
+                continue;
+            }
+
             if (!IsInScope(window, plan.Scope))
             {
                 excluded.Add(new ExcludedWindowRecord(window, "Window is outside the comparison scope."));
@@ -190,6 +221,12 @@ internal static class ComparisonPreparer
     {
         return scope.WindowName is null
             || string.Equals(window.WindowName, scope.WindowName, StringComparison.Ordinal);
+    }
+
+    private static bool IsKnownAt(WindowRecord window, TemporalPoint knownAt)
+    {
+        var availabilityPosition = window.EndPosition ?? window.StartPosition;
+        return availabilityPosition <= knownAt.Position;
     }
 
     private static PreparedComparison Create(

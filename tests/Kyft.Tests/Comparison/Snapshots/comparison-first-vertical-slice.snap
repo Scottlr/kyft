@@ -3,6 +3,7 @@
   "schemaVersion": 0,
   "artifact": "result",
   "isValid": true,
+  "knownAt": null,
   "plan": {
     "name": "Provider QA",
     "isStrict": false,
@@ -31,7 +32,8 @@
       "openWindowHorizon": null,
       "nullTimestampPolicy": "Reject",
       "coalesceAdjacentWindows": false,
-      "duplicateWindowPolicy": "Preserve"
+      "duplicateWindowPolicy": "Preserve",
+      "knownAt": null
     },
     "comparators": [
       "overlap",
@@ -414,7 +416,7 @@
 - against: 1
 - against[0]: source:provider-b (source = provider-b; serializable=true)
 - scope: window=DeviceOffline; axis=ProcessingPosition
-- normalization: axis=ProcessingPosition; requireClosed=true; halfOpen=true; openPolicy=RequireClosed; horizon=<none>; nullTimestamp=Reject; coalesceAdjacent=false; duplicatePolicy=Preserve
+- normalization: axis=ProcessingPosition; requireClosed=true; halfOpen=true; openPolicy=RequireClosed; horizon=<none>; nullTimestamp=Reject; coalesceAdjacent=false; duplicatePolicy=Preserve; knownAt=<none>
 - comparators: overlap, residual, coverage
 - output: alignedSegments=true; explainData=true
 - diagnostics: 1
