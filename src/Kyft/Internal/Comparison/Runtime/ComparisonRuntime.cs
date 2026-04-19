@@ -122,23 +122,47 @@ internal static class ComparisonRuntime
             summaries.Add(new ComparatorSummary(comparator, RowCount: 0));
         }
 
+        var overlapArray = overlapRows.ToArray();
+        var residualArray = residualRows.ToArray();
+        var missingArray = missingRows.ToArray();
+        var coverageArray = coverageRows.ToArray();
+        var coverageSummaryArray = coverageSummaries.ToArray();
+        var gapArray = gapRows.ToArray();
+        var symmetricDifferenceArray = symmetricDifferenceRows.ToArray();
+        var containmentArray = containmentRows.ToArray();
+        var leadLagArray = leadLagRows.ToArray();
+        var leadLagSummaryArray = leadLagSummaries.ToArray();
+        var asOfArray = asOfRows.ToArray();
+        var rowFinalities = BuildRowFinalities(
+            prepared,
+            overlapArray,
+            residualArray,
+            missingArray,
+            coverageArray,
+            gapArray,
+            symmetricDifferenceArray,
+            containmentArray,
+            leadLagArray,
+            asOfArray);
+
         return new ComparisonResult(
             prepared.Plan,
             diagnostics.ToArray(),
             prepared,
             aligned,
             summaries.ToArray(),
-            overlapRows.ToArray(),
-            residualRows.ToArray(),
-            missingRows.ToArray(),
-            coverageRows.ToArray(),
-            coverageSummaries.ToArray(),
-            gapRows.ToArray(),
-            symmetricDifferenceRows.ToArray(),
-            containmentRows.ToArray(),
-            leadLagRows.ToArray(),
-            leadLagSummaries.ToArray(),
-            asOfRows.ToArray());
+            overlapArray,
+            residualArray,
+            missingArray,
+            coverageArray,
+            coverageSummaryArray,
+            gapArray,
+            symmetricDifferenceArray,
+            containmentArray,
+            leadLagArray,
+            leadLagSummaryArray,
+            asOfArray,
+            rowFinalities);
     }
 
     private static void AddOverlapRows(AlignedComparison aligned, List<OverlapRow> rows)
@@ -804,6 +828,149 @@ internal static class ComparisonRuntime
 
         options = new AsOfOptions(direction, axis, toleranceMagnitude);
         return true;
+    }
+
+    private static ComparisonRowFinality[] BuildRowFinalities(
+        PreparedComparison prepared,
+        IReadOnlyList<OverlapRow> overlapRows,
+        IReadOnlyList<ResidualRow> residualRows,
+        IReadOnlyList<MissingRow> missingRows,
+        IReadOnlyList<CoverageRow> coverageRows,
+        IReadOnlyList<GapRow> gapRows,
+        IReadOnlyList<SymmetricDifferenceRow> symmetricDifferenceRows,
+        IReadOnlyList<ContainmentRow> containmentRows,
+        IReadOnlyList<LeadLagRow> leadLagRows,
+        IReadOnlyList<AsOfRow> asOfRows)
+    {
+        var provisionalRecordIds = prepared.NormalizedWindows
+            .Where(static window => window.Range.EndStatus == TemporalRangeEndStatus.OpenAtHorizon)
+            .Select(static window => window.RecordId)
+            .ToHashSet();
+
+        var finalities = new List<ComparisonRowFinality>(
+            overlapRows.Count
+            + residualRows.Count
+            + missingRows.Count
+            + coverageRows.Count
+            + gapRows.Count
+            + symmetricDifferenceRows.Count
+            + containmentRows.Count
+            + leadLagRows.Count
+            + asOfRows.Count);
+
+        for (var i = 0; i < overlapRows.Count; i++)
+        {
+            var row = overlapRows[i];
+            AddRowFinality(finalities, provisionalRecordIds, "overlap", i, row.TargetRecordIds, row.AgainstRecordIds);
+        }
+
+        for (var i = 0; i < residualRows.Count; i++)
+        {
+            AddRowFinality(finalities, provisionalRecordIds, "residual", i, residualRows[i].TargetRecordIds);
+        }
+
+        for (var i = 0; i < missingRows.Count; i++)
+        {
+            AddRowFinality(finalities, provisionalRecordIds, "missing", i, missingRows[i].AgainstRecordIds);
+        }
+
+        for (var i = 0; i < coverageRows.Count; i++)
+        {
+            var row = coverageRows[i];
+            AddRowFinality(finalities, provisionalRecordIds, "coverage", i, row.TargetRecordIds, row.AgainstRecordIds);
+        }
+
+        for (var i = 0; i < gapRows.Count; i++)
+        {
+            AddRowFinality(finalities, provisionalRecordIds, "gap", i);
+        }
+
+        for (var i = 0; i < symmetricDifferenceRows.Count; i++)
+        {
+            var row = symmetricDifferenceRows[i];
+            AddRowFinality(finalities, provisionalRecordIds, "symmetricDifference", i, row.TargetRecordIds, row.AgainstRecordIds);
+        }
+
+        for (var i = 0; i < containmentRows.Count; i++)
+        {
+            var row = containmentRows[i];
+            AddRowFinality(finalities, provisionalRecordIds, "containment", i, row.TargetRecordIds, row.ContainerRecordIds);
+        }
+
+        for (var i = 0; i < leadLagRows.Count; i++)
+        {
+            var row = leadLagRows[i];
+            AddRowFinality(finalities, provisionalRecordIds, "leadLag", i, row.TargetRecordId, row.ComparisonRecordId);
+        }
+
+        for (var i = 0; i < asOfRows.Count; i++)
+        {
+            var row = asOfRows[i];
+            AddRowFinality(finalities, provisionalRecordIds, "asOf", i, row.TargetRecordId, row.MatchedRecordId);
+        }
+
+        return finalities.ToArray();
+    }
+
+    private static void AddRowFinality(
+        List<ComparisonRowFinality> finalities,
+        HashSet<WindowRecordId> provisionalRecordIds,
+        string rowType,
+        int index,
+        params IReadOnlyList<WindowRecordId>[] recordIdGroups)
+    {
+        var finality = HasProvisionalRecord(provisionalRecordIds, recordIdGroups)
+            ? ComparisonFinality.Provisional
+            : ComparisonFinality.Final;
+
+        finalities.Add(new ComparisonRowFinality(
+            rowType,
+            rowType + "[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]",
+            finality,
+            finality == ComparisonFinality.Provisional
+                ? "Depends on at least one open window clipped to the evaluation horizon."
+                : "All contributing windows were closed when the row was produced."));
+    }
+
+    private static void AddRowFinality(
+        List<ComparisonRowFinality> finalities,
+        HashSet<WindowRecordId> provisionalRecordIds,
+        string rowType,
+        int index,
+        WindowRecordId firstRecordId,
+        WindowRecordId? secondRecordId)
+    {
+        var finality = provisionalRecordIds.Contains(firstRecordId)
+            || (secondRecordId.HasValue && provisionalRecordIds.Contains(secondRecordId.Value))
+                ? ComparisonFinality.Provisional
+                : ComparisonFinality.Final;
+
+        finalities.Add(new ComparisonRowFinality(
+            rowType,
+            rowType + "[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]",
+            finality,
+            finality == ComparisonFinality.Provisional
+                ? "Depends on at least one open window clipped to the evaluation horizon."
+                : "All contributing windows were closed when the row was produced."));
+    }
+
+    private static bool HasProvisionalRecord(
+        HashSet<WindowRecordId> provisionalRecordIds,
+        IReadOnlyList<WindowRecordId>[] recordIdGroups)
+    {
+        for (var groupIndex = 0; groupIndex < recordIdGroups.Length; groupIndex++)
+        {
+            var group = recordIdGroups[groupIndex];
+            for (var idIndex = 0; idIndex < group.Count; idIndex++)
+            {
+                if (provisionalRecordIds.Contains(group[idIndex]))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static double Measure(TemporalRange range)

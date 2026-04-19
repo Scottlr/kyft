@@ -93,6 +93,26 @@ var prepared = pipeline.Intervals
 Records unavailable at the known-at point are excluded with diagnostics so
 backtests and decision audits do not silently leak future information.
 
+## Live Snapshots
+
+Use `RunLive(horizon)` when the last window may still be open. Kyft clips open
+windows to the supplied evaluation horizon and marks rows that depend on those
+windows as provisional. Closed-window rows remain final, and the same comparison
+converges with batch execution once all windows close.
+
+```csharp
+var result = pipeline.Intervals
+    .Compare("Live QA")
+    .Target("provider-a", selector => selector.Source("provider-a"))
+    .Against("provider-b", selector => selector.Source("provider-b"))
+    .Within(scope => scope.Window("DeviceOffline"))
+    .Using(comparators => comparators.Residual())
+    .RunLive(TemporalPoint.ForPosition(100));
+```
+
+The result carries `EvaluationHorizon` and row finality metadata so consumers can
+separate current-state insight from final historical evidence.
+
 ## Inspectability
 
 Use `Validate()` before execution when building plans dynamically. Use

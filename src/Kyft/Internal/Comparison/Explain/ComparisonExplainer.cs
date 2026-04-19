@@ -147,6 +147,7 @@ internal static class ComparisonExplainer
     {
         writer.Section("Result");
         writer.Item("valid", FormatBool(result.IsValid));
+        writer.Item("evaluation horizon", result.EvaluationHorizon.HasValue ? FormatPoint(result.EvaluationHorizon.Value) : "<none>");
         writer.Item("summaries", result.ComparatorSummaries.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("overlap rows", result.OverlapRows.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("residual rows", result.ResidualRows.Count.ToString(CultureInfo.InvariantCulture));
@@ -159,6 +160,7 @@ internal static class ComparisonExplainer
         writer.Item("lead lag rows", result.LeadLagRows.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("lead lag summaries", result.LeadLagSummaries.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("as of rows", result.AsOfRows.Count.ToString(CultureInfo.InvariantCulture));
+        writer.Item("row finalities", result.RowFinalities.Count.ToString(CultureInfo.InvariantCulture));
 
         for (var i = 0; i < result.ComparatorSummaries.Count; i++)
         {
@@ -166,6 +168,14 @@ internal static class ComparisonExplainer
             writer.Item(
                 "summary[" + i.ToString(CultureInfo.InvariantCulture) + "]",
                 summary.ComparatorName + " rows=" + summary.RowCount.ToString(CultureInfo.InvariantCulture));
+        }
+
+        for (var i = 0; i < result.RowFinalities.Count; i++)
+        {
+            var finality = result.RowFinalities[i];
+            writer.Item(
+                "finality[" + i.ToString(CultureInfo.InvariantCulture) + "]",
+                finality.RowId + "=" + finality.Finality + "; reason=" + finality.Reason);
         }
 
         for (var i = 0; i < result.OverlapRows.Count; i++)

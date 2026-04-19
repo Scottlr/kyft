@@ -165,6 +165,21 @@ public sealed class WindowComparisonBuilder
     }
 
     /// <summary>
+    /// Prepares the current plan as a live snapshot at an evaluation horizon.
+    /// </summary>
+    /// <remarks>
+    /// Live preparation clips currently open windows to <paramref name="evaluationHorizon" />.
+    /// Rows that depend on those clipped windows are provisional until the
+    /// underlying windows close and the comparison is run again.
+    /// </remarks>
+    /// <param name="evaluationHorizon">The exclusive horizon used to evaluate open windows.</param>
+    /// <returns>A prepared comparison artifact for the live snapshot.</returns>
+    public PreparedComparison PrepareLive(TemporalPoint evaluationHorizon)
+    {
+        return ComparisonPreparer.Prepare(History, BuildLivePlan(evaluationHorizon));
+    }
+
+    /// <summary>
     /// Runs the current plan through preparation, alignment, and comparator execution.
     /// </summary>
     /// <remarks>
@@ -175,5 +190,41 @@ public sealed class WindowComparisonBuilder
     public ComparisonResult Run()
     {
         return ComparisonRuntime.Run(Prepare());
+    }
+
+    /// <summary>
+    /// Runs the current plan as a live snapshot at an evaluation horizon.
+    /// </summary>
+    /// <remarks>
+    /// Live execution reuses the normal comparison pipeline and only changes
+    /// normalization: open windows are clipped to <paramref name="evaluationHorizon" />.
+    /// The core package does not introduce background timers or subscriptions.
+    /// </remarks>
+    /// <param name="evaluationHorizon">The exclusive horizon used to evaluate open windows.</param>
+    /// <returns>A comparison result with evaluation-horizon and row-finality metadata.</returns>
+    public ComparisonResult RunLive(TemporalPoint evaluationHorizon)
+    {
+        return ComparisonRuntime.Run(PrepareLive(evaluationHorizon));
+    }
+
+    private ComparisonPlan BuildLivePlan(TemporalPoint evaluationHorizon)
+    {
+        var plan = Build();
+        var normalization = plan.Normalization with
+        {
+            RequireClosedWindows = false,
+            OpenWindowPolicy = ComparisonOpenWindowPolicy.ClipToHorizon,
+            OpenWindowHorizon = evaluationHorizon
+        };
+
+        return new ComparisonPlan(
+            plan.Name,
+            plan.Target,
+            plan.Against,
+            plan.Scope,
+            normalization,
+            plan.Comparators,
+            plan.Output,
+            plan.IsStrict);
     }
 }

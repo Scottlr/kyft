@@ -31,6 +31,7 @@ public sealed class ComparisonResult
     /// <param name="leadLagRows">Rows emitted by the lead/lag comparator.</param>
     /// <param name="leadLagSummaries">Summaries emitted by the lead/lag comparator.</param>
     /// <param name="asOfRows">Rows emitted by the as-of comparator.</param>
+    /// <param name="rowFinalities">Finality metadata for materialized rows.</param>
     public ComparisonResult(
         ComparisonPlan plan,
         IEnumerable<ComparisonPlanDiagnostic> diagnostics,
@@ -47,7 +48,8 @@ public sealed class ComparisonResult
         IEnumerable<ContainmentRow>? containmentRows = null,
         IEnumerable<LeadLagRow>? leadLagRows = null,
         IEnumerable<LeadLagSummary>? leadLagSummaries = null,
-        IEnumerable<AsOfRow>? asOfRows = null)
+        IEnumerable<AsOfRow>? asOfRows = null,
+        IEnumerable<ComparisonRowFinality>? rowFinalities = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -68,6 +70,7 @@ public sealed class ComparisonResult
         LeadLagRows = Materialize(leadLagRows);
         LeadLagSummaries = Materialize(leadLagSummaries);
         AsOfRows = Materialize(asOfRows);
+        RowFinalities = Materialize(rowFinalities);
     }
 
     /// <summary>
@@ -83,6 +86,18 @@ public sealed class ComparisonResult
     /// comparison was allowed to know when the result was produced.
     /// </remarks>
     public TemporalPoint? KnownAt => Plan.Normalization.KnownAt;
+
+    /// <summary>
+    /// Gets the live evaluation horizon used to clip open windows, when any.
+    /// </summary>
+    /// <remarks>
+    /// Rows that depend on open windows clipped to this horizon are provisional
+    /// until those source windows close and the result is recomputed.
+    /// </remarks>
+    public TemporalPoint? EvaluationHorizon =>
+        Plan.Normalization.OpenWindowPolicy == ComparisonOpenWindowPolicy.ClipToHorizon
+            ? Plan.Normalization.OpenWindowHorizon
+            : null;
 
     /// <summary>
     /// Gets the validation and execution diagnostics.
@@ -158,6 +173,11 @@ public sealed class ComparisonResult
     /// Gets rows emitted by the as-of comparator.
     /// </summary>
     public IReadOnlyList<AsOfRow> AsOfRows { get; }
+
+    /// <summary>
+    /// Gets finality metadata for emitted result rows.
+    /// </summary>
+    public IReadOnlyList<ComparisonRowFinality> RowFinalities { get; }
 
     /// <summary>
     /// Gets whether the result has no error diagnostics.
