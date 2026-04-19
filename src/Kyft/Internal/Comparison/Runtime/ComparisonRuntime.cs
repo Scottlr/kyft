@@ -4,17 +4,6 @@ namespace Kyft.Internal.Comparison;
 
 internal static class ComparisonRuntime
 {
-    private static readonly HashSet<string> KnownComparators = new(StringComparer.Ordinal)
-    {
-        "overlap",
-        "residual",
-        "missing",
-        "coverage",
-        "gap",
-        "symmetric-difference",
-        "containment"
-    };
-
     internal static ComparisonResult Run(PreparedComparison prepared)
     {
         var diagnostics = new List<ComparisonPlanDiagnostic>(prepared.Diagnostics);
@@ -45,9 +34,7 @@ internal static class ComparisonRuntime
         for (var i = 0; i < prepared.Plan.Comparators.Count; i++)
         {
             var comparator = prepared.Plan.Comparators[i];
-            if (!KnownComparators.Contains(comparator)
-                && !TryParseLeadLag(comparator, out _)
-                && !TryParseAsOf(comparator, out _))
+            if (!ComparisonComparatorCatalog.IsKnownDeclaration(comparator))
             {
                 diagnostics.Add(new ComparisonPlanDiagnostic(
                     ComparisonPlanValidationCode.UnknownComparator,

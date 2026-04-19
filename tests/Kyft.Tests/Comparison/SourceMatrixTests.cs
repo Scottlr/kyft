@@ -71,6 +71,22 @@ public sealed class SourceMatrixTests
         Assert.Equal(result.CoverageRows.Count, pair.CoverageRowCount);
     }
 
+    [Fact]
+    public void MatrixCellsCanBeLookedUpDirectionally()
+    {
+        var matrix = BuildHistory().CompareSources(
+            "Provider matrix",
+            "DeviceOffline",
+            ["provider-a", "provider-b"]);
+
+        var cell = matrix.GetCell("provider-a", "provider-b");
+
+        Assert.False(cell.IsDiagonal);
+        Assert.True(matrix.TryGetCell("provider-b", "provider-a", out var reverse));
+        Assert.NotNull(reverse);
+        Assert.False(matrix.TryGetCell("provider-a", "provider-c", out _));
+    }
+
     private static WindowIntervalHistory BuildHistory()
     {
         var pipeline = Kyft
