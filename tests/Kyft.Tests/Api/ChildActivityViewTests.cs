@@ -34,4 +34,15 @@ public sealed class ChildActivityViewTests
         Assert.True(children.AllActive());
         Assert.True(children.AnyActive());
     }
+
+    [Fact]
+    public void ChildActivityViewCanBeDeconstructed()
+    {
+        var children = new ChildActivityView(activeCount: 1, totalCount: 3);
+
+        var (activeCount, totalCount) = children;
+
+        Assert.Equal(1, activeCount);
+        Assert.Equal(3, totalCount);
+    }
 }

@@ -4,24 +4,29 @@ namespace Kyft;
 /// Contains the emissions produced by an ingestion operation.
 /// </summary>
 /// <typeparam name="TEvent">The event type consumed by the pipeline.</typeparam>
-public sealed class IngestionResult<TEvent>
+/// <param name="emissions">The emissions produced by ingestion.</param>
+public sealed class IngestionResult<TEvent>(IReadOnlyList<WindowEmission<TEvent>> emissions)
 {
-    /// <summary>
-    /// Creates an ingestion result.
-    /// </summary>
-    /// <param name="emissions">The emissions produced by ingestion.</param>
-    public IngestionResult(IReadOnlyList<WindowEmission<TEvent>> emissions)
-    {
-        Emissions = emissions;
-    }
-
     /// <summary>
     /// Gets the emissions produced by ingestion.
     /// </summary>
-    public IReadOnlyList<WindowEmission<TEvent>> Emissions { get; }
+    public IReadOnlyList<WindowEmission<TEvent>> Emissions { get; } = emissions;
 
     /// <summary>
     /// Gets whether any emissions were produced.
     /// </summary>
     public bool HasEmissions => Emissions.Count > 0;
+
+    /// <summary>
+    /// Deconstructs the result into emissions and emission presence.
+    /// </summary>
+    /// <param name="emissions">The emissions produced by ingestion.</param>
+    /// <param name="hasEmissions">Whether any emissions were produced.</param>
+    public void Deconstruct(
+        out IReadOnlyList<WindowEmission<TEvent>> emissions,
+        out bool hasEmissions)
+    {
+        emissions = Emissions;
+        hasEmissions = HasEmissions;
+    }
 }

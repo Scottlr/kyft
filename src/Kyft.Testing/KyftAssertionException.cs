@@ -3,14 +3,7 @@ namespace Kyft.Testing;
 /// <summary>
 /// Represents an assertion failure produced by Kyft testing helpers.
 /// </summary>
-public sealed class KyftAssertionException : Exception
+/// <param name="message">The assertion failure message.</param>
+public sealed class KyftAssertionException(string message) : Exception(message)
 {
-    /// <summary>
-    /// Creates an assertion exception.
-    /// </summary>
-    /// <param name="message">The assertion failure message.</param>
-    public KyftAssertionException(string message)
-        : base(message)
-    {
-    }
 }

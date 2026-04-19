@@ -32,5 +32,21 @@ public sealed class IngestionResultTests
         Assert.True(result.HasEmissions);
     }
 
+    [Fact]
+    public void IngestionResultCanBeDeconstructed()
+    {
+        var pipeline = Kyft
+            .For<PriceTick>()
+            .TrackWindow(
+                "SelectionSuspension",
+                key: tick => tick.SelectionId,
+                isActive: tick => tick.Price == 0m);
+
+        var (emissions, hasEmissions) = pipeline.Ingest(new PriceTick("selection-1", 0m));
+
+        Assert.True(hasEmissions);
+        Assert.Single(emissions);
+    }
+
     private sealed record PriceTick(string SelectionId, decimal Price);
 }

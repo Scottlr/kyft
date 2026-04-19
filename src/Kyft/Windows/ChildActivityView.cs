@@ -38,4 +38,15 @@ public sealed class ChildActivityView
     {
         return ActiveCount > 0;
     }
+
+    /// <summary>
+    /// Deconstructs the view into active and total child counts.
+    /// </summary>
+    /// <param name="activeCount">The number of active child windows.</param>
+    /// <param name="totalCount">The number of known child windows.</param>
+    public void Deconstruct(out int activeCount, out int totalCount)
+    {
+        activeCount = ActiveCount;
+        totalCount = TotalCount;
+    }
 }
