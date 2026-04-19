@@ -384,7 +384,8 @@
     ],
     "gap": [],
     "symmetricDifference": [],
-    "containment": []
+    "containment": [],
+    "leadLag": []
   },
   "coverageSummaries": [
     {
@@ -398,7 +399,8 @@
       "coveredMagnitude": 2,
       "coverageRatio": 0.5
     }
-  ]
+  ],
+  "leadLagSummaries": []
 }
 --- markdown ---
 # Comparison Explain: Provider QA
@@ -443,6 +445,8 @@
 - gap rows: 0
 - symmetric difference rows: 0
 - containment rows: 0
+- lead lag rows: 0
+- lead lag summaries: 0
 - summary[0]: overlap rows=1
 - summary[1]: residual rows=1
 - summary[2]: coverage rows=2

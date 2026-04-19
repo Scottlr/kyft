@@ -133,3 +133,32 @@ Statuses are:
 
 Use containment for invariants such as "bettable only while market open" or
 "child state only while parent state is active."
+
+## Lead/Lag
+
+`LeadLag(transition, axis, toleranceMagnitude)` measures the nearest comparison
+transition for each target transition in the same window name, key, and
+partition.
+
+Each `LeadLagRow` contains:
+
+- `WindowName`
+- `Key`
+- `Partition`
+- `Transition`
+- `Axis`
+- `TargetPoint`
+- `ComparisonPoint`
+- `DeltaMagnitude`
+- `ToleranceMagnitude`
+- `IsWithinTolerance`
+- `Direction`
+- `TargetRecordId`
+- `ComparisonRecordId`
+
+Negative deltas mean the target led. Positive deltas mean the target lagged.
+For processing-position comparisons, tolerance is measured in positions. For
+timestamp comparisons, tolerance is measured in ticks.
+
+Lead/lag is transition-based and does not prove causality. Use it to quantify
+provider latency, sequencing drift, or replay skew.

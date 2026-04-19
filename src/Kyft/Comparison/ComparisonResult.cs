@@ -28,6 +28,8 @@ public sealed class ComparisonResult
     /// <param name="gapRows">Rows emitted by the gap comparator.</param>
     /// <param name="symmetricDifferenceRows">Rows emitted by the symmetric-difference comparator.</param>
     /// <param name="containmentRows">Rows emitted by the containment comparator.</param>
+    /// <param name="leadLagRows">Rows emitted by the lead/lag comparator.</param>
+    /// <param name="leadLagSummaries">Summaries emitted by the lead/lag comparator.</param>
     public ComparisonResult(
         ComparisonPlan plan,
         IEnumerable<ComparisonPlanDiagnostic> diagnostics,
@@ -41,7 +43,9 @@ public sealed class ComparisonResult
         IEnumerable<CoverageSummary>? coverageSummaries = null,
         IEnumerable<GapRow>? gapRows = null,
         IEnumerable<SymmetricDifferenceRow>? symmetricDifferenceRows = null,
-        IEnumerable<ContainmentRow>? containmentRows = null)
+        IEnumerable<ContainmentRow>? containmentRows = null,
+        IEnumerable<LeadLagRow>? leadLagRows = null,
+        IEnumerable<LeadLagSummary>? leadLagSummaries = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -59,6 +63,8 @@ public sealed class ComparisonResult
         GapRows = Materialize(gapRows);
         SymmetricDifferenceRows = Materialize(symmetricDifferenceRows);
         ContainmentRows = Materialize(containmentRows);
+        LeadLagRows = Materialize(leadLagRows);
+        LeadLagSummaries = Materialize(leadLagSummaries);
     }
 
     /// <summary>
@@ -125,6 +131,16 @@ public sealed class ComparisonResult
     /// Gets rows emitted by the containment comparator.
     /// </summary>
     public IReadOnlyList<ContainmentRow> ContainmentRows { get; }
+
+    /// <summary>
+    /// Gets rows emitted by the lead/lag comparator.
+    /// </summary>
+    public IReadOnlyList<LeadLagRow> LeadLagRows { get; }
+
+    /// <summary>
+    /// Gets summaries emitted by the lead/lag comparator.
+    /// </summary>
+    public IReadOnlyList<LeadLagSummary> LeadLagSummaries { get; }
 
     /// <summary>
     /// Gets whether the result has no error diagnostics.

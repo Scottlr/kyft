@@ -28,17 +28,27 @@ internal static class ComparisonRuntime
         var gapRows = new List<GapRow>();
         var symmetricDifferenceRows = new List<SymmetricDifferenceRow>();
         var containmentRows = new List<ContainmentRow>();
+        var leadLagRows = new List<LeadLagRow>();
+        var leadLagSummaries = new List<LeadLagSummary>();
 
         for (var i = 0; i < prepared.Plan.Comparators.Count; i++)
         {
             var comparator = prepared.Plan.Comparators[i];
-            if (!KnownComparators.Contains(comparator))
+            if (!KnownComparators.Contains(comparator) && !TryParseLeadLag(comparator, out _))
             {
                 diagnostics.Add(new ComparisonPlanDiagnostic(
                     ComparisonPlanValidationCode.UnknownComparator,
                     $"Comparator '{comparator}' is not registered.",
                     $"comparators[{i}]",
                     ComparisonPlanDiagnosticSeverity.Error));
+                continue;
+            }
+
+            if (TryParseLeadLag(comparator, out var leadLag))
+            {
+                var before = leadLagRows.Count;
+                AddLeadLagRows(prepared, leadLag, leadLagRows, leadLagSummaries);
+                summaries.Add(new ComparatorSummary(comparator, leadLagRows.Count - before));
                 continue;
             }
 
@@ -114,7 +124,9 @@ internal static class ComparisonRuntime
             coverageSummaries.ToArray(),
             gapRows.ToArray(),
             symmetricDifferenceRows.ToArray(),
-            containmentRows.ToArray());
+            containmentRows.ToArray(),
+            leadLagRows.ToArray(),
+            leadLagSummaries.ToArray());
     }
 
     private static void AddOverlapRows(AlignedComparison aligned, List<OverlapRow> rows)
@@ -347,6 +359,244 @@ internal static class ComparisonRuntime
         return ContainmentStatus.NotContained;
     }
 
+    private static void AddLeadLagRows(
+        PreparedComparison prepared,
+        LeadLagOptions options,
+        List<LeadLagRow> rows,
+        List<LeadLagSummary> summaries)
+    {
+        var before = rows.Count;
+        var comparisonTransitions = new Dictionary<TransitionScope, List<TransitionPoint>>();
+
+        for (var i = 0; i < prepared.NormalizedWindows.Count; i++)
+        {
+            var window = prepared.NormalizedWindows[i];
+            if (window.Side != ComparisonSide.Against
+                || window.Range.Axis != options.Axis
+                || !TryGetTransitionPoint(window.Range, options.Transition, out var point))
+            {
+                continue;
+            }
+
+            var scope = new TransitionScope(window.Window.WindowName, window.Window.Key, window.Window.Partition);
+            if (!comparisonTransitions.TryGetValue(scope, out var transitions))
+            {
+                transitions = [];
+                comparisonTransitions.Add(scope, transitions);
+            }
+
+            transitions.Add(new TransitionPoint(window.RecordId, point));
+        }
+
+        foreach (var pair in comparisonTransitions)
+        {
+            pair.Value.Sort(static (left, right) => left.Point.CompareTo(right.Point));
+        }
+
+        for (var i = 0; i < prepared.NormalizedWindows.Count; i++)
+        {
+            var target = prepared.NormalizedWindows[i];
+            if (target.Side != ComparisonSide.Target
+                || target.Range.Axis != options.Axis
+                || !TryGetTransitionPoint(target.Range, options.Transition, out var targetPoint))
+            {
+                continue;
+            }
+
+            var scope = new TransitionScope(target.Window.WindowName, target.Window.Key, target.Window.Partition);
+            if (!comparisonTransitions.TryGetValue(scope, out var candidates) || candidates.Count == 0)
+            {
+                rows.Add(new LeadLagRow(
+                    target.Window.WindowName,
+                    target.Window.Key,
+                    target.Window.Partition,
+                    options.Transition,
+                    options.Axis,
+                    targetPoint,
+                    ComparisonPoint: null,
+                    DeltaMagnitude: null,
+                    options.ToleranceMagnitude,
+                    IsWithinTolerance: false,
+                    LeadLagDirection.MissingComparison,
+                    target.RecordId,
+                    ComparisonRecordId: null));
+                continue;
+            }
+
+            var nearest = FindNearest(candidates, targetPoint, options.Axis);
+            var delta = GetDeltaMagnitude(targetPoint, nearest.Point, options.Axis);
+            var absoluteDelta = Math.Abs(delta);
+
+            rows.Add(new LeadLagRow(
+                target.Window.WindowName,
+                target.Window.Key,
+                target.Window.Partition,
+                options.Transition,
+                options.Axis,
+                targetPoint,
+                nearest.Point,
+                delta,
+                options.ToleranceMagnitude,
+                absoluteDelta <= options.ToleranceMagnitude,
+                GetDirection(delta),
+                target.RecordId,
+                nearest.RecordId));
+        }
+
+        summaries.Add(CreateLeadLagSummary(options, rows, before));
+    }
+
+    private static bool TryGetTransitionPoint(
+        TemporalRange range,
+        LeadLagTransition transition,
+        out TemporalPoint point)
+    {
+        if (transition == LeadLagTransition.Start)
+        {
+            point = range.Start;
+            return true;
+        }
+
+        if (range.End.HasValue)
+        {
+            point = range.End.Value;
+            return true;
+        }
+
+        point = default;
+        return false;
+    }
+
+    private static TransitionPoint FindNearest(
+        List<TransitionPoint> candidates,
+        TemporalPoint targetPoint,
+        TemporalAxis axis)
+    {
+        var best = candidates[0];
+        var bestDistance = Math.Abs(GetDeltaMagnitude(targetPoint, best.Point, axis));
+
+        for (var i = 1; i < candidates.Count; i++)
+        {
+            var candidate = candidates[i];
+            var distance = Math.Abs(GetDeltaMagnitude(targetPoint, candidate.Point, axis));
+            if (distance < bestDistance)
+            {
+                best = candidate;
+                bestDistance = distance;
+            }
+        }
+
+        return best;
+    }
+
+    private static LeadLagSummary CreateLeadLagSummary(
+        LeadLagOptions options,
+        List<LeadLagRow> rows,
+        int startIndex)
+    {
+        var targetLeadCount = 0;
+        var targetLagCount = 0;
+        var equalCount = 0;
+        var missingCount = 0;
+        var outsideToleranceCount = 0;
+        long? minimumDelta = null;
+        long? maximumDelta = null;
+
+        for (var i = startIndex; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            if (!row.IsWithinTolerance)
+            {
+                outsideToleranceCount++;
+            }
+
+            if (row.Direction == LeadLagDirection.TargetLeads)
+            {
+                targetLeadCount++;
+            }
+            else if (row.Direction == LeadLagDirection.TargetLags)
+            {
+                targetLagCount++;
+            }
+            else if (row.Direction == LeadLagDirection.Equal)
+            {
+                equalCount++;
+            }
+            else if (row.Direction == LeadLagDirection.MissingComparison)
+            {
+                missingCount++;
+            }
+
+            if (row.DeltaMagnitude.HasValue)
+            {
+                minimumDelta = !minimumDelta.HasValue || row.DeltaMagnitude.Value < minimumDelta.Value
+                    ? row.DeltaMagnitude.Value
+                    : minimumDelta;
+                maximumDelta = !maximumDelta.HasValue || row.DeltaMagnitude.Value > maximumDelta.Value
+                    ? row.DeltaMagnitude.Value
+                    : maximumDelta;
+            }
+        }
+
+        return new LeadLagSummary(
+            options.Transition,
+            options.Axis,
+            options.ToleranceMagnitude,
+            rows.Count - startIndex,
+            targetLeadCount,
+            targetLagCount,
+            equalCount,
+            missingCount,
+            outsideToleranceCount,
+            minimumDelta,
+            maximumDelta);
+    }
+
+    private static LeadLagDirection GetDirection(long delta)
+    {
+        if (delta < 0)
+        {
+            return LeadLagDirection.TargetLeads;
+        }
+
+        return delta > 0
+            ? LeadLagDirection.TargetLags
+            : LeadLagDirection.Equal;
+    }
+
+    private static long GetDeltaMagnitude(
+        TemporalPoint targetPoint,
+        TemporalPoint comparisonPoint,
+        TemporalAxis axis)
+    {
+        return axis == TemporalAxis.Timestamp
+            ? (targetPoint.Timestamp - comparisonPoint.Timestamp).Ticks
+            : targetPoint.Position - comparisonPoint.Position;
+    }
+
+    private static bool TryParseLeadLag(string comparator, out LeadLagOptions options)
+    {
+        options = default;
+
+        var parts = comparator.Split(':');
+        if (parts.Length != 4 || !string.Equals(parts[0], "lead-lag", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (!Enum.TryParse(parts[1], ignoreCase: false, out LeadLagTransition transition)
+            || !Enum.TryParse(parts[2], ignoreCase: false, out TemporalAxis axis)
+            || axis == TemporalAxis.Unknown
+            || !long.TryParse(parts[3], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var toleranceMagnitude)
+            || toleranceMagnitude < 0)
+        {
+            return false;
+        }
+
+        options = new LeadLagOptions(transition, axis, toleranceMagnitude);
+        return true;
+    }
+
     private static double Measure(TemporalRange range)
     {
         return range.Axis == TemporalAxis.Timestamp
@@ -362,4 +612,13 @@ internal static class ComparisonRuntime
     }
 
     private sealed record CoverageScope(string WindowName, object Key, object? Partition);
+
+    private readonly record struct LeadLagOptions(
+        LeadLagTransition Transition,
+        TemporalAxis Axis,
+        long ToleranceMagnitude);
+
+    private sealed record TransitionScope(string WindowName, object Key, object? Partition);
+
+    private readonly record struct TransitionPoint(WindowRecordId RecordId, TemporalPoint Point);
 }

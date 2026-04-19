@@ -89,6 +89,37 @@ public sealed class ComparisonComparatorBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds the lead/lag comparator with an explicit transition, axis, and tolerance.
+    /// </summary>
+    /// <remarks>
+    /// For processing-position comparisons, <paramref name="toleranceMagnitude" />
+    /// is measured in positions. For timestamp comparisons, it is measured in
+    /// ticks. Lead/lag is transition-based and does not imply causality.
+    /// </remarks>
+    /// <param name="transition">The transition point to compare.</param>
+    /// <param name="axis">The temporal axis to measure.</param>
+    /// <param name="toleranceMagnitude">The allowed absolute delta.</param>
+    /// <returns>This builder.</returns>
+    public ComparisonComparatorBuilder LeadLag(
+        LeadLagTransition transition,
+        TemporalAxis axis,
+        long toleranceMagnitude)
+    {
+        if (axis == TemporalAxis.Unknown)
+        {
+            throw new ArgumentException("Lead/lag requires an explicit temporal axis.", nameof(axis));
+        }
+
+        if (toleranceMagnitude < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(toleranceMagnitude), "Lead/lag tolerance cannot be negative.");
+        }
+
+        this.comparators.Add($"lead-lag:{transition}:{axis}:{toleranceMagnitude}");
+        return this;
+    }
+
     internal IReadOnlyList<string> Build()
     {
         return this.comparators.ToArray();

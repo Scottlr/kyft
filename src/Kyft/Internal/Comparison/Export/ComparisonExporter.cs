@@ -121,6 +121,17 @@ internal static class ComparisonExporter
                 writer.WriteEndObject();
             });
         }
+
+        for (var i = 0; i < result.LeadLagRows.Count; i++)
+        {
+            var row = result.LeadLagRows[i];
+            yield return ExportJsonLine(writer =>
+            {
+                WriteRowEnvelopeStart(writer, "lead-lag", i);
+                WriteLeadLagRowFields(writer, row);
+                writer.WriteEndObject();
+            });
+        }
     }
 
     private static void EnsureExportable(ComparisonPlan plan)
@@ -200,6 +211,7 @@ internal static class ComparisonExporter
         WriteComparatorSummaries(writer, result.ComparatorSummaries);
         WriteRows(writer, result);
         WriteCoverageSummaries(writer, result.CoverageSummaries);
+        WriteLeadLagSummaries(writer, result.LeadLagSummaries);
         writer.WriteEndObject();
     }
 
@@ -219,6 +231,7 @@ internal static class ComparisonExporter
         writer.WriteNumber("gapRowCount", result.GapRows.Count);
         writer.WriteNumber("symmetricDifferenceRowCount", result.SymmetricDifferenceRows.Count);
         writer.WriteNumber("containmentRowCount", result.ContainmentRows.Count);
+        writer.WriteNumber("leadLagRowCount", result.LeadLagRows.Count);
         writer.WriteEndObject();
     }
 
@@ -497,6 +510,14 @@ internal static class ComparisonExporter
         }
 
         writer.WriteEndArray();
+        writer.WritePropertyName("leadLag");
+        writer.WriteStartArray();
+        for (var i = 0; i < result.LeadLagRows.Count; i++)
+        {
+            WriteRowObject(writer, "leadLag", i, () => WriteLeadLagRowFields(writer, result.LeadLagRows[i]));
+        }
+
+        writer.WriteEndArray();
         writer.WriteEndObject();
     }
 
@@ -557,6 +578,25 @@ internal static class ComparisonExporter
         WriteIds(writer, "containerRecordIds", row.ContainerRecordIds);
     }
 
+    private static void WriteLeadLagRowFields(Utf8JsonWriter writer, LeadLagRow row)
+    {
+        writer.WriteString("windowName", row.WindowName);
+        WriteObjectValue(writer, "key", row.Key);
+        WriteObjectValue(writer, "partition", row.Partition);
+        writer.WriteString("transition", row.Transition.ToString());
+        writer.WriteString("axis", row.Axis.ToString());
+        writer.WritePropertyName("targetPoint");
+        WritePoint(writer, row.TargetPoint);
+        writer.WritePropertyName("comparisonPoint");
+        WritePoint(writer, row.ComparisonPoint);
+        WriteNullableNumber(writer, "deltaMagnitude", row.DeltaMagnitude);
+        writer.WriteNumber("toleranceMagnitude", row.ToleranceMagnitude);
+        writer.WriteBoolean("isWithinTolerance", row.IsWithinTolerance);
+        writer.WriteString("direction", row.Direction.ToString());
+        writer.WriteString("targetRecordId", row.TargetRecordId.ToString());
+        WriteNullableString(writer, "comparisonRecordId", row.ComparisonRecordId?.ToString());
+    }
+
     private static void WriteCommonRowFields(
         Utf8JsonWriter writer,
         string windowName,
@@ -587,6 +627,33 @@ internal static class ComparisonExporter
             writer.WriteNumber("targetMagnitude", summary.TargetMagnitude);
             writer.WriteNumber("coveredMagnitude", summary.CoveredMagnitude);
             writer.WriteNumber("coverageRatio", summary.CoverageRatio);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private static void WriteLeadLagSummaries(
+        Utf8JsonWriter writer,
+        IReadOnlyList<LeadLagSummary> summaries)
+    {
+        writer.WritePropertyName("leadLagSummaries");
+        writer.WriteStartArray();
+        for (var i = 0; i < summaries.Count; i++)
+        {
+            var summary = summaries[i];
+            writer.WriteStartObject();
+            writer.WriteString("transition", summary.Transition.ToString());
+            writer.WriteString("axis", summary.Axis.ToString());
+            writer.WriteNumber("toleranceMagnitude", summary.ToleranceMagnitude);
+            writer.WriteNumber("rowCount", summary.RowCount);
+            writer.WriteNumber("targetLeadCount", summary.TargetLeadCount);
+            writer.WriteNumber("targetLagCount", summary.TargetLagCount);
+            writer.WriteNumber("equalCount", summary.EqualCount);
+            writer.WriteNumber("missingComparisonCount", summary.MissingComparisonCount);
+            writer.WriteNumber("outsideToleranceCount", summary.OutsideToleranceCount);
+            WriteNullableNumber(writer, "minimumDeltaMagnitude", summary.MinimumDeltaMagnitude);
+            WriteNullableNumber(writer, "maximumDeltaMagnitude", summary.MaximumDeltaMagnitude);
             writer.WriteEndObject();
         }
 

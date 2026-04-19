@@ -156,6 +156,8 @@ internal static class ComparisonExplainer
         writer.Item("gap rows", result.GapRows.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("symmetric difference rows", result.SymmetricDifferenceRows.Count.ToString(CultureInfo.InvariantCulture));
         writer.Item("containment rows", result.ContainmentRows.Count.ToString(CultureInfo.InvariantCulture));
+        writer.Item("lead lag rows", result.LeadLagRows.Count.ToString(CultureInfo.InvariantCulture));
+        writer.Item("lead lag summaries", result.LeadLagSummaries.Count.ToString(CultureInfo.InvariantCulture));
 
         for (var i = 0; i < result.ComparatorSummaries.Count; i++)
         {
@@ -254,6 +256,44 @@ internal static class ComparisonExplainer
                     + "; status=" + row.Status
                     + "; target=" + FormatIds(row.TargetRecordIds)
                     + "; container=" + FormatIds(row.ContainerRecordIds));
+        }
+
+        for (var i = 0; i < result.LeadLagRows.Count; i++)
+        {
+            var row = result.LeadLagRows[i];
+            writer.Item(
+                "leadLag[" + i.ToString(CultureInfo.InvariantCulture) + "]",
+                "window=" + row.WindowName
+                    + "; key=" + StableObjectValue(row.Key)
+                    + "; partition=" + StableObjectValue(row.Partition)
+                    + "; transition=" + row.Transition
+                    + "; axis=" + row.Axis
+                    + "; targetPoint=" + FormatPoint(row.TargetPoint)
+                    + "; comparisonPoint=" + (row.ComparisonPoint.HasValue ? FormatPoint(row.ComparisonPoint.Value) : "<missing>")
+                    + "; delta=" + (row.DeltaMagnitude?.ToString(CultureInfo.InvariantCulture) ?? "<missing>")
+                    + "; tolerance=" + row.ToleranceMagnitude.ToString(CultureInfo.InvariantCulture)
+                    + "; withinTolerance=" + FormatBool(row.IsWithinTolerance)
+                    + "; direction=" + row.Direction
+                    + "; target=" + row.TargetRecordId
+                    + "; comparison=" + (row.ComparisonRecordId?.ToString() ?? "<missing>"));
+        }
+
+        for (var i = 0; i < result.LeadLagSummaries.Count; i++)
+        {
+            var summary = result.LeadLagSummaries[i];
+            writer.Item(
+                "leadLagSummary[" + i.ToString(CultureInfo.InvariantCulture) + "]",
+                "transition=" + summary.Transition
+                    + "; axis=" + summary.Axis
+                    + "; tolerance=" + summary.ToleranceMagnitude.ToString(CultureInfo.InvariantCulture)
+                    + "; rows=" + summary.RowCount.ToString(CultureInfo.InvariantCulture)
+                    + "; targetLead=" + summary.TargetLeadCount.ToString(CultureInfo.InvariantCulture)
+                    + "; targetLag=" + summary.TargetLagCount.ToString(CultureInfo.InvariantCulture)
+                    + "; equal=" + summary.EqualCount.ToString(CultureInfo.InvariantCulture)
+                    + "; missingComparison=" + summary.MissingComparisonCount.ToString(CultureInfo.InvariantCulture)
+                    + "; outsideTolerance=" + summary.OutsideToleranceCount.ToString(CultureInfo.InvariantCulture)
+                    + "; minDelta=" + (summary.MinimumDeltaMagnitude?.ToString(CultureInfo.InvariantCulture) ?? "<none>")
+                    + "; maxDelta=" + (summary.MaximumDeltaMagnitude?.ToString(CultureInfo.InvariantCulture) ?? "<none>"));
         }
 
         for (var i = 0; i < result.CoverageSummaries.Count; i++)
