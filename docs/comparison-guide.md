@@ -121,6 +121,15 @@ supersede earlier row versions, and retracted entries remove rows that no longer
 exist in the current snapshot. `ComparisonChangelog.Replay(...)` rebuilds the
 active row-finality view from a prior snapshot plus its changelog entries.
 
+## Plan Criticism
+
+Runtime criticism flags plans that are structurally valid but analytically risky:
+runtime-only selectors, unrestricted scopes, point-in-time lookup without
+known-at safety, open durations without a horizon, live clipping without a
+horizon, and incompatible timestamp clocks. Non-strict execution carries these
+diagnostics as warnings. Use `Strict()` when warnings should block alignment and
+comparator rows.
+
 ## Inspectability
 
 Use `Validate()` before execution when building plans dynamically. Use

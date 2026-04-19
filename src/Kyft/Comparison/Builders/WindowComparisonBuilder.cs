@@ -118,6 +118,11 @@ public sealed class WindowComparisonBuilder
     /// <summary>
     /// Enables strict validation for later execution stages.
     /// </summary>
+    /// <remarks>
+    /// Strict mode promotes runtime plan-critic warnings to errors. Execution
+    /// returns diagnostics without alignment or comparator rows when those
+    /// errors would make the analytical output unsafe to trust.
+    /// </remarks>
     /// <returns>This builder.</returns>
     public WindowComparisonBuilder Strict()
     {

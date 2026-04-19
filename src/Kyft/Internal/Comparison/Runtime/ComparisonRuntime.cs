@@ -17,8 +17,18 @@ internal static class ComparisonRuntime
 
     internal static ComparisonResult Run(PreparedComparison prepared)
     {
-        var aligned = prepared.Align();
         var diagnostics = new List<ComparisonPlanDiagnostic>(prepared.Diagnostics);
+        diagnostics.AddRange(RuntimePlanCritic.Criticize(prepared));
+
+        if (HasBlockingDiagnostics(diagnostics))
+        {
+            return new ComparisonResult(
+                prepared.Plan,
+                diagnostics.ToArray(),
+                prepared);
+        }
+
+        var aligned = prepared.Align();
         var summaries = new List<ComparatorSummary>();
         var overlapRows = new List<OverlapRow>();
         var residualRows = new List<ResidualRow>();
@@ -967,6 +977,19 @@ internal static class ComparisonRuntime
                 {
                     return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasBlockingDiagnostics(IReadOnlyList<ComparisonPlanDiagnostic> diagnostics)
+    {
+        for (var i = 0; i < diagnostics.Count; i++)
+        {
+            if (diagnostics[i].Severity == ComparisonPlanDiagnosticSeverity.Error)
+            {
+                return true;
             }
         }
 

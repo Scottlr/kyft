@@ -88,5 +88,35 @@ public enum ComparisonPlanValidationCode
     /// <summary>
     /// Indicates that known-at requires processing-position availability information.
     /// </summary>
-    KnownAtRequiresProcessingPosition = 16
+    KnownAtRequiresProcessingPosition = 16,
+
+    /// <summary>
+    /// Indicates that runtime criticism found a non-serializable plan.
+    /// </summary>
+    RuntimeNonSerializablePlan = 17,
+
+    /// <summary>
+    /// Indicates that runtime criticism found a selector or scope that is likely too broad.
+    /// </summary>
+    BroadSelector = 18,
+
+    /// <summary>
+    /// Indicates that runtime criticism found possible future leakage.
+    /// </summary>
+    FutureLeakageRisk = 19,
+
+    /// <summary>
+    /// Indicates that live finality was requested without an evaluation horizon.
+    /// </summary>
+    LiveFinalityWithoutHorizon = 20,
+
+    /// <summary>
+    /// Indicates that runtime criticism found open durations without a bounded policy.
+    /// </summary>
+    UnboundedOpenDuration = 21,
+
+    /// <summary>
+    /// Indicates that runtime criticism found timestamp points from incompatible clocks.
+    /// </summary>
+    MixedClockRisk = 22
 }
