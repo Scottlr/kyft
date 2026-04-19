@@ -21,7 +21,6 @@ Ingest("provider-a", 2, offered: false);
 Ingest("provider-b", 4, offered: false);
 Ingest("provider-b", 8, offered: true);
 Ingest("provider-a", 10, offered: true);
-Ingest("provider-a", 14, offered: false);
 
 var historical = pipeline.Intervals
     .Compare("Provider suspension QA")
@@ -40,6 +39,8 @@ Console.WriteLine("overlap rows: " + historical.OverlapRows.Count);
 Console.WriteLine("provider-a residual rows: " + historical.ResidualRows.Count);
 Console.WriteLine("coverage summaries: " + historical.CoverageSummaries.Count);
 Console.WriteLine("lead/lag rows: " + historical.LeadLagRows.Count);
+
+Ingest("provider-a", 14, offered: false);
 
 var live = pipeline.Intervals
     .Compare("Live suspension QA")

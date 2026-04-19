@@ -30,7 +30,7 @@ internal sealed class WindowRuntime<TEvent>
     {
         var key = this.definition.GetKey(@event);
         var isActive = this.definition.IsActive(@event);
-        var stateKey = new RuntimeStateKey(key, partition);
+        var stateKey = new RuntimeStateKey(key, source, partition);
         var wasActive = this.activeKeys.Contains(stateKey);
         var changed = isActive != wasActive;
 

@@ -12,6 +12,7 @@ internal sealed class RuntimeStateKeyComparer : IEqualityComparer<RuntimeStateKe
     public bool Equals(RuntimeStateKey x, RuntimeStateKey y)
     {
         return this.keyComparer.Equals(x.Key, y.Key)
+            && EqualityComparer<object?>.Default.Equals(x.Source, y.Source)
             && EqualityComparer<object?>.Default.Equals(x.Partition, y.Partition);
     }
 
@@ -19,6 +20,7 @@ internal sealed class RuntimeStateKeyComparer : IEqualityComparer<RuntimeStateKe
     {
         return HashCode.Combine(
             this.keyComparer.GetHashCode(obj.Key),
+            obj.Source,
             obj.Partition);
     }
 }

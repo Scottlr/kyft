@@ -32,7 +32,7 @@ internal sealed class RollUpRuntime<TEvent>
         ref List<WindowEmission<TEvent>>? emissions)
     {
         var parentKey = this.definition.GetKey(@event);
-        var parentStateKey = new RuntimeStateKey(parentKey, partition);
+        var parentStateKey = new RuntimeStateKey(parentKey, source, partition);
 
         if (!this.parents.TryGetValue(parentStateKey, out var parent))
         {

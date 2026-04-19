@@ -38,5 +38,32 @@ public sealed class SourceAwareIngestionTests
         Assert.Null(emission.Source);
     }
 
+    [Fact]
+    public void SourceContextOwnsIndependentRuntimeState()
+    {
+        var pipeline = Kyft
+            .For<PriceTick>()
+            .RecordIntervals()
+            .TrackWindow(
+                "SelectionSuspension",
+                key: tick => tick.SelectionId,
+                isActive: tick => tick.Price == 0m);
+
+        pipeline.Ingest(new PriceTick("selection-1", 0m), source: "provider-a");
+        pipeline.Ingest(new PriceTick("selection-1", 0m), source: "provider-b");
+        pipeline.Ingest(new PriceTick("selection-1", 1.01m), source: "provider-b");
+        pipeline.Ingest(new PriceTick("selection-1", 1.01m), source: "provider-a");
+
+        var result = pipeline.Intervals.Compare("Provider QA")
+            .Target("provider-a", selector => selector.Source("provider-a"))
+            .Against("provider-b", selector => selector.Source("provider-b"))
+            .Within(scope => scope.Window("SelectionSuspension"))
+            .Using(comparators => comparators.Overlap().Residual())
+            .Run();
+
+        Assert.Single(result.OverlapRows);
+        Assert.Equal(2, result.ResidualRows.Count);
+    }
+
     private sealed record PriceTick(string SelectionId, decimal Price);
 }
