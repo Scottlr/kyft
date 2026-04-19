@@ -21,6 +21,12 @@ public static class KyftCli
             }
 
             var command = args[0];
+            if (!IsKnownCommand(command))
+            {
+                WriteError(stderr, "Unknown command: " + command);
+                return 2;
+            }
+
             var fixturePath = args[1];
             var format = ReadFormat(args);
             using var fixture = JsonDocument.Parse(File.ReadAllText(fixturePath));
@@ -44,7 +50,6 @@ public static class KyftCli
                 return result.IsValid ? 0 : 1;
             }
 
-            WriteError(stderr, "Unknown command: " + command);
             return 2;
         }
         catch (Exception exception) when (exception is IOException or JsonException or ArgumentException or InvalidOperationException)
@@ -52,6 +57,13 @@ public static class KyftCli
             WriteError(stderr, exception.Message);
             return 2;
         }
+    }
+
+    private static bool IsKnownCommand(string command)
+    {
+        return string.Equals(command, "validate-plan", StringComparison.Ordinal)
+            || string.Equals(command, "compare", StringComparison.Ordinal)
+            || string.Equals(command, "explain", StringComparison.Ordinal);
     }
 
     private static string ReadFormat(string[] args)

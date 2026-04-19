@@ -166,6 +166,16 @@ public sealed class KyftCliTests
         Assert.Contains("\"error\":", error);
     }
 
+    [Fact]
+    public void UnknownCommandReturnsDiagnosticBeforeReadingFixture()
+    {
+        var (exitCode, output, error) = Run("inspect", "missing-fixture.json");
+
+        Assert.Equal(2, exitCode);
+        Assert.Equal(string.Empty, output);
+        Assert.Contains("Unknown command: inspect", error);
+    }
+
     private static (int ExitCode, string Output, string Error) Run(params string[] args)
     {
         using var output = new StringWriter();
