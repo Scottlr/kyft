@@ -171,6 +171,70 @@ public sealed class WindowIntervalHistory
     }
 
     /// <summary>
+    /// Compares parent windows against child contribution windows.
+    /// </summary>
+    /// <remarks>
+    /// Lineage is inferred by matching source and partition for the supplied
+    /// parent and child window names. Parent and child keys may differ because
+    /// rollups often aggregate several child keys into one parent key.
+    /// </remarks>
+    /// <param name="name">A human-readable comparison name.</param>
+    /// <param name="parentWindowName">The parent recorded window name.</param>
+    /// <param name="childWindowName">The child contribution window name.</param>
+    /// <returns>A hierarchy comparison result.</returns>
+    public HierarchyComparisonResult CompareHierarchy(
+        string name,
+        string parentWindowName,
+        string childWindowName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(parentWindowName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(childWindowName);
+
+        var parents = WindowsForName(parentWindowName);
+        var children = WindowsForName(childWindowName);
+        var diagnostics = new List<ComparisonPlanDiagnostic>();
+
+        if (parents.Count == 0)
+        {
+            diagnostics.Add(new ComparisonPlanDiagnostic(
+                ComparisonPlanValidationCode.MissingLineage,
+                "Hierarchy comparison found no parent windows.",
+                "parentWindowName",
+                ComparisonPlanDiagnosticSeverity.Warning));
+        }
+
+        if (children.Count == 0)
+        {
+            diagnostics.Add(new ComparisonPlanDiagnostic(
+                ComparisonPlanValidationCode.MissingLineage,
+                "Hierarchy comparison found no child contribution windows.",
+                "childWindowName",
+                ComparisonPlanDiagnosticSeverity.Warning));
+        }
+
+        var rows = new List<HierarchyComparisonRow>();
+        var scopes = BuildHierarchyScopes(parents, children);
+
+        foreach (var scope in scopes)
+        {
+            AddHierarchyRows(
+                scope.Source,
+                scope.Partition,
+                parents,
+                children,
+                rows);
+        }
+
+        return new HierarchyComparisonResult(
+            name,
+            parentWindowName,
+            childWindowName,
+            rows.ToArray(),
+            diagnostics.ToArray());
+    }
+
+    /// <summary>
     /// Finds overlapping closed windows within the same window scope.
     /// </summary>
     /// <returns>The overlapping interval pairs.</returns>
@@ -314,6 +378,180 @@ public sealed class WindowIntervalHistory
         return false;
     }
 
+    private List<WindowRecord> WindowsForName(string windowName)
+    {
+        var matches = new List<WindowRecord>();
+
+        foreach (var window in Windows)
+        {
+            if (string.Equals(window.WindowName, windowName, StringComparison.Ordinal))
+            {
+                matches.Add(window);
+            }
+        }
+
+        return matches;
+    }
+
+    private static List<HierarchyScope> BuildHierarchyScopes(
+        List<WindowRecord> parents,
+        List<WindowRecord> children)
+    {
+        var scopes = new List<HierarchyScope>();
+
+        AddScopes(parents, scopes);
+        AddScopes(children, scopes);
+        scopes.Sort(static (left, right) =>
+        {
+            var source = StableObjectValue(left.Source).CompareTo(StableObjectValue(right.Source));
+            if (source != 0)
+            {
+                return source;
+            }
+
+            return StableObjectValue(left.Partition).CompareTo(StableObjectValue(right.Partition));
+        });
+
+        return scopes;
+    }
+
+    private static void AddScopes(List<WindowRecord> windows, List<HierarchyScope> scopes)
+    {
+        for (var i = 0; i < windows.Count; i++)
+        {
+            var scope = new HierarchyScope(windows[i].Source, windows[i].Partition);
+            if (!scopes.Contains(scope))
+            {
+                scopes.Add(scope);
+            }
+        }
+    }
+
+    private static void AddHierarchyRows(
+        object? source,
+        object? partition,
+        List<WindowRecord> parents,
+        List<WindowRecord> children,
+        List<HierarchyComparisonRow> rows)
+    {
+        var scopedParents = FilterHierarchyScope(parents, source, partition);
+        var scopedChildren = FilterHierarchyScope(children, source, partition);
+        var boundaries = new List<TemporalPoint>((scopedParents.Count + scopedChildren.Count) * 2);
+
+        AddBoundaries(scopedParents, boundaries);
+        AddBoundaries(scopedChildren, boundaries);
+        boundaries.Sort(static (left, right) => left.CompareTo(right));
+
+        var unique = new List<TemporalPoint>(boundaries.Count);
+        for (var i = 0; i < boundaries.Count; i++)
+        {
+            if (unique.Count == 0 || boundaries[i].CompareTo(unique[^1]) != 0)
+            {
+                unique.Add(boundaries[i]);
+            }
+        }
+
+        for (var i = 0; i < unique.Count - 1; i++)
+        {
+            var start = unique[i];
+            var end = unique[i + 1];
+            if (start.CompareTo(end) >= 0)
+            {
+                continue;
+            }
+
+            var parentIds = ActiveIds(scopedParents, start, end);
+            var childIds = ActiveIds(scopedChildren, start, end);
+            if (parentIds.Count == 0 && childIds.Count == 0)
+            {
+                continue;
+            }
+
+            rows.Add(new HierarchyComparisonRow(
+                GetHierarchyKind(parentIds.Count, childIds.Count),
+                source,
+                partition,
+                TemporalRange.Closed(start, end),
+                parentIds,
+                childIds));
+        }
+    }
+
+    private static List<WindowRecord> FilterHierarchyScope(
+        List<WindowRecord> windows,
+        object? source,
+        object? partition)
+    {
+        var matches = new List<WindowRecord>();
+
+        for (var i = 0; i < windows.Count; i++)
+        {
+            var window = windows[i];
+            if (EqualityComparer<object?>.Default.Equals(window.Source, source)
+                && EqualityComparer<object?>.Default.Equals(window.Partition, partition))
+            {
+                matches.Add(window);
+            }
+        }
+
+        return matches;
+    }
+
+    private static void AddBoundaries(List<WindowRecord> windows, List<TemporalPoint> boundaries)
+    {
+        for (var i = 0; i < windows.Count; i++)
+        {
+            var window = windows[i];
+            if (!window.EndPosition.HasValue)
+            {
+                continue;
+            }
+
+            boundaries.Add(TemporalPoint.ForPosition(window.StartPosition));
+            boundaries.Add(TemporalPoint.ForPosition(window.EndPosition.Value));
+        }
+    }
+
+    private static IReadOnlyList<WindowRecordId> ActiveIds(
+        List<WindowRecord> windows,
+        TemporalPoint start,
+        TemporalPoint end)
+    {
+        var ids = new List<WindowRecordId>();
+
+        for (var i = 0; i < windows.Count; i++)
+        {
+            var window = windows[i];
+            if (!window.EndPosition.HasValue)
+            {
+                continue;
+            }
+
+            var range = TemporalRange.Closed(
+                TemporalPoint.ForPosition(window.StartPosition),
+                TemporalPoint.ForPosition(window.EndPosition.Value));
+            if (range.Start.CompareTo(start) <= 0 && end.CompareTo(range.End!.Value) <= 0)
+            {
+                ids.Add(window.Id);
+            }
+        }
+
+        ids.Sort(static (left, right) => string.CompareOrdinal(left.Value, right.Value));
+        return ids.ToArray();
+    }
+
+    private static HierarchyComparisonRowKind GetHierarchyKind(int parentCount, int childCount)
+    {
+        if (parentCount > 0 && childCount > 0)
+        {
+            return HierarchyComparisonRowKind.ParentExplained;
+        }
+
+        return parentCount > 0
+            ? HierarchyComparisonRowKind.UnexplainedParent
+            : HierarchyComparisonRowKind.OrphanChild;
+    }
+
     private static double? GetCoverageRatio(IReadOnlyList<CoverageSummary> summaries)
     {
         var target = 0d;
@@ -326,6 +564,16 @@ public sealed class WindowIntervalHistory
         }
 
         return target == 0d ? null : covered / target;
+    }
+
+    private static string StableObjectValue(object? value)
+    {
+        return value switch
+        {
+            null => "<null>",
+            IFormattable formattable => value.GetType().FullName + ":" + formattable.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
+            _ => value.GetType().FullName + ":" + value
+        };
     }
 
     private static bool IsSameScope(ClosedWindow first, ClosedWindow second)
@@ -376,4 +624,6 @@ public sealed class WindowIntervalHistory
     }
 
     private readonly record struct PositionSegment(long Start, long End);
+
+    private sealed record HierarchyScope(object? Source, object? Partition);
 }

@@ -73,5 +73,10 @@ public enum ComparisonPlanValidationCode
     /// <summary>
     /// Indicates that an as-of lookup had multiple equally eligible matches.
     /// </summary>
-    AmbiguousAsOfMatch = 13
+    AmbiguousAsOfMatch = 13,
+
+    /// <summary>
+    /// Indicates that hierarchy comparison could not find expected parent or child lineage records.
+    /// </summary>
+    MissingLineage = 14
 }

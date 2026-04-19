@@ -117,3 +117,21 @@ Cells are directional. The row source is the target and the column source is
 the comparison source. Diagonal cells are identity rows and do not run
 comparators. Missing sources are still emitted as explicit cells so reports do
 not silently drop an expected provider.
+
+## Hierarchy Explanation
+
+Use hierarchy comparison to explain parent rollup activity from child
+contribution windows:
+
+```csharp
+var hierarchy = pipeline.Intervals.CompareHierarchy(
+    "Market explanation",
+    parentWindowName: "MarketSuspension",
+    childWindowName: "SelectionSuspension");
+```
+
+Rows are emitted as explained parent activity, unexplained parent duration, or
+orphan child duration. Current lineage is inferred from matching source and
+partition for the supplied parent and child window names. Parent and child keys
+may differ because rollups often aggregate several child keys into one parent
+key.
