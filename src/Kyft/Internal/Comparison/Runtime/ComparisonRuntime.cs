@@ -63,7 +63,7 @@ internal static class ComparisonRuntime
             if (string.Equals(comparator, "overlap", StringComparison.Ordinal))
             {
                 var before = overlapRows.Count;
-                AddOverlapRows(aligned, overlapRows);
+                AddOverlapRows(prepared, aligned, overlapRows);
                 summaries.Add(new ComparatorSummary(comparator, overlapRows.Count - before));
                 continue;
             }
@@ -71,7 +71,7 @@ internal static class ComparisonRuntime
             if (string.Equals(comparator, "residual", StringComparison.Ordinal))
             {
                 var before = residualRows.Count;
-                AddResidualRows(aligned, residualRows);
+                AddResidualRows(prepared, aligned, residualRows);
                 summaries.Add(new ComparatorSummary(comparator, residualRows.Count - before));
                 continue;
             }
@@ -79,7 +79,7 @@ internal static class ComparisonRuntime
             if (string.Equals(comparator, "missing", StringComparison.Ordinal))
             {
                 var before = missingRows.Count;
-                AddMissingRows(aligned, missingRows);
+                AddMissingRows(prepared, aligned, missingRows);
                 summaries.Add(new ComparatorSummary(comparator, missingRows.Count - before));
                 continue;
             }
@@ -87,7 +87,7 @@ internal static class ComparisonRuntime
             if (string.Equals(comparator, "coverage", StringComparison.Ordinal))
             {
                 var before = coverageRows.Count;
-                AddCoverageRows(aligned, coverageRows, coverageSummaries);
+                AddCoverageRows(prepared, aligned, coverageRows, coverageSummaries);
                 summaries.Add(new ComparatorSummary(comparator, coverageRows.Count - before));
                 continue;
             }
@@ -103,7 +103,7 @@ internal static class ComparisonRuntime
             if (string.Equals(comparator, "symmetric-difference", StringComparison.Ordinal))
             {
                 var before = symmetricDifferenceRows.Count;
-                AddSymmetricDifferenceRows(aligned, symmetricDifferenceRows);
+                AddSymmetricDifferenceRows(prepared, aligned, symmetricDifferenceRows);
                 summaries.Add(new ComparatorSummary(comparator, symmetricDifferenceRows.Count - before));
                 continue;
             }
@@ -162,12 +162,16 @@ internal static class ComparisonRuntime
             rowFinalities);
     }
 
-    private static void AddOverlapRows(AlignedComparison aligned, List<OverlapRow> rows)
+    private static void AddOverlapRows(
+        PreparedComparison prepared,
+        AlignedComparison aligned,
+        List<OverlapRow> rows)
     {
+        var evidence = CohortEvidence.Create(prepared);
         for (var i = 0; i < aligned.Segments.Count; i++)
         {
             var segment = aligned.Segments[i];
-            if (segment.TargetRecordIds.Count == 0 || segment.AgainstRecordIds.Count == 0)
+            if (segment.TargetRecordIds.Count == 0 || !evidence.IsAgainstActive(segment))
             {
                 continue;
             }
@@ -182,12 +186,16 @@ internal static class ComparisonRuntime
         }
     }
 
-    private static void AddResidualRows(AlignedComparison aligned, List<ResidualRow> rows)
+    private static void AddResidualRows(
+        PreparedComparison prepared,
+        AlignedComparison aligned,
+        List<ResidualRow> rows)
     {
+        var evidence = CohortEvidence.Create(prepared);
         for (var i = 0; i < aligned.Segments.Count; i++)
         {
             var segment = aligned.Segments[i];
-            if (segment.TargetRecordIds.Count == 0 || segment.AgainstRecordIds.Count != 0)
+            if (segment.TargetRecordIds.Count == 0 || evidence.IsAgainstActive(segment))
             {
                 continue;
             }
@@ -201,12 +209,16 @@ internal static class ComparisonRuntime
         }
     }
 
-    private static void AddMissingRows(AlignedComparison aligned, List<MissingRow> rows)
+    private static void AddMissingRows(
+        PreparedComparison prepared,
+        AlignedComparison aligned,
+        List<MissingRow> rows)
     {
+        var evidence = CohortEvidence.Create(prepared);
         for (var i = 0; i < aligned.Segments.Count; i++)
         {
             var segment = aligned.Segments[i];
-            if (segment.TargetRecordIds.Count != 0 || segment.AgainstRecordIds.Count == 0)
+            if (segment.TargetRecordIds.Count != 0 || !evidence.IsAgainstActive(segment))
             {
                 continue;
             }
@@ -221,10 +233,12 @@ internal static class ComparisonRuntime
     }
 
     private static void AddCoverageRows(
+        PreparedComparison prepared,
         AlignedComparison aligned,
         List<CoverageRow> rows,
         List<CoverageSummary> summaries)
     {
+        var evidence = CohortEvidence.Create(prepared);
         var summary = new Dictionary<CoverageScope, (double Target, double Covered)>();
 
         for (var i = 0; i < aligned.Segments.Count; i++)
@@ -236,7 +250,7 @@ internal static class ComparisonRuntime
             }
 
             var targetMagnitude = Measure(segment.Range);
-            var coveredMagnitude = segment.AgainstRecordIds.Count > 0 ? targetMagnitude : 0d;
+            var coveredMagnitude = evidence.IsAgainstActive(segment) ? targetMagnitude : 0d;
 
             rows.Add(new CoverageRow(
                 segment.WindowName,
@@ -293,14 +307,16 @@ internal static class ComparisonRuntime
     }
 
     private static void AddSymmetricDifferenceRows(
+        PreparedComparison prepared,
         AlignedComparison aligned,
         List<SymmetricDifferenceRow> rows)
     {
+        var evidence = CohortEvidence.Create(prepared);
         for (var i = 0; i < aligned.Segments.Count; i++)
         {
             var segment = aligned.Segments[i];
             var hasTarget = segment.TargetRecordIds.Count > 0;
-            var hasAgainst = segment.AgainstRecordIds.Count > 0;
+            var hasAgainst = evidence.IsAgainstActive(segment);
 
             if (hasTarget == hasAgainst)
             {
@@ -995,6 +1011,77 @@ internal static class ComparisonRuntime
         return string.Equals(first.WindowName, second.WindowName, StringComparison.Ordinal)
             && EqualityComparer<object>.Default.Equals(first.Key, second.Key)
             && EqualityComparer<object?>.Default.Equals(first.Partition, second.Partition);
+    }
+
+    private sealed class CohortEvidence
+    {
+        private readonly ComparisonSelector? cohort;
+        private readonly Dictionary<WindowRecordId, object?> sourcesByRecordId;
+
+        private CohortEvidence(
+            ComparisonSelector? cohort,
+            Dictionary<WindowRecordId, object?> sourcesByRecordId)
+        {
+            this.cohort = cohort;
+            this.sourcesByRecordId = sourcesByRecordId;
+        }
+
+        public static CohortEvidence Create(PreparedComparison prepared)
+        {
+            var cohort = prepared.Plan.Against.Count == 1
+                && prepared.Plan.Against[0].CohortActivity is not null
+                    ? prepared.Plan.Against[0]
+                    : (ComparisonSelector?)null;
+            var sourcesByRecordId = new Dictionary<WindowRecordId, object?>();
+
+            for (var i = 0; i < prepared.NormalizedWindows.Count; i++)
+            {
+                var window = prepared.NormalizedWindows[i];
+                sourcesByRecordId[window.RecordId] = window.Window.Source;
+            }
+
+            return new CohortEvidence(cohort, sourcesByRecordId);
+        }
+
+        public bool IsAgainstActive(AlignedSegment segment)
+        {
+            if (this.cohort is null)
+            {
+                return segment.AgainstRecordIds.Count > 0;
+            }
+
+            var activity = this.cohort.Value.CohortActivity!;
+            var required = activity.RequiredActiveCount(this.cohort.Value.CohortSources.Count);
+            var activeSources = new List<object?>();
+
+            for (var i = 0; i < segment.AgainstRecordIds.Count; i++)
+            {
+                if (!this.sourcesByRecordId.TryGetValue(segment.AgainstRecordIds[i], out var source))
+                {
+                    continue;
+                }
+
+                if (!ContainsSource(activeSources, source))
+                {
+                    activeSources.Add(source);
+                }
+            }
+
+            return activeSources.Count >= required;
+        }
+
+        private static bool ContainsSource(List<object?> sources, object? source)
+        {
+            for (var i = 0; i < sources.Count; i++)
+            {
+                if (EqualityComparer<object?>.Default.Equals(sources[i], source))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     private sealed record CoverageScope(string WindowName, object Key, object? Partition);

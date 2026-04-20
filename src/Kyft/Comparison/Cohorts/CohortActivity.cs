@@ -4,14 +4,16 @@ namespace Kyft;
 /// Describes how a cohort is considered active.
 /// </summary>
 /// <remarks>
-/// The first cohort implementation supports <see cref="Any" />, where the
-/// cohort is active when at least one declared member source is active.
+/// Cohort activity rules collapse member windows into one derived comparison
+/// lane before comparators run. This avoids pairwise overcounting when asking
+/// whether a target was unmatched by the cohort as a whole.
 /// </remarks>
 public sealed record CohortActivity
 {
-    private CohortActivity(string name)
+    private CohortActivity(string name, int? count = null)
     {
         Name = name;
+        Count = count;
     }
 
     /// <summary>
@@ -20,11 +22,52 @@ public sealed record CohortActivity
     public string Name { get; }
 
     /// <summary>
+    /// Gets the configured count for threshold activity rules.
+    /// </summary>
+    public int? Count { get; }
+
+    /// <summary>
     /// Creates an activity rule where any active member makes the cohort active.
     /// </summary>
     /// <returns>An any-member activity rule.</returns>
     public static CohortActivity Any()
     {
         return new CohortActivity("any");
+    }
+
+    /// <summary>
+    /// Creates an activity rule where every declared member must be active.
+    /// </summary>
+    /// <returns>An all-member activity rule.</returns>
+    public static CohortActivity All()
+    {
+        return new CohortActivity("all");
+    }
+
+    /// <summary>
+    /// Creates an activity rule where at least a configured number of members must be active.
+    /// </summary>
+    /// <param name="count">The required number of active members.</param>
+    /// <returns>An at-least activity rule.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count" /> is less than one.</exception>
+    public static CohortActivity AtLeast(int count)
+    {
+        if (count < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), count, "At-least cohort count must be greater than zero.");
+        }
+
+        return new CohortActivity("at-least", count);
+    }
+
+    internal int RequiredActiveCount(int memberCount)
+    {
+        return Name switch
+        {
+            "any" => memberCount == 0 ? 1 : 1,
+            "all" => memberCount,
+            "at-least" => Count!.Value,
+            _ => throw new InvalidOperationException("Unknown cohort activity rule.")
+        };
     }
 }

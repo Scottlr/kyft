@@ -50,11 +50,11 @@ public sealed class ComparisonCohortBuilder
 
     internal ComparisonSelector Build(string name)
     {
-        if (!string.Equals(this.activity.Name, "any", StringComparison.Ordinal))
+        if (this.activity.Count.HasValue && this.activity.Count.Value > this.sources.Count)
         {
-            throw new InvalidOperationException("Only any-member cohort activity is currently supported.");
+            throw new InvalidOperationException("Cohort activity count cannot exceed the number of declared sources.");
         }
 
-        return ComparisonSelector.ForSources(this.sources).WithName(name);
+        return ComparisonSelector.ForCohortSources(this.sources, this.activity).WithName(name);
     }
 }

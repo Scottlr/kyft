@@ -372,10 +372,20 @@ internal static class ComparisonExplainer
 
     private static string FormatSelector(ComparisonSelector selector)
     {
-        return selector.Name
+        var value = selector.Name
             + " (" + selector.Description
-            + "; serializable=" + FormatBool(selector.IsSerializable)
-            + ")";
+            + "; serializable=" + FormatBool(selector.IsSerializable);
+
+        if (selector.CohortActivity is not null)
+        {
+            value += "; cohort=" + selector.CohortActivity.Name;
+            if (selector.CohortActivity.Count.HasValue)
+            {
+                value += ":" + selector.CohortActivity.Count.Value.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
+        return value + ")";
     }
 
     private static string FormatScope(ComparisonScope? scope)

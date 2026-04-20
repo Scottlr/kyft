@@ -314,6 +314,27 @@ internal static class ComparisonExporter
         writer.WriteString("name", selector.Name);
         writer.WriteString("description", selector.Description);
         writer.WriteBoolean("isSerializable", selector.IsSerializable);
+        if (selector.CohortActivity is not null)
+        {
+            writer.WritePropertyName("cohort");
+            writer.WriteStartObject();
+            writer.WriteString("activity", selector.CohortActivity.Name);
+            if (selector.CohortActivity.Count.HasValue)
+            {
+                writer.WriteNumber("count", selector.CohortActivity.Count.Value);
+            }
+
+            writer.WritePropertyName("sources");
+            writer.WriteStartArray();
+            for (var i = 0; i < selector.CohortSources.Count; i++)
+            {
+                WriteObjectValue(writer, selector.CohortSources[i]);
+            }
+
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+
         writer.WriteEndObject();
     }
 
@@ -839,6 +860,11 @@ internal static class ComparisonExporter
     private static void WriteObjectValue(Utf8JsonWriter writer, string propertyName, object? value)
     {
         writer.WritePropertyName(propertyName);
+        WriteObjectValue(writer, value);
+    }
+
+    private static void WriteObjectValue(Utf8JsonWriter writer, object? value)
+    {
         if (value is null)
         {
             writer.WriteNullValue();

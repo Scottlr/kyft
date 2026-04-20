@@ -16,12 +16,16 @@ public readonly record struct ComparisonSelector
         string name,
         string description,
         bool isSerializable,
-        Func<WindowRecord, bool>? predicate)
+        Func<WindowRecord, bool>? predicate,
+        CohortActivity? cohortActivity = null,
+        IReadOnlyList<object>? cohortSources = null)
     {
         Name = name;
         Description = description;
         IsSerializable = isSerializable;
         this.predicate = predicate;
+        CohortActivity = cohortActivity;
+        CohortSources = cohortSources ?? [];
     }
 
     /// <summary>
@@ -38,6 +42,16 @@ public readonly record struct ComparisonSelector
     /// Gets whether the selector can be exported as plan data.
     /// </summary>
     public bool IsSerializable { get; }
+
+    /// <summary>
+    /// Gets the cohort activity rule when this selector represents a cohort.
+    /// </summary>
+    public CohortActivity? CohortActivity { get; }
+
+    /// <summary>
+    /// Gets the source identities that belong to this cohort selector.
+    /// </summary>
+    public IReadOnlyList<object> CohortSources { get; }
 
     /// <summary>
     /// Creates a serializable selector descriptor.
@@ -108,6 +122,28 @@ public readonly record struct ComparisonSelector
     /// <returns>A serializable multi-source selector.</returns>
     public static ComparisonSelector ForSources(IEnumerable<object> sources)
     {
+        return ForSourcesCore(sources, cohortActivity: null);
+    }
+
+    /// <summary>
+    /// Creates a selector for a cohort of source identities.
+    /// </summary>
+    /// <param name="sources">The cohort source identities.</param>
+    /// <param name="activity">The cohort activity rule.</param>
+    /// <returns>A serializable cohort selector.</returns>
+    public static ComparisonSelector ForCohortSources(
+        IEnumerable<object> sources,
+        CohortActivity activity)
+    {
+        ArgumentNullException.ThrowIfNull(activity);
+
+        return ForSourcesCore(sources, activity);
+    }
+
+    private static ComparisonSelector ForSourcesCore(
+        IEnumerable<object> sources,
+        CohortActivity? cohortActivity)
+    {
         ArgumentNullException.ThrowIfNull(sources);
 
         var orderedSources = sources as object[] ?? sources.ToArray();
@@ -136,7 +172,9 @@ public readonly record struct ComparisonSelector
                 }
 
                 return false;
-            });
+            },
+            cohortActivity,
+            orderedSources);
     }
 
     /// <summary>
@@ -237,7 +275,13 @@ public readonly record struct ComparisonSelector
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        return new ComparisonSelector(name, Description, IsSerializable, this.predicate);
+        return new ComparisonSelector(
+            name,
+            Description,
+            IsSerializable,
+            this.predicate,
+            CohortActivity,
+            CohortSources);
     }
 
     /// <summary>
