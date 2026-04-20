@@ -44,15 +44,55 @@ public sealed class WindowPipelineBuilder<TEvent>
         Func<ChildActivityView, bool> isActive)
         where TKey : notnull
     {
+        return AddRollUp(name, key, isActive, configureSegments: null);
+    }
+
+    /// <summary>
+    /// Adds a parent roll-up for the current window with segment projection options.
+    /// </summary>
+    /// <typeparam name="TKey">The parent key type.</typeparam>
+    /// <param name="name">The unique roll-up window name.</param>
+    /// <param name="key">Selects the parent key from each event.</param>
+    /// <param name="isActive">Returns true when the parent should be active for its children.</param>
+    /// <param name="configureSegments">Configures which child segment dimensions are preserved.</param>
+    /// <returns>A builder positioned at the newly added roll-up.</returns>
+    public WindowPipelineBuilder<TEvent> RollUp<TKey>(
+        string name,
+        Func<TEvent, TKey> key,
+        Func<ChildActivityView, bool> isActive,
+        Action<RollUpSegmentProjectionBuilder> configureSegments)
+        where TKey : notnull
+    {
+        ArgumentNullException.ThrowIfNull(configureSegments);
+
+        return AddRollUp(name, key, isActive, configureSegments);
+    }
+
+    private WindowPipelineBuilder<TEvent> AddRollUp<TKey>(
+        string name,
+        Func<TEvent, TKey> key,
+        Func<ChildActivityView, bool> isActive,
+        Action<RollUpSegmentProjectionBuilder>? configureSegments)
+        where TKey : notnull
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(isActive);
         EventPipelineBuilder<TEvent>.ThrowIfNameExists(name, this.windowNames);
 
+        var segmentProjection = RollUpSegmentProjection.PreserveAll;
+        if (configureSegments is not null)
+        {
+            var segmentBuilder = new RollUpSegmentProjectionBuilder();
+            configureSegments(segmentBuilder);
+            segmentProjection = segmentBuilder.Build();
+        }
+
         var definition = new RollUpDefinition<TEvent, TKey>(
             name,
             key,
-            isActive);
+            isActive,
+            segmentProjection);
         CurrentWindow.RollUps.Add(definition);
 
         return new WindowPipelineBuilder<TEvent>(

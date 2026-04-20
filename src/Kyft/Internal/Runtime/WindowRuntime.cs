@@ -101,23 +101,13 @@ internal sealed class WindowRuntime<TEvent>
                     currentSegments,
                     currentTags));
             changed = true;
-            ObserveRollUps(
+            ObserveRollUpSegmentTransitions(
                 @event,
                 source,
                 partition,
                 key,
-                childIsActive: false,
-                childChanged: true,
                 previousState.Segments,
                 previousState.Tags,
-                ref emissions);
-            ObserveRollUps(
-                @event,
-                source,
-                partition,
-                key,
-                childIsActive: true,
-                childChanged: true,
                 currentSegments,
                 currentTags,
                 ref emissions);
@@ -164,6 +154,32 @@ internal sealed class WindowRuntime<TEvent>
                 childChanged,
                 segments,
                 tags,
+                ref emissions);
+        }
+    }
+
+    private void ObserveRollUpSegmentTransitions(
+        TEvent @event,
+        object? source,
+        object? partition,
+        object key,
+        IReadOnlyList<WindowSegment> previousSegments,
+        IReadOnlyList<WindowTag> previousTags,
+        IReadOnlyList<WindowSegment> currentSegments,
+        IReadOnlyList<WindowTag> currentTags,
+        ref List<WindowEmission<TEvent>>? emissions)
+    {
+        foreach (var rollUp in this.rollUps)
+        {
+            rollUp.ObserveChildSegmentTransition(
+                @event,
+                source,
+                partition,
+                key,
+                previousSegments,
+                previousTags,
+                currentSegments,
+                currentTags,
                 ref emissions);
         }
     }

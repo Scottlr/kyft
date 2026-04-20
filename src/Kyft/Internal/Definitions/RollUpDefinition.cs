@@ -5,11 +5,14 @@ namespace Kyft.Internal.Definitions;
 internal abstract class RollUpDefinition<TEvent>
     : WindowNodeDefinition<TEvent>
 {
-    private protected RollUpDefinition(string name)
+    private protected RollUpDefinition(
+        string name,
+        RollUpSegmentProjection? segmentProjection = null)
     {
         Name = name;
         RollUps = [];
         Callbacks = new WindowCallbackSet<TEvent>();
+        SegmentProjection = segmentProjection ?? RollUpSegmentProjection.PreserveAll;
     }
 
     public string Name { get; }
@@ -17,6 +20,8 @@ internal abstract class RollUpDefinition<TEvent>
     public List<RollUpDefinition<TEvent>> RollUps { get; }
 
     public WindowCallbackSet<TEvent> Callbacks { get; }
+
+    public RollUpSegmentProjection SegmentProjection { get; }
 
     public virtual IEqualityComparer<object> KeyComparer { get; } =
         EqualityComparer<object>.Default;
@@ -32,8 +37,9 @@ internal sealed class RollUpDefinition<TEvent, TKey> : RollUpDefinition<TEvent>
     public RollUpDefinition(
         string name,
         Func<TEvent, TKey> keySelector,
-        Func<ChildActivityView, bool> isActiveSelector)
-        : base(name)
+        Func<ChildActivityView, bool> isActiveSelector,
+        RollUpSegmentProjection? segmentProjection = null)
+        : base(name, segmentProjection)
     {
         KeySelector = keySelector;
         IsActiveSelector = isActiveSelector;
@@ -65,8 +71,9 @@ internal sealed class DelegateRollUpDefinition<TEvent> : RollUpDefinition<TEvent
         string name,
         Func<TEvent, object> keySelector,
         IEqualityComparer<object> keyComparer,
-        Func<ChildActivityView, bool> isActiveSelector)
-        : base(name)
+        Func<ChildActivityView, bool> isActiveSelector,
+        RollUpSegmentProjection? segmentProjection = null)
+        : base(name, segmentProjection)
     {
         this.keySelector = keySelector;
         KeyComparer = keyComparer;

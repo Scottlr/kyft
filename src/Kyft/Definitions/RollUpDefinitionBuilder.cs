@@ -14,6 +14,7 @@ public sealed class RollUpDefinitionBuilder<TEvent>
     private Func<TEvent, object>? keySelector;
     private IEqualityComparer<object>? keyComparer;
     private Func<ChildActivityView, bool>? isActiveSelector;
+    private RollUpSegmentProjection segmentProjection = RollUpSegmentProjection.PreserveAll;
 
     internal RollUpDefinitionBuilder(string defaultName)
     {
@@ -69,6 +70,22 @@ public sealed class RollUpDefinitionBuilder<TEvent>
     }
 
     /// <summary>
+    /// Configures which child segment dimensions are preserved by the roll-up.
+    /// </summary>
+    /// <param name="configure">Configures the roll-up segment projection.</param>
+    /// <returns>The current builder.</returns>
+    public RollUpDefinitionBuilder<TEvent> Segments(
+        Action<RollUpSegmentProjectionBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var builder = new RollUpSegmentProjectionBuilder();
+        configure(builder);
+        this.segmentProjection = builder.Build();
+        return this;
+    }
+
+    /// <summary>
     /// Registers a callback invoked when this roll-up opens.
     /// </summary>
     /// <param name="callback">The callback to invoke for open emissions.</param>
@@ -112,7 +129,8 @@ public sealed class RollUpDefinitionBuilder<TEvent>
             this.name,
             this.keySelector,
             this.keyComparer ?? EqualityComparer<object>.Default,
-            this.isActiveSelector);
+            this.isActiveSelector,
+            this.segmentProjection);
 
         definition.Callbacks.Opened.AddRange(this.callbacks.Opened);
         definition.Callbacks.Closed.AddRange(this.callbacks.Closed);

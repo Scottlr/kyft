@@ -33,12 +33,13 @@ internal sealed class RollUpRuntime<TEvent>
         IReadOnlyList<WindowTag> tags,
         ref List<WindowEmission<TEvent>>? emissions)
     {
+        var projectedSegments = this.definition.SegmentProjection.Project(segments);
         var parentKey = this.definition.GetKey(@event);
         var parentStateKey = new RollUpStateKey(
             parentKey,
             source,
             partition,
-            StableSegments(segments));
+            StableSegments(projectedSegments));
 
         if (!this.parents.TryGetValue(parentStateKey, out var parent))
         {
@@ -59,7 +60,7 @@ internal sealed class RollUpRuntime<TEvent>
                 parentKey,
                 parent.IsActive,
                 parentChanged,
-                segments,
+                projectedSegments,
                 tags,
                 ref emissions);
             return;
@@ -77,7 +78,7 @@ internal sealed class RollUpRuntime<TEvent>
                 parentKey,
                 parent.IsActive,
                 parentChanged,
-                segments,
+                projectedSegments,
                 tags,
                 ref emissions);
             return;
@@ -94,7 +95,7 @@ internal sealed class RollUpRuntime<TEvent>
                 isActive ? WindowTransitionKind.Opened : WindowTransitionKind.Closed,
                 source,
                 partition,
-                segments,
+                projectedSegments,
                 tags,
                 isActive ? null : WindowBoundaryReason.ActivePredicateEnded));
 
@@ -105,8 +106,94 @@ internal sealed class RollUpRuntime<TEvent>
             parentKey,
             parent.IsActive,
             parentChanged,
-            segments,
+            projectedSegments,
             tags,
+            ref emissions);
+    }
+
+    public void ObserveChildSegmentTransition(
+        TEvent @event,
+        object? source,
+        object? partition,
+        object childKey,
+        IReadOnlyList<WindowSegment> previousSegments,
+        IReadOnlyList<WindowTag> previousTags,
+        IReadOnlyList<WindowSegment> currentSegments,
+        IReadOnlyList<WindowTag> currentTags,
+        ref List<WindowEmission<TEvent>>? emissions)
+    {
+        var projectedPreviousSegments = this.definition.SegmentProjection.Project(previousSegments);
+        var projectedCurrentSegments = this.definition.SegmentProjection.Project(currentSegments);
+
+        if (!SegmentContextsEqual(projectedPreviousSegments, projectedCurrentSegments))
+        {
+            ObserveChild(
+                @event,
+                source,
+                partition,
+                childKey,
+                childIsActive: false,
+                childChanged: true,
+                previousSegments,
+                previousTags,
+                ref emissions);
+            ObserveChild(
+                @event,
+                source,
+                partition,
+                childKey,
+                childIsActive: true,
+                childChanged: true,
+                currentSegments,
+                currentTags,
+                ref emissions);
+            return;
+        }
+
+        var parentKey = this.definition.GetKey(@event);
+        var parentStateKey = new RollUpStateKey(
+            parentKey,
+            source,
+            partition,
+            StableSegments(projectedCurrentSegments));
+
+        if (!this.parents.TryGetValue(parentStateKey, out var parent))
+        {
+            parent = new ParentState();
+            this.parents.Add(parentStateKey, parent);
+        }
+
+        parent.Children[childKey] = true;
+        var children = parent.ToChildActivityView();
+        var isActive = this.definition.IsActive(children);
+        var parentChanged = isActive != parent.IsActive;
+
+        if (parentChanged)
+        {
+            parent.IsActive = isActive;
+            WindowRuntime<TEvent>.AddEmission(
+                ref emissions,
+                new WindowEmission<TEvent>(
+                    this.definition.Name,
+                    parentKey,
+                    @event,
+                    isActive ? WindowTransitionKind.Opened : WindowTransitionKind.Closed,
+                    source,
+                    partition,
+                    projectedCurrentSegments,
+                    currentTags,
+                    isActive ? null : WindowBoundaryReason.ActivePredicateEnded));
+        }
+
+        PropagateToParents(
+            @event,
+            source,
+            partition,
+            parentKey,
+            parent.IsActive,
+            parentChanged,
+            projectedCurrentSegments,
+            currentTags,
             ref emissions);
     }
 
@@ -157,6 +244,28 @@ internal sealed class RollUpRuntime<TEvent>
         }
 
         return builder.ToString();
+    }
+
+    private static bool SegmentContextsEqual(
+        IReadOnlyList<WindowSegment> left,
+        IReadOnlyList<WindowSegment> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            if (!string.Equals(left[i].Name, right[i].Name, StringComparison.Ordinal)
+                || !string.Equals(left[i].ParentName, right[i].ParentName, StringComparison.Ordinal)
+                || !EqualityComparer<object?>.Default.Equals(left[i].Value, right[i].Value))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private sealed class ParentState
