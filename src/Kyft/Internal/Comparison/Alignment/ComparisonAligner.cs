@@ -22,7 +22,8 @@ internal static class ComparisonAligner
                 window,
                 StableObjectValue(window.Window.Key),
                 StableObjectValue(window.Window.Source),
-                StableObjectValue(window.Window.Partition));
+                StableObjectValue(window.Window.Partition),
+                StableSegments(window.Segments));
         }
 
         Array.Sort(windows, static (left, right) => Compare(left, right));
@@ -114,7 +115,8 @@ internal static class ComparisonAligner
                 scope.Partition,
                 TemporalRange.Closed(start, end),
                 targetIds.ToArray(),
-                againstIds.ToArray()));
+                againstIds.ToArray(),
+                scope.Segments));
         }
     }
 
@@ -155,6 +157,12 @@ internal static class ComparisonAligner
             return result;
         }
 
+        result = string.Compare(left.SegmentSort, right.SegmentSort, StringComparison.Ordinal);
+        if (result != 0)
+        {
+            return result;
+        }
+
         result = string.Compare(left.SourceSort, right.SourceSort, StringComparison.Ordinal);
         if (result != 0)
         {
@@ -187,6 +195,7 @@ internal static class ComparisonAligner
         return string.Equals(first.Window.Window.WindowName, second.Window.Window.WindowName, StringComparison.Ordinal)
             && string.Equals(first.KeySort, second.KeySort, StringComparison.Ordinal)
             && string.Equals(first.PartitionSort, second.PartitionSort, StringComparison.Ordinal)
+            && string.Equals(first.SegmentSort, second.SegmentSort, StringComparison.Ordinal)
             && EqualityComparer<object>.Default.Equals(first.Window.Window.Key, second.Window.Window.Key)
             && EqualityComparer<object?>.Default.Equals(first.Window.Window.Partition, second.Window.Window.Partition);
     }
@@ -196,17 +205,43 @@ internal static class ComparisonAligner
         return new AlignmentScope(
             window.Window.Window.WindowName,
             window.Window.Window.Key,
-            window.Window.Window.Partition);
+            window.Window.Window.Partition,
+            window.Window.Segments);
+    }
+
+    private static string StableSegments(IReadOnlyList<WindowSegment> segments)
+    {
+        if (segments.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var builder = new System.Text.StringBuilder();
+        for (var i = 0; i < segments.Count; i++)
+        {
+            var segment = segments[i];
+            builder
+                .Append(segment.ParentName ?? string.Empty)
+                .Append('/')
+                .Append(segment.Name)
+                .Append('=')
+                .Append(StableObjectValue(segment.Value))
+                .Append(';');
+        }
+
+        return builder.ToString();
     }
 
     private sealed record AlignmentScope(
         string WindowName,
         object Key,
-        object? Partition);
+        object? Partition,
+        IReadOnlyList<WindowSegment> Segments);
 
     private readonly record struct SortableNormalizedWindow(
         NormalizedWindowRecord Window,
         string KeySort,
         string SourceSort,
-        string PartitionSort);
+        string PartitionSort,
+        string SegmentSort);
 }

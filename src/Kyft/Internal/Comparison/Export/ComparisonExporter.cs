@@ -328,6 +328,21 @@ internal static class ComparisonExporter
         writer.WriteStartObject();
         WriteNullableString(writer, "windowName", scope.WindowName);
         writer.WriteString("timeAxis", scope.TimeAxis.ToString());
+        if (scope.SegmentFilters.Count > 0)
+        {
+            writer.WritePropertyName("segmentFilters");
+            writer.WriteStartArray();
+            for (var i = 0; i < scope.SegmentFilters.Count; i++)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("name", scope.SegmentFilters[i].Name);
+                WriteObjectValue(writer, "value", scope.SegmentFilters[i].Value);
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndArray();
+        }
+
         writer.WriteEndObject();
     }
 

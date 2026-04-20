@@ -13,10 +13,28 @@ namespace Kyft;
 /// <param name="Range">The aligned segment range.</param>
 /// <param name="TargetRecordIds">The target window IDs active for the segment.</param>
 /// <param name="AgainstRecordIds">The comparison window IDs active for the segment.</param>
+/// <param name="Segments">The segment context shared by the aligned segment.</param>
 public sealed record AlignedSegment(
     string WindowName,
     object Key,
     object? Partition,
     TemporalRange Range,
     IReadOnlyList<WindowRecordId> TargetRecordIds,
-    IReadOnlyList<WindowRecordId> AgainstRecordIds);
+    IReadOnlyList<WindowRecordId> AgainstRecordIds,
+    IReadOnlyList<WindowSegment>? Segments = null)
+{
+    /// <summary>
+    /// Gets the segment context shared by the aligned segment.
+    /// </summary>
+    public IReadOnlyList<WindowSegment> Segments { get; } = Materialize(Segments);
+
+    private static IReadOnlyList<T> Materialize<T>(IReadOnlyList<T>? values)
+    {
+        return values switch
+        {
+            null => [],
+            T[] array => array,
+            _ => values.ToArray()
+        };
+    }
+}

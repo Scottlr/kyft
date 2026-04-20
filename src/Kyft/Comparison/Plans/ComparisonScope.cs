@@ -10,10 +10,17 @@ namespace Kyft;
 /// </remarks>
 /// <param name="WindowName">Optional window name restriction.</param>
 /// <param name="TimeAxis">The temporal axis used by the comparison.</param>
+/// <param name="SegmentFilters">The required segment values.</param>
 public sealed record ComparisonScope(
     string? WindowName,
-    TemporalAxis TimeAxis)
+    TemporalAxis TimeAxis,
+    IReadOnlyList<WindowSegmentFilter>? SegmentFilters = null)
 {
+    /// <summary>
+    /// Gets the required segment values for this scope.
+    /// </summary>
+    public IReadOnlyList<WindowSegmentFilter> SegmentFilters { get; } = Materialize(SegmentFilters);
+
     /// <summary>
     /// Creates an unrestricted scope on the processing-position axis.
     /// </summary>
@@ -34,5 +41,35 @@ public sealed record ComparisonScope(
         ArgumentException.ThrowIfNullOrWhiteSpace(windowName);
 
         return new ComparisonScope(windowName, timeAxis);
+    }
+
+    /// <summary>
+    /// Adds a required segment value to the scope.
+    /// </summary>
+    /// <param name="name">The segment dimension name.</param>
+    /// <param name="value">The required segment value.</param>
+    /// <returns>A new scope with the segment filter appended.</returns>
+    public ComparisonScope Segment(string name, object? value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        var filters = new WindowSegmentFilter[SegmentFilters.Count + 1];
+        for (var i = 0; i < SegmentFilters.Count; i++)
+        {
+            filters[i] = SegmentFilters[i];
+        }
+
+        filters[^1] = new WindowSegmentFilter(name, value);
+        return new ComparisonScope(WindowName, TimeAxis, filters);
+    }
+
+    private static IReadOnlyList<T> Materialize<T>(IReadOnlyList<T>? values)
+    {
+        return values switch
+        {
+            null => [],
+            T[] array => array,
+            _ => values.ToArray()
+        };
     }
 }

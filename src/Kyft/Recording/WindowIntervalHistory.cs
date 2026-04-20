@@ -90,6 +90,35 @@ public sealed class WindowIntervalHistory
     }
 
     /// <summary>
+    /// Gets recorded windows for a configured window name.
+    /// </summary>
+    /// <param name="windowName">The configured window name.</param>
+    /// <returns>Recorded windows with the supplied window name.</returns>
+    public IReadOnlyList<WindowRecord> ForWindow(string windowName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(windowName);
+
+        return Windows
+            .Where(window => string.Equals(window.WindowName, windowName, StringComparison.Ordinal))
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Gets recorded windows that contain a required segment value.
+    /// </summary>
+    /// <param name="name">The segment dimension name.</param>
+    /// <param name="value">The required segment value.</param>
+    /// <returns>Recorded windows that contain the required segment value.</returns>
+    public IReadOnlyList<WindowRecord> WithSegment(string name, object? value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return Windows
+            .Where(window => HasSegment(window, name, value))
+            .ToArray();
+    }
+
+    /// <summary>
     /// Builds a directional source matrix for one recorded window name.
     /// </summary>
     /// <remarks>
@@ -587,6 +616,21 @@ public sealed class WindowIntervalHistory
         return string.Equals(first.WindowName, second.WindowName, StringComparison.Ordinal)
             && EqualityComparer<object>.Default.Equals(first.Key, second.Key)
             && EqualityComparer<object?>.Default.Equals(first.Partition, second.Partition);
+    }
+
+    private static bool HasSegment(WindowRecord window, string name, object? value)
+    {
+        for (var i = 0; i < window.Segments.Count; i++)
+        {
+            var segment = window.Segments[i];
+            if (string.Equals(segment.Name, name, StringComparison.Ordinal)
+                && EqualityComparer<object?>.Default.Equals(segment.Value, value))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool Overlaps(ClosedWindow first, ClosedWindow second)

@@ -380,9 +380,20 @@ internal static class ComparisonExplainer
 
     private static string FormatScope(ComparisonScope? scope)
     {
-        return scope is null
-            ? "<missing>"
-            : "window=" + (scope.WindowName ?? "<all>") + "; axis=" + scope.TimeAxis;
+        if (scope is null)
+        {
+            return "<missing>";
+        }
+
+        var value = "window=" + (scope.WindowName ?? "<all>") + "; axis=" + scope.TimeAxis;
+        if (scope.SegmentFilters.Count == 0)
+        {
+            return value;
+        }
+
+        return value + "; segments=" + string.Join(
+            ", ",
+            scope.SegmentFilters.Select(static filter => filter.Name + "=" + StableObjectValue(filter.Value)));
     }
 
     private static string FormatNormalization(ComparisonNormalizationPolicy policy)

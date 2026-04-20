@@ -123,7 +123,7 @@ internal static class ComparisonPreparer
             selected.Add(window);
         }
 
-        normalized.Add(new NormalizedWindowRecord(window, window.Id, selectorName, side, range));
+        normalized.Add(new NormalizedWindowRecord(window, window.Id, selectorName, side, range, window.Segments));
     }
 
     private static bool TryCreateRange(
@@ -259,8 +259,37 @@ internal static class ComparisonPreparer
 
     private static bool IsInScope(WindowRecord window, ComparisonScope scope)
     {
-        return scope.WindowName is null
-            || string.Equals(window.WindowName, scope.WindowName, StringComparison.Ordinal);
+        if (scope.WindowName is not null
+            && !string.Equals(window.WindowName, scope.WindowName, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        for (var i = 0; i < scope.SegmentFilters.Count; i++)
+        {
+            var filter = scope.SegmentFilters[i];
+            if (!HasSegment(window, filter))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool HasSegment(WindowRecord window, WindowSegmentFilter filter)
+    {
+        for (var i = 0; i < window.Segments.Count; i++)
+        {
+            var segment = window.Segments[i];
+            if (string.Equals(segment.Name, filter.Name, StringComparison.Ordinal)
+                && EqualityComparer<object?>.Default.Equals(segment.Value, filter.Value))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsKnownAt(WindowRecord window, TemporalPoint knownAt)

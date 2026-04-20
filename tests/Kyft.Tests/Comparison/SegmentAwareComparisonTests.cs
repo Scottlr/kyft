@@ -1,0 +1,95 @@
+using Kyft;
+
+namespace Kyft.Tests.Comparison;
+
+public sealed class SegmentAwareComparisonTests
+{
+    [Fact]
+    public void HistoryCanQueryWindowsBySegment()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 3);
+        AddClosedWindow(pipeline, source: "source-b", phase: "Pregame", start: 3, end: 5);
+
+        var inPlay = pipeline.Intervals.WithSegment("phase", "InPlay");
+
+        var window = Assert.Single(inPlay);
+        Assert.Equal("source-a", window.Source);
+    }
+
+    [Fact]
+    public void ComparisonScopeCanFilterBySegment()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4);
+        AddClosedWindow(pipeline, source: "source-b", phase: "Pregame", start: 1, end: 4);
+
+        var result = pipeline.Intervals
+            .Compare("In-play residual")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope.Window("SelectionPriced").Segment("phase", "InPlay"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        Assert.Single(result.Prepared!.NormalizedWindows);
+        Assert.Single(result.ResidualRows);
+        Assert.Empty(result.OverlapRows);
+    }
+
+    [Fact]
+    public void AlignmentDoesNotCombineDifferentSegmentContexts()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4);
+        AddClosedWindow(pipeline, source: "source-b", phase: "Pregame", start: 1, end: 4);
+
+        var result = pipeline.Intervals
+            .Compare("Segment-aware overlap")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Overlap())
+            .Run();
+
+        Assert.Empty(result.OverlapRows);
+        Assert.All(result.Aligned!.Segments, segment => Assert.Single(segment.Segments));
+    }
+
+    private static EventPipeline<PriceUpdate> CreateSegmentedPipeline()
+    {
+        return Kyft
+            .For<PriceUpdate>()
+            .RecordIntervals()
+            .TrackWindow("SelectionPriced", update => update.SelectionId, update => update.HasPrice);
+    }
+
+    private static void AddClosedWindow(
+        EventPipeline<PriceUpdate> pipeline,
+        string source,
+        string phase,
+        long start,
+        long end)
+    {
+        var open = new WindowEmission<PriceUpdate>(
+            "SelectionPriced",
+            "selection-1",
+            new PriceUpdate("selection-1", HasPrice: true),
+            WindowTransitionKind.Opened,
+            source,
+            Segments: [new WindowSegment("phase", phase)]);
+        var close = open with
+        {
+            Event = new PriceUpdate("selection-1", HasPrice: false),
+            Kind = WindowTransitionKind.Closed
+        };
+
+        pipeline.Intervals.Record([open], start, eventTime: null);
+        pipeline.Intervals.Record([close], end, eventTime: null);
+    }
+
+    private sealed record PriceUpdate(string SelectionId, bool HasPrice);
+}
