@@ -94,6 +94,50 @@ public sealed class CohortComparisonTests
     }
 
     [Fact]
+    public void ResidualAgainstAtMostCohortUsesThreshold()
+    {
+        var pipeline = CreatePipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", start: 1, end: 11);
+        AddClosedWindow(pipeline, source: "source-b", start: 1, end: 11);
+        AddClosedWindow(pipeline, source: "source-c", start: 1, end: 6);
+
+        var result = pipeline.Intervals
+            .Compare("Source A vs at-most cohort")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .AgainstCohort("cohort", cohort => cohort
+                .Sources("source-b", "source-c")
+                .Activity(CohortActivity.AtMost(1)))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        Assert.Equal(5, result.ResidualRows.TotalPositionLength());
+    }
+
+    [Fact]
+    public void ResidualAgainstExactCohortUsesThreshold()
+    {
+        var pipeline = CreatePipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", start: 1, end: 11);
+        AddClosedWindow(pipeline, source: "source-b", start: 1, end: 11);
+        AddClosedWindow(pipeline, source: "source-c", start: 1, end: 6);
+
+        var result = pipeline.Intervals
+            .Compare("Source A vs exact cohort")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .AgainstCohort("cohort", cohort => cohort
+                .Sources("source-b", "source-c")
+                .Activity(CohortActivity.Exactly(1)))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        Assert.Equal(5, result.ResidualRows.TotalPositionLength());
+    }
+
+    [Fact]
     public void AtLeastCohortCountCannotExceedDeclaredSources()
     {
         var pipeline = CreatePipeline();
@@ -110,6 +154,13 @@ public sealed class CohortComparisonTests
                 .Build());
 
         Assert.Contains("cannot exceed", exception.Message);
+    }
+
+    [Fact]
+    public void NegativeCohortActivityCountsAreRejected()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => CohortActivity.AtMost(-1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => CohortActivity.Exactly(-1));
     }
 
     [Fact]

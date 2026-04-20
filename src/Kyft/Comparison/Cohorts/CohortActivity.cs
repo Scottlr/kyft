@@ -60,6 +60,38 @@ public sealed record CohortActivity
         return new CohortActivity("at-least", count);
     }
 
+    /// <summary>
+    /// Creates an activity rule where no more than a configured number of members may be active.
+    /// </summary>
+    /// <param name="count">The maximum number of active members.</param>
+    /// <returns>An at-most activity rule.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count" /> is less than zero.</exception>
+    public static CohortActivity AtMost(int count)
+    {
+        if (count < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), count, "At-most cohort count cannot be negative.");
+        }
+
+        return new CohortActivity("at-most", count);
+    }
+
+    /// <summary>
+    /// Creates an activity rule where exactly a configured number of members must be active.
+    /// </summary>
+    /// <param name="count">The required number of active members.</param>
+    /// <returns>An exact-count activity rule.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count" /> is less than zero.</exception>
+    public static CohortActivity Exactly(int count)
+    {
+        if (count < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), count, "Exact cohort count cannot be negative.");
+        }
+
+        return new CohortActivity("exactly", count);
+    }
+
     internal int RequiredActiveCount(int memberCount)
     {
         return Name switch
@@ -67,6 +99,21 @@ public sealed record CohortActivity
             "any" => memberCount == 0 ? 1 : 1,
             "all" => memberCount,
             "at-least" => Count!.Value,
+            "at-most" => Count!.Value,
+            "exactly" => Count!.Value,
+            _ => throw new InvalidOperationException("Unknown cohort activity rule.")
+        };
+    }
+
+    internal bool IsActive(int activeCount, int memberCount)
+    {
+        return Name switch
+        {
+            "any" => activeCount >= 1,
+            "all" => activeCount == memberCount,
+            "at-least" => activeCount >= Count!.Value,
+            "at-most" => activeCount <= Count!.Value,
+            "exactly" => activeCount == Count!.Value,
             _ => throw new InvalidOperationException("Unknown cohort activity rule.")
         };
     }

@@ -1137,10 +1137,11 @@ internal static class ComparisonRuntime
                 return segment.AgainstRecordIds.Count > 0;
             }
 
-            var required = RequiredCount();
             var activeSources = ActiveSources(segment);
 
-            return activeSources.Count >= required;
+            return this.cohort.Value.CohortActivity!.IsActive(
+                activeSources.Count,
+                this.cohort.Value.CohortSources.Count);
         }
 
         public string Describe(AlignedSegment segment)
@@ -1151,7 +1152,9 @@ internal static class ComparisonRuntime
             }
 
             var activeSources = ActiveSources(segment);
-            var active = activeSources.Count >= RequiredCount();
+            var active = this.cohort.Value.CohortActivity!.IsActive(
+                activeSources.Count,
+                this.cohort.Value.CohortSources.Count);
 
             return "rule="
                 + this.cohort.Value.CohortActivity!.Name

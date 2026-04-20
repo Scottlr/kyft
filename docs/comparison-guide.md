@@ -314,6 +314,8 @@ Available cohort activity rules:
 - `CohortActivity.Any()` requires at least one active member.
 - `CohortActivity.All()` requires every declared member.
 - `CohortActivity.AtLeast(n)` requires at least `n` active members.
+- `CohortActivity.AtMost(n)` requires no more than `n` active members.
+- `CohortActivity.Exactly(n)` requires exactly `n` active members.
 
 Kyft stores cohort evidence in result extension metadata. The evidence includes
 the rule, required active count, actual active count, active member sources, and
