@@ -230,18 +230,24 @@ new one at the same processing position or event timestamp.
 
 ```csharp
 var pipeline = Kyft // Start a Kyft pipeline definition.
-    .For<PriceUpdate>() // Configure the event type.
+    .For<DeviceStateChanged>() // Configure the event type.
     .RecordIntervals() // Store windows for comparison.
-    .Window("SelectionPriced", window => window // Define the source window.
-        .Key(update => update.SelectionId) // Track each selection independently.
-        .ActiveWhen(update => update.HasPrice) // Keep it open while a price exists.
-        .Segment("phase", phase => phase // Split on fixture phase.
-            .Value(update => update.Phase) // Store the phase value.
-            .Child("period", period => period // Nest period under phase.
-                .Value(update => update.Period))) // Split on period changes.
-        .Tag("competition", update => update.CompetitionId)) // Attach metadata without splitting.
-    .RollUp("MarketPriced", update => update.MarketId, children => children.ActiveCount > 0) // Preserve segments at market level.
-    .RollUp("FixturePriced", update => update.FixtureId, children => children.ActiveCount > 0) // Preserve segments at fixture level.
+    .Window("DeviceOffline", window => window // Define the source window.
+        .Key(update => update.DeviceId) // Track each device independently.
+        .ActiveWhen(update => update.IsOffline) // Keep it open while the device is offline.
+        .Segment("lifecycle", lifecycle => lifecycle // Split on lifecycle.
+            .Value(update => update.Lifecycle) // Store the lifecycle value.
+            .Child("stage", stage => stage // Nest stage under lifecycle.
+                .Value(update => update.Stage))) // Split on stage changes.
+        .Tag("fleet", update => update.FleetId)) // Attach metadata without splitting.
+    .RollUp( // Preserve selected segments at zone level.
+        "ZoneOffline", // Name the parent window.
+        update => update.ZoneId, // Group devices by zone.
+        children => children.ActiveCount > 0, // A zone is active when any device is offline.
+        segments => segments // Project the child segment context.
+            .Preserve("lifecycle") // Keep lifecycle.
+            .Preserve("stage")) // Keep stage.
+    .RollUp("RegionOffline", update => update.RegionId, children => children.ActiveCount > 0) // Preserve zone segments at region level.
     .Build(); // Build the pipeline.
 ```
 
@@ -254,16 +260,31 @@ Runtime partition, segment, and tag have different meanings:
 Comparison scopes can filter by segment:
 
 ```csharp
-var finalQuarter = pipeline.Intervals // Start from recorded windows.
-    .Compare("Final-quarter coverage") // Name the comparison.
+var escalatedIncidents = pipeline.Intervals // Start from recorded windows.
+    .Compare("Escalated incident coverage") // Name the comparison.
     .Target("source-a", selector => selector.Source("source-a")) // Select the target source.
     .Against("source-b", selector => selector.Source("source-b")) // Select the comparison source.
     .Within(scope => scope // Scope the comparison.
-        .Window("SelectionPriced") // Use priced-selection windows.
-        .Segment("phase", "InPlay") // Require in-play segments.
-        .Segment("period", "FinalQuarter")) // Require final-quarter segments.
+        .Window("DeviceOffline") // Use device-offline windows.
+        .Segment("lifecycle", "Incident") // Require incident lifecycle.
+        .Segment("stage", "Escalated")) // Require escalated stage.
     .Using(comparators => comparators.Overlap().Residual()) // Emit agreement and target-only rows.
     .Run(); // Execute the comparison.
+```
+
+Roll-up segment projection lets parent windows keep the dimensions that matter
+at their level and ignore lower-level boundaries:
+
+```csharp
+.RollUp( // Roll device windows up to a zone.
+    "ZoneOffline", // Name the parent window.
+    update => update.ZoneId, // Select the parent key.
+    children => children.ActiveCount > 0, // Keep the parent active while any child is active.
+    segments => segments // Shape the parent segment context.
+        .Preserve("lifecycle") // Keep lifecycle boundaries.
+        .Drop("stage") // Do not split the zone when only stage changes.
+        .Rename("lifecycle", "operatingMode") // Rename the parent dimension.
+        .Transform("lifecycle", value => value?.ToString()?.ToUpperInvariant())) // Normalize values.
 ```
 
 ## Cohorts
@@ -280,7 +301,7 @@ var result = pipeline.Intervals // Start from recorded segmented windows.
     .AgainstCohort("cohort", cohort => cohort // Define the cohort side.
         .Sources("source-b", "source-c") // Include member sources.
         .Activity(CohortActivity.Any())) // The cohort is active if either member is active.
-    .Within(scope => scope.Window("SelectionPriced")) // Compare one window family.
+    .Within(scope => scope.Window("DeviceOffline")) // Compare one window family.
     .Using(comparators => comparators.Residual()) // Emit target-only rows against the cohort.
     .Run(); // Execute the comparison.
 

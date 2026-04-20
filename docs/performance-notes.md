@@ -17,11 +17,16 @@ Kyft keeps ingestion, comparison, and export costs separate.
 The benchmark project covers:
 
 - ingestion with interval recording
+- ingestion with boundary segments, non-boundary tags, projected roll-ups, and
+  interval recording
 - preparation
 - alignment
 - overlap, residual, missing, coverage, containment, lead-lag, and multi
   comparator execution
 - live residual execution with a horizon
+- segment-filtered residual execution
+- `Any()` and `AtLeast(n)` cohort residual execution
+- live segment/cohort residual execution
 - JSON and Markdown export overhead
 
 Run the suite with:
@@ -34,6 +39,7 @@ For focused work, filter by class or method:
 
 ```bash
 dotnet run -c Release --project benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj -- --filter "*ComparisonBenchmarks.RunLiveResidual*" # Run one benchmark target.
+dotnet run -c Release --project benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj -- --filter "*SegmentCohortBenchmarks*" # Run segment/cohort benchmarks.
 ```
 
 ## Current Optimization Work
