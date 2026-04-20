@@ -15,12 +15,14 @@ public sealed class WindowDefinitionBuilder<TEvent>
     private IEqualityComparer<object>? keyComparer;
     private Func<TEvent, bool>? isActiveSelector;
     private readonly List<SegmentBuilder<TEvent>> segments;
+    private readonly List<TagDefinition<TEvent>> tags;
 
     internal WindowDefinitionBuilder(string defaultName)
     {
         this.name = defaultName;
         this.callbacks = new WindowCallbackSet<TEvent>();
         this.segments = [];
+        this.tags = [];
     }
 
     /// <summary>
@@ -89,6 +91,24 @@ public sealed class WindowDefinitionBuilder<TEvent>
     }
 
     /// <summary>
+    /// Adds descriptive metadata that is captured when a window opens.
+    /// </summary>
+    /// <typeparam name="TValue">The tag value type.</typeparam>
+    /// <param name="name">The tag name.</param>
+    /// <param name="value">Selects the tag value from an event.</param>
+    /// <returns>The current builder.</returns>
+    public WindowDefinitionBuilder<TEvent> Tag<TValue>(
+        string name,
+        Func<TEvent, TValue> value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(value);
+
+        this.tags.Add(new TagDefinition<TEvent>(name, @event => value(@event)));
+        return this;
+    }
+
+    /// <summary>
     /// Registers a callback invoked when this window opens.
     /// </summary>
     /// <param name="callback">The callback to invoke for open emissions.</param>
@@ -133,7 +153,8 @@ public sealed class WindowDefinitionBuilder<TEvent>
             this.keySelector,
             this.keyComparer ?? EqualityComparer<object>.Default,
             this.isActiveSelector,
-            BuildSegments());
+            BuildSegments(),
+            BuildTags());
 
         definition.Callbacks.Opened.AddRange(this.callbacks.Opened);
         definition.Callbacks.Closed.AddRange(this.callbacks.Closed);
@@ -156,5 +177,25 @@ public sealed class WindowDefinitionBuilder<TEvent>
         }
 
         return definitions;
+    }
+
+    private IReadOnlyList<TagDefinition<TEvent>> BuildTags()
+    {
+        if (this.tags.Count == 0)
+        {
+            return [];
+        }
+
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < this.tags.Count; i++)
+        {
+            if (!names.Add(this.tags[i].Name))
+            {
+                throw new InvalidOperationException(
+                    $"A tag named '{this.tags[i].Name}' has already been configured.");
+            }
+        }
+
+        return this.tags.ToArray();
     }
 }

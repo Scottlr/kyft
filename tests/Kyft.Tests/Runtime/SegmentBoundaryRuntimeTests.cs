@@ -96,6 +96,26 @@ public sealed class SegmentBoundaryRuntimeTests
     }
 
     [Fact]
+    public void TagChangesDoNotSplitActiveWindow()
+    {
+        var pipeline = Kyft
+            .For<TaggedPriceUpdate>()
+            .RecordIntervals()
+            .TrackWindow("SelectionPriced", window => window
+                .Key(update => update.SelectionId)
+                .ActiveWhen(update => update.HasPrice)
+                .Segment("phase", phase => phase.Value(update => update.Phase))
+                .Tag("riskTier", update => update.RiskTier));
+
+        pipeline.Ingest(new TaggedPriceUpdate("selection-1", HasPrice: true, "InPlay", "low"));
+        var second = pipeline.Ingest(new TaggedPriceUpdate("selection-1", HasPrice: true, "InPlay", "high"));
+
+        Assert.False(second.HasEmissions);
+        var open = Assert.Single(pipeline.Intervals.OpenWindows);
+        Assert.Equal("low", Assert.Single(open.Tags).Value);
+    }
+
+    [Fact]
     public void MissingSegmentValueSelectorIsRejected()
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>
@@ -136,4 +156,10 @@ public sealed class SegmentBoundaryRuntimeTests
         bool HasPrice,
         string Phase,
         string? Period);
+
+    private sealed record TaggedPriceUpdate(
+        string SelectionId,
+        bool HasPrice,
+        string Phase,
+        string RiskTier);
 }

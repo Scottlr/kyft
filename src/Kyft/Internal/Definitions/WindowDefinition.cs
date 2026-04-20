@@ -10,6 +10,7 @@ internal abstract class WindowDefinition<TEvent> : WindowNodeDefinition<TEvent>
         RollUps = [];
         Callbacks = new WindowCallbackSet<TEvent>();
         SegmentDefinitions = [];
+        TagDefinitions = [];
     }
 
     public string Name { get; }
@@ -19,6 +20,8 @@ internal abstract class WindowDefinition<TEvent> : WindowNodeDefinition<TEvent>
     public WindowCallbackSet<TEvent> Callbacks { get; }
 
     public IReadOnlyList<SegmentDefinition<TEvent>> SegmentDefinitions { get; private protected set; }
+
+    public IReadOnlyList<TagDefinition<TEvent>> TagDefinitions { get; private protected set; }
 
     public abstract IEqualityComparer<object> KeyComparer { get; }
 
@@ -40,6 +43,24 @@ internal abstract class WindowDefinition<TEvent> : WindowNodeDefinition<TEvent>
         }
 
         return segments.ToArray();
+    }
+
+    public IReadOnlyList<WindowTag> GetTags(TEvent @event)
+    {
+        if (TagDefinitions.Count == 0)
+        {
+            return [];
+        }
+
+        var tags = new WindowTag[TagDefinitions.Count];
+        for (var i = 0; i < tags.Length; i++)
+        {
+            tags[i] = new WindowTag(
+                TagDefinitions[i].Name,
+                TagDefinitions[i].ValueSelector(@event));
+        }
+
+        return tags;
     }
 
     private static void AddSegment(
@@ -67,7 +88,8 @@ internal sealed class WindowDefinition<TEvent, TKey> : WindowDefinition<TEvent>
         Func<TEvent, TKey> keySelector,
         Func<TEvent, bool> isActiveSelector,
         IEqualityComparer<TKey>? comparer,
-        IReadOnlyList<SegmentDefinition<TEvent>>? segmentDefinitions = null)
+        IReadOnlyList<SegmentDefinition<TEvent>>? segmentDefinitions = null,
+        IReadOnlyList<TagDefinition<TEvent>>? tagDefinitions = null)
         : base(name)
     {
         KeySelector = keySelector;
@@ -75,6 +97,7 @@ internal sealed class WindowDefinition<TEvent, TKey> : WindowDefinition<TEvent>
         KeyComparer = new ObjectKeyComparer<TKey>(
             comparer ?? EqualityComparer<TKey>.Default);
         SegmentDefinitions = segmentDefinitions ?? [];
+        TagDefinitions = tagDefinitions ?? [];
     }
 
     public Func<TEvent, TKey> KeySelector { get; }
@@ -106,13 +129,15 @@ internal sealed class DelegateWindowDefinition<TEvent> : WindowDefinition<TEvent
         Func<TEvent, object> keySelector,
         IEqualityComparer<object> keyComparer,
         Func<TEvent, bool> isActiveSelector,
-        IReadOnlyList<SegmentDefinition<TEvent>>? segmentDefinitions = null)
+        IReadOnlyList<SegmentDefinition<TEvent>>? segmentDefinitions = null,
+        IReadOnlyList<TagDefinition<TEvent>>? tagDefinitions = null)
         : base(name)
     {
         this.keySelector = keySelector;
         KeyComparer = keyComparer;
         this.isActiveSelector = isActiveSelector;
         SegmentDefinitions = segmentDefinitions ?? [];
+        TagDefinitions = tagDefinitions ?? [];
     }
 
     public override IEqualityComparer<object> KeyComparer { get; }

@@ -34,6 +34,7 @@ internal sealed class WindowRuntime<TEvent>
         var wasActive = this.activeKeys.TryGetValue(stateKey, out var previousState);
         var changed = isActive != wasActive;
         var currentSegments = isActive ? this.definition.GetSegments(@event) : [];
+        var currentTags = isActive ? this.definition.GetTags(@event) : [];
         var segmentChanged = isActive
             && wasActive
             && previousState is not null
@@ -41,7 +42,7 @@ internal sealed class WindowRuntime<TEvent>
 
         if (changed && isActive)
         {
-            this.activeKeys[stateKey] = new ActiveWindowState(currentSegments, Tags: []);
+            this.activeKeys[stateKey] = new ActiveWindowState(currentSegments, currentTags);
             AddEmission(
                 ref emissions,
                 new WindowEmission<TEvent>(
@@ -51,7 +52,8 @@ internal sealed class WindowRuntime<TEvent>
                     WindowTransitionKind.Opened,
                     source,
                     partition,
-                    currentSegments));
+                    currentSegments,
+                    currentTags));
         }
         else if (changed && previousState is not null)
         {
@@ -85,7 +87,7 @@ internal sealed class WindowRuntime<TEvent>
                     previousState.Tags,
                     WindowBoundaryReason.SegmentChanged,
                     boundaryChanges));
-            this.activeKeys[stateKey] = new ActiveWindowState(currentSegments, Tags: []);
+            this.activeKeys[stateKey] = new ActiveWindowState(currentSegments, currentTags);
             AddEmission(
                 ref emissions,
                 new WindowEmission<TEvent>(
@@ -95,7 +97,8 @@ internal sealed class WindowRuntime<TEvent>
                     WindowTransitionKind.Opened,
                     source,
                     partition,
-                    currentSegments));
+                    currentSegments,
+                    currentTags));
             changed = true;
         }
 
