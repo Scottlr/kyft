@@ -19,7 +19,14 @@ JSON examples are left uncommented because JSON fixtures must remain valid JSON.
       "source": "provider-a",
       "partition": "fleet-a",
       "startPosition": 1,
-      "endPosition": 5
+      "endPosition": 5,
+      "segments": [
+        { "name": "lifecycle", "value": "Incident" },
+        { "name": "stage", "value": "Escalated", "parentName": "lifecycle" }
+      ],
+      "tags": [
+        { "name": "fleet", "value": "critical" }
+      ]
     }
   ],
   "plan": {
@@ -27,11 +34,33 @@ JSON examples are left uncommented because JSON fixtures must remain valid JSON.
     "targetSource": "provider-a",
     "againstSources": [ "provider-b" ],
     "scopeWindow": "DeviceOffline",
+    "scopeSegments": [
+      { "name": "lifecycle", "value": "Incident" }
+    ],
+    "scopeTags": [
+      { "name": "fleet", "value": "critical" }
+    ],
     "comparators": [ "overlap", "residual", "coverage" ],
     "strict": false
   }
 }
 ```
+
+Use `againstCohort` instead of `againstSources` when the comparison side is a
+group:
+
+```json
+{
+  "againstCohort": {
+    "name": "cohort",
+    "sources": [ "provider-b", "provider-c" ],
+    "activity": "any"
+  }
+}
+```
+
+Supported cohort activities are `any`, `all`, `none`, `at-least`, `at-most`,
+and `exactly`. Threshold activities use `count`.
 
 ## Open Windows
 

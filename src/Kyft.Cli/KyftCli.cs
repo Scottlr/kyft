@@ -127,9 +127,12 @@ public static class KyftCli
                     ? partitionProperty.GetString()
                     : null;
 
+            var segments = ReadSegments(window);
+            var tags = ReadTags(window);
+
             if (window.GetProperty("endPosition").ValueKind == JsonValueKind.Null)
             {
-                builder.AddOpenWindow(windowName, key, startPosition, source, partition);
+                builder.AddOpenWindow(windowName, key, startPosition, source, partition, segments, tags);
                 continue;
             }
 
@@ -139,7 +142,9 @@ public static class KyftCli
                 startPosition,
                 window.GetProperty("endPosition").GetInt64(),
                 source,
-                partition);
+                partition,
+                segments,
+                tags);
         }
 
         return builder.Build();
@@ -147,12 +152,11 @@ public static class KyftCli
 
     private static ComparisonPlan CreatePlan(JsonElement plan)
     {
-        var against = plan.GetProperty("againstSources").EnumerateArray()
-            .Select(static source => ComparisonSelector.ForSource(source.GetString()!))
-            .ToArray();
+        var against = ReadAgainstSelectors(plan);
         var scope = plan.GetProperty("scopeWindow").ValueKind == JsonValueKind.Null
             ? ComparisonScope.All()
             : ComparisonScope.Window(plan.GetProperty("scopeWindow").GetString()!);
+        scope = ApplyScopeFilters(plan, scope);
 
         return new ComparisonPlan(
             plan.GetProperty("name").GetString()!,
@@ -165,12 +169,135 @@ public static class KyftCli
             plan.GetProperty("strict").GetBoolean());
     }
 
+    private static ComparisonSelector[] ReadAgainstSelectors(JsonElement plan)
+    {
+        if (plan.TryGetProperty("againstCohort", out var cohort)
+            && cohort.ValueKind != JsonValueKind.Null)
+        {
+            var activity = ReadCohortActivity(cohort);
+            var sources = cohort.GetProperty("sources").EnumerateArray()
+                .Select(static source => source.GetString()!)
+                .Cast<object>()
+                .ToArray();
+            return
+            [
+                ComparisonSelector
+                    .ForCohortSources(sources, activity)
+                    .WithName(cohort.GetProperty("name").GetString()!)
+            ];
+        }
+
+        return plan.GetProperty("againstSources").EnumerateArray()
+            .Select(static source => ComparisonSelector.ForSource(source.GetString()!))
+            .ToArray();
+    }
+
+    private static ComparisonScope ApplyScopeFilters(JsonElement plan, ComparisonScope scope)
+    {
+        if (plan.TryGetProperty("scopeSegments", out var segments))
+        {
+            foreach (var segment in segments.EnumerateArray())
+            {
+                scope = scope.Segment(
+                    segment.GetProperty("name").GetString()!,
+                    ReadPrimitive(segment.GetProperty("value")));
+            }
+        }
+
+        if (plan.TryGetProperty("scopeTags", out var tags))
+        {
+            foreach (var tag in tags.EnumerateArray())
+            {
+                scope = scope.Tag(
+                    tag.GetProperty("name").GetString()!,
+                    ReadPrimitive(tag.GetProperty("value")));
+            }
+        }
+
+        return scope;
+    }
+
+    private static CohortActivity ReadCohortActivity(JsonElement cohort)
+    {
+        var activity = cohort.TryGetProperty("activity", out var activityElement)
+            ? activityElement.GetString()
+            : "any";
+        var count = cohort.TryGetProperty("count", out var countElement)
+            && countElement.ValueKind != JsonValueKind.Null
+                ? countElement.GetInt32()
+                : 0;
+
+        return activity switch
+        {
+            "any" => CohortActivity.Any(),
+            "all" => CohortActivity.All(),
+            "none" => CohortActivity.None(),
+            "at-least" => CohortActivity.AtLeast(count),
+            "at-most" => CohortActivity.AtMost(count),
+            "exactly" => CohortActivity.Exactly(count),
+            _ => throw new ArgumentException("Unsupported cohort activity: " + activity)
+        };
+    }
+
     private static TemporalPoint? ReadLiveHorizon(JsonElement plan)
     {
         return plan.TryGetProperty("liveHorizonPosition", out var horizon)
             && horizon.ValueKind != JsonValueKind.Null
                 ? TemporalPoint.ForPosition(horizon.GetInt64())
                 : null;
+    }
+
+    private static IReadOnlyList<WindowSegment> ReadSegments(JsonElement window)
+    {
+        if (!window.TryGetProperty("segments", out var segments))
+        {
+            return [];
+        }
+
+        var values = new List<WindowSegment>();
+        foreach (var segment in segments.EnumerateArray())
+        {
+            values.Add(new WindowSegment(
+                segment.GetProperty("name").GetString()!,
+                ReadPrimitive(segment.GetProperty("value")),
+                segment.TryGetProperty("parentName", out var parentName)
+                    && parentName.ValueKind != JsonValueKind.Null
+                        ? parentName.GetString()
+                        : null));
+        }
+
+        return values.ToArray();
+    }
+
+    private static IReadOnlyList<WindowTag> ReadTags(JsonElement window)
+    {
+        if (!window.TryGetProperty("tags", out var tags))
+        {
+            return [];
+        }
+
+        var values = new List<WindowTag>();
+        foreach (var tag in tags.EnumerateArray())
+        {
+            values.Add(new WindowTag(
+                tag.GetProperty("name").GetString()!,
+                ReadPrimitive(tag.GetProperty("value"))));
+        }
+
+        return values.ToArray();
+    }
+
+    private static object? ReadPrimitive(JsonElement value)
+    {
+        return value.ValueKind switch
+        {
+            JsonValueKind.String => value.GetString(),
+            JsonValueKind.Number => value.TryGetInt64(out var longValue) ? longValue : value.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => null,
+            _ => throw new ArgumentException("Fixture values must be string, number, boolean, or null.")
+        };
     }
 
     private static ComparisonComparatorBuilder BuildComparators(IReadOnlyList<string> comparators)
@@ -263,6 +390,16 @@ public static class KyftCli
                 RequireKind(partition, path + ".partition", JsonValueKind.String, JsonValueKind.Null);
             }
 
+            if (window.TryGetProperty("segments", out var segments))
+            {
+                ValidateNamedValues(segments, path + ".segments", allowParentName: true);
+            }
+
+            if (window.TryGetProperty("tags", out var tags))
+            {
+                ValidateNamedValues(tags, path + ".tags", allowParentName: false);
+            }
+
             index++;
         }
     }
@@ -271,23 +408,49 @@ public static class KyftCli
     {
         RequireProperty(plan, "name", "$.plan", JsonValueKind.String);
         RequireProperty(plan, "targetSource", "$.plan", JsonValueKind.String);
-        var against = RequireProperty(plan, "againstSources", "$.plan", JsonValueKind.Array);
-        if (against.GetArrayLength() == 0)
+        var hasAgainstSources = plan.TryGetProperty("againstSources", out var against);
+        var hasAgainstCohort = plan.TryGetProperty("againstCohort", out var cohort)
+            && cohort.ValueKind != JsonValueKind.Null;
+        if (!hasAgainstSources && !hasAgainstCohort)
         {
-            throw new ArgumentException("$.plan.againstSources must contain at least one source.");
+            throw new ArgumentException("$.plan must contain againstSources or againstCohort.");
         }
 
-        var againstIndex = 0;
-        foreach (var source in against.EnumerateArray())
+        if (hasAgainstSources)
         {
-            RequireKind(
-                source,
-                "$.plan.againstSources[" + againstIndex.ToString(CultureInfo.InvariantCulture) + "]",
-                JsonValueKind.String);
-            againstIndex++;
+            RequireKind(against, "$.plan.againstSources", JsonValueKind.Array);
+            if (against.GetArrayLength() == 0 && !hasAgainstCohort)
+            {
+                throw new ArgumentException("$.plan.againstSources must contain at least one source.");
+            }
+
+            var againstIndex = 0;
+            foreach (var source in against.EnumerateArray())
+            {
+                RequireKind(
+                    source,
+                    "$.plan.againstSources[" + againstIndex.ToString(CultureInfo.InvariantCulture) + "]",
+                    JsonValueKind.String);
+                againstIndex++;
+            }
+        }
+
+        if (hasAgainstCohort)
+        {
+            ValidateCohort(cohort);
         }
 
         RequireProperty(plan, "scopeWindow", "$.plan", JsonValueKind.String, JsonValueKind.Null);
+        if (plan.TryGetProperty("scopeSegments", out var scopeSegments))
+        {
+            ValidateNamedValues(scopeSegments, "$.plan.scopeSegments", allowParentName: false);
+        }
+
+        if (plan.TryGetProperty("scopeTags", out var scopeTags))
+        {
+            ValidateNamedValues(scopeTags, "$.plan.scopeTags", allowParentName: false);
+        }
+
         var comparators = RequireProperty(plan, "comparators", "$.plan", JsonValueKind.Array);
         if (comparators.GetArrayLength() == 0)
         {
@@ -308,6 +471,68 @@ public static class KyftCli
         if (plan.TryGetProperty("liveHorizonPosition", out var horizon))
         {
             RequireKind(horizon, "$.plan.liveHorizonPosition", JsonValueKind.Number, JsonValueKind.Null);
+        }
+    }
+
+    private static void ValidateCohort(JsonElement cohort)
+    {
+        RequireKind(cohort, "$.plan.againstCohort", JsonValueKind.Object);
+        RequireProperty(cohort, "name", "$.plan.againstCohort", JsonValueKind.String);
+        var sources = RequireProperty(cohort, "sources", "$.plan.againstCohort", JsonValueKind.Array);
+        if (sources.GetArrayLength() == 0)
+        {
+            throw new ArgumentException("$.plan.againstCohort.sources must contain at least one source.");
+        }
+
+        var index = 0;
+        foreach (var source in sources.EnumerateArray())
+        {
+            RequireKind(
+                source,
+                "$.plan.againstCohort.sources[" + index.ToString(CultureInfo.InvariantCulture) + "]",
+                JsonValueKind.String);
+            index++;
+        }
+
+        if (cohort.TryGetProperty("activity", out var activity))
+        {
+            RequireKind(activity, "$.plan.againstCohort.activity", JsonValueKind.String);
+        }
+
+        if (cohort.TryGetProperty("count", out var count))
+        {
+            RequireKind(count, "$.plan.againstCohort.count", JsonValueKind.Number, JsonValueKind.Null);
+        }
+    }
+
+    private static void ValidateNamedValues(JsonElement values, string path, bool allowParentName)
+    {
+        RequireKind(values, path, JsonValueKind.Array);
+
+        var index = 0;
+        foreach (var value in values.EnumerateArray())
+        {
+            var itemPath = path + "[" + index.ToString(CultureInfo.InvariantCulture) + "]";
+            RequireKind(value, itemPath, JsonValueKind.Object);
+            RequireProperty(value, "name", itemPath, JsonValueKind.String);
+            var itemValue = RequireProperty(
+                value,
+                "value",
+                itemPath,
+                JsonValueKind.String,
+                JsonValueKind.Number,
+                JsonValueKind.True,
+                JsonValueKind.False,
+                JsonValueKind.Null);
+
+            _ = itemValue;
+
+            if (allowParentName && value.TryGetProperty("parentName", out var parentName))
+            {
+                RequireKind(parentName, itemPath + ".parentName", JsonValueKind.String, JsonValueKind.Null);
+            }
+
+            index++;
         }
     }
 

@@ -29,6 +29,32 @@ public sealed class KyftCliTests
     }
 
     [Fact]
+    public void CompareRunsSegmentedFixtureWithCohortPlan()
+    {
+        var (exitCode, output, error) = Run("compare", FixturePath("cohort-any-residual.json"), "--format", "json");
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(string.Empty, error);
+        using var document = JsonDocument.Parse(output);
+        var against = Assert.Single(document.RootElement.GetProperty("plan").GetProperty("against").EnumerateArray());
+        Assert.Equal("cohort", against.GetProperty("name").GetString());
+        Assert.Equal("any", against.GetProperty("cohort").GetProperty("activity").GetString());
+    }
+
+    [Fact]
+    public void CompareRunsFixtureWithSegmentAndTagScope()
+    {
+        var (exitCode, output, error) = Run("compare", FixturePath("segmented-residual.json"), "--format", "json");
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(string.Empty, error);
+        using var document = JsonDocument.Parse(output);
+        var scope = document.RootElement.GetProperty("plan").GetProperty("scope");
+        Assert.Equal(2, scope.GetProperty("segmentFilters").GetArrayLength());
+        Assert.Single(scope.GetProperty("tagFilters").EnumerateArray());
+    }
+
+    [Fact]
     public void CompareHonorsEveryAgainstSourceInFixturePlan()
     {
         var fixturePath = TempFixturePath();

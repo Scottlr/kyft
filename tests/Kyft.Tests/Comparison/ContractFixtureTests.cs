@@ -149,7 +149,9 @@ public sealed class ContractFixtureTests
                 window.GetProperty("key").GetString()!,
                 window.GetProperty("startPosition").GetInt64(),
                 window.GetProperty("endPosition").GetInt64(),
-                Source: window.GetProperty("source").GetString()));
+                Source: window.GetProperty("source").GetString(),
+                Segments: ReadSegments(window),
+                Tags: ReadTags(window)));
         }
 
         return history;
@@ -157,12 +159,11 @@ public sealed class ContractFixtureTests
 
     private static ComparisonPlan CreatePlan(JsonElement plan)
     {
-        var against = plan.GetProperty("againstSources").EnumerateArray()
-            .Select(static source => ComparisonSelector.ForSource(source.GetString()!))
-            .ToArray();
+        var against = ReadAgainstSelectors(plan);
         var scope = plan.GetProperty("scopeWindow").ValueKind == JsonValueKind.Null
             ? ComparisonScope.All()
             : ComparisonScope.Window(plan.GetProperty("scopeWindow").GetString()!);
+        scope = ApplyScopeFilters(plan, scope);
 
         return new ComparisonPlan(
             plan.GetProperty("name").GetString()!,
@@ -173,6 +174,129 @@ public sealed class ContractFixtureTests
             plan.GetProperty("comparators").EnumerateArray().Select(static comparator => comparator.GetString()!),
             ComparisonOutputOptions.Default,
             plan.GetProperty("strict").GetBoolean());
+    }
+
+    private static ComparisonSelector[] ReadAgainstSelectors(JsonElement plan)
+    {
+        if (plan.TryGetProperty("againstCohort", out var cohort)
+            && cohort.ValueKind != JsonValueKind.Null)
+        {
+            var sources = cohort.GetProperty("sources").EnumerateArray()
+                .Select(static source => source.GetString()!)
+                .Cast<object>()
+                .ToArray();
+
+            return
+            [
+                ComparisonSelector
+                    .ForCohortSources(sources, ReadCohortActivity(cohort))
+                    .WithName(cohort.GetProperty("name").GetString()!)
+            ];
+        }
+
+        return plan.GetProperty("againstSources").EnumerateArray()
+            .Select(static source => ComparisonSelector.ForSource(source.GetString()!))
+            .ToArray();
+    }
+
+    private static ComparisonScope ApplyScopeFilters(JsonElement plan, ComparisonScope scope)
+    {
+        if (plan.TryGetProperty("scopeSegments", out var segments))
+        {
+            foreach (var segment in segments.EnumerateArray())
+            {
+                scope = scope.Segment(
+                    segment.GetProperty("name").GetString()!,
+                    ReadPrimitive(segment.GetProperty("value")));
+            }
+        }
+
+        if (plan.TryGetProperty("scopeTags", out var tags))
+        {
+            foreach (var tag in tags.EnumerateArray())
+            {
+                scope = scope.Tag(
+                    tag.GetProperty("name").GetString()!,
+                    ReadPrimitive(tag.GetProperty("value")));
+            }
+        }
+
+        return scope;
+    }
+
+    private static CohortActivity ReadCohortActivity(JsonElement cohort)
+    {
+        var activity = cohort.TryGetProperty("activity", out var activityElement)
+            ? activityElement.GetString()
+            : "any";
+        var count = cohort.TryGetProperty("count", out var countElement)
+            && countElement.ValueKind != JsonValueKind.Null
+                ? countElement.GetInt32()
+                : 0;
+
+        return activity switch
+        {
+            "any" => CohortActivity.Any(),
+            "all" => CohortActivity.All(),
+            "none" => CohortActivity.None(),
+            "at-least" => CohortActivity.AtLeast(count),
+            "at-most" => CohortActivity.AtMost(count),
+            "exactly" => CohortActivity.Exactly(count),
+            _ => throw new ArgumentException("Unsupported cohort activity: " + activity)
+        };
+    }
+
+    private static IReadOnlyList<WindowSegment> ReadSegments(JsonElement window)
+    {
+        if (!window.TryGetProperty("segments", out var segments))
+        {
+            return [];
+        }
+
+        var values = new List<WindowSegment>();
+        foreach (var segment in segments.EnumerateArray())
+        {
+            values.Add(new WindowSegment(
+                segment.GetProperty("name").GetString()!,
+                ReadPrimitive(segment.GetProperty("value")),
+                segment.TryGetProperty("parentName", out var parentName)
+                    && parentName.ValueKind != JsonValueKind.Null
+                        ? parentName.GetString()
+                        : null));
+        }
+
+        return values.ToArray();
+    }
+
+    private static IReadOnlyList<WindowTag> ReadTags(JsonElement window)
+    {
+        if (!window.TryGetProperty("tags", out var tags))
+        {
+            return [];
+        }
+
+        var values = new List<WindowTag>();
+        foreach (var tag in tags.EnumerateArray())
+        {
+            values.Add(new WindowTag(
+                tag.GetProperty("name").GetString()!,
+                ReadPrimitive(tag.GetProperty("value"))));
+        }
+
+        return values.ToArray();
+    }
+
+    private static object? ReadPrimitive(JsonElement value)
+    {
+        return value.ValueKind switch
+        {
+            JsonValueKind.String => value.GetString(),
+            JsonValueKind.Number => value.TryGetInt64(out var longValue) ? longValue : value.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => null,
+            _ => throw new ArgumentException("Fixture values must be string, number, boolean, or null.")
+        };
     }
 
     private static PreparedComparison Prepare(WindowIntervalHistory history, ComparisonPlan plan)
