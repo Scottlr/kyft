@@ -139,6 +139,37 @@ public sealed class SegmentAwareComparisonTests
         Assert.Contains("phase=InPlay", html);
     }
 
+    [Fact]
+    public void DebugHtmlShowsTagsAndBoundaryReasons()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        AddClosedWindow(
+            pipeline,
+            source: "source-a",
+            phase: "Pregame",
+            start: 1,
+            end: 4,
+            fleet: "critical",
+            boundaryReason: WindowBoundaryReason.SegmentChanged,
+            boundaryChanges: [new WindowBoundaryChange("phase", "Pregame", "InPlay")]);
+        AddClosedWindow(pipeline, source: "source-b", phase: "Pregame", start: 1, end: 3);
+
+        var result = pipeline.Intervals
+            .Compare("Segment debug details")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Overlap())
+            .Run();
+
+        var html = result.ExportDebugHtml();
+
+        Assert.Contains("fleet=critical", html);
+        Assert.Contains("SegmentChanged", html);
+        Assert.Contains("phase Pregame -&gt; InPlay", html);
+    }
+
     private static EventPipeline<PriceUpdate> CreateSegmentedPipeline()
     {
         return Kyft
@@ -153,7 +184,9 @@ public sealed class SegmentAwareComparisonTests
         string phase,
         long start,
         long end,
-        string? fleet = null)
+        string? fleet = null,
+        WindowBoundaryReason? boundaryReason = null,
+        IReadOnlyList<WindowBoundaryChange>? boundaryChanges = null)
     {
         var open = new WindowEmission<PriceUpdate>(
             "SelectionPriced",
@@ -163,11 +196,17 @@ public sealed class SegmentAwareComparisonTests
             source,
             Segments: [new WindowSegment("phase", phase)],
             Tags: fleet is null ? [] : [new WindowTag("fleet", fleet)]);
-        var close = open with
-        {
-            Event = new PriceUpdate("selection-1", HasPrice: false),
-            Kind = WindowTransitionKind.Closed
-        };
+        var close = new WindowEmission<PriceUpdate>(
+            open.WindowName,
+            open.Key,
+            new PriceUpdate("selection-1", HasPrice: false),
+            WindowTransitionKind.Closed,
+            open.Source,
+            open.Partition,
+            open.Segments,
+            open.Tags,
+            boundaryReason,
+            boundaryChanges);
 
         pipeline.Intervals.Record([open], start, eventTime: null);
         pipeline.Intervals.Record([close], end, eventTime: null);

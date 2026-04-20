@@ -427,6 +427,7 @@ tr:last-child td { border-bottom: 0; }
             builder.AppendLine("  </div>");
             AppendAxis(builder, scale);
             AppendLegend(builder, includeSegments: false);
+            AppendWindowDetailTable(builder, result);
         }
         else
         {
@@ -480,6 +481,61 @@ tr:last-child td { border-bottom: 0; }
                 .AppendLine("      </div>")
                 .AppendLine("    </div>");
         }
+    }
+
+    private static void AppendWindowDetailTable(StringBuilder builder, ComparisonResult result)
+    {
+        if (result.Prepared is null || result.Prepared.NormalizedWindows.Count == 0)
+        {
+            return;
+        }
+
+        builder
+            .AppendLine("  <div class=\"table-wrap\" style=\"margin-top:18px\">")
+            .AppendLine("    <table>")
+            .AppendLine("      <thead>")
+            .AppendLine("        <tr><th>Side</th><th>Selector</th><th>Window</th><th>Key</th><th>Range</th><th>Segments</th><th>Tags</th><th>Boundary</th></tr>")
+            .AppendLine("      </thead>")
+            .AppendLine("      <tbody>");
+
+        foreach (var record in result.Prepared.NormalizedWindows.Take(80))
+        {
+            builder
+                .AppendLine("        <tr>")
+                .Append("          <td>");
+            AppendText(builder, record.Side.ToString());
+            builder.Append("</td><td>");
+            AppendText(builder, record.SelectorName);
+            builder.Append("</td><td>");
+            AppendText(builder, record.Window.WindowName);
+            builder.Append("</td><td>");
+            AppendText(builder, FormatObject(record.Window.Key));
+            builder.Append("</td><td class=\"mono\">");
+            AppendText(builder, FormatRange(record.Range));
+            builder.Append("</td><td>");
+            AppendText(builder, FormatSegments(record.Segments));
+            builder.Append("</td><td>");
+            AppendText(builder, FormatTags(record.Window.Tags));
+            builder.Append("</td><td>");
+            AppendText(builder, FormatBoundary(record.Window));
+            builder.AppendLine("</td>")
+                .AppendLine("        </tr>");
+        }
+
+        if (result.Prepared.NormalizedWindows.Count > 80)
+        {
+            builder
+                .AppendLine("        <tr>")
+                .Append("          <td colspan=\"8\">Showing first 80 of ");
+            AppendText(builder, result.Prepared.NormalizedWindows.Count.ToString(CultureInfo.InvariantCulture));
+            builder.AppendLine(" normalized windows.</td>")
+                .AppendLine("        </tr>");
+        }
+
+        builder
+            .AppendLine("      </tbody>")
+            .AppendLine("    </table>")
+            .AppendLine("  </div>");
     }
 
     private static void AppendAlignedSegments(StringBuilder builder, ComparisonResult result, TimelineScale? scale)
@@ -919,6 +975,8 @@ tr:last-child td { border-bottom: 0; }
             + " / key " + FormatObject(record.Window.Key)
             + " / source " + FormatObject(record.Window.Source)
             + " / " + FormatSegments(record.Segments)
+            + " / tags " + FormatTags(record.Window.Tags)
+            + " / boundary " + FormatBoundary(record.Window)
             + " / " + FormatRange(record.Range)
             + " / id " + ShortId(record.RecordId);
     }
@@ -1014,6 +1072,42 @@ tr:last-child td { border-bottom: 0; }
         return string.Join(
             ", ",
             segments.Select(static segment => segment.Name + "=" + FormatObject(segment.Value)));
+    }
+
+    private static string FormatTags(IReadOnlyList<WindowTag> tags)
+    {
+        if (tags.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        return string.Join(
+            ", ",
+            tags.Select(static tag => tag.Name + "=" + FormatObject(tag.Value)));
+    }
+
+    private static string FormatBoundary(WindowRecord window)
+    {
+        if (window.BoundaryReason is null)
+        {
+            return string.Empty;
+        }
+
+        if (window.BoundaryChanges.Count == 0)
+        {
+            return window.BoundaryReason.ToString() ?? string.Empty;
+        }
+
+        return window.BoundaryReason
+            + ": "
+            + string.Join(
+                ", ",
+                window.BoundaryChanges.Select(static change =>
+                    change.SegmentName
+                    + " "
+                    + FormatObject(change.PreviousValue)
+                    + " -> "
+                    + FormatObject(change.CurrentValue)));
     }
 
     private static string ShortId(WindowRecordId id)
