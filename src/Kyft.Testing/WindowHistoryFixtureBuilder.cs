@@ -25,6 +25,8 @@ public sealed class WindowHistoryFixtureBuilder
     /// <param name="endPosition">The exclusive end processing position.</param>
     /// <param name="source">The optional source identity.</param>
     /// <param name="partition">The optional partition identity.</param>
+    /// <param name="segments">The optional analytical segment values.</param>
+    /// <param name="tags">The optional descriptive tags.</param>
     /// <returns>This builder.</returns>
     public WindowHistoryFixtureBuilder AddClosedWindow(
         string windowName,
@@ -32,9 +34,19 @@ public sealed class WindowHistoryFixtureBuilder
         long startPosition,
         long endPosition,
         object? source = null,
-        object? partition = null)
+        object? partition = null,
+        IReadOnlyList<WindowSegment>? segments = null,
+        IReadOnlyList<WindowTag>? tags = null)
     {
-        this.closedWindows.Add(new ClosedWindow(windowName, key, startPosition, endPosition, source, partition));
+        this.closedWindows.Add(new ClosedWindow(
+            windowName,
+            key,
+            startPosition,
+            endPosition,
+            source,
+            partition,
+            Segments: segments,
+            Tags: tags));
         return this;
     }
 
@@ -46,15 +58,26 @@ public sealed class WindowHistoryFixtureBuilder
     /// <param name="startPosition">The inclusive start processing position.</param>
     /// <param name="source">The optional source identity.</param>
     /// <param name="partition">The optional partition identity.</param>
+    /// <param name="segments">The optional analytical segment values.</param>
+    /// <param name="tags">The optional descriptive tags.</param>
     /// <returns>This builder.</returns>
     public WindowHistoryFixtureBuilder AddOpenWindow(
         string windowName,
         object key,
         long startPosition,
         object? source = null,
-        object? partition = null)
+        object? partition = null,
+        IReadOnlyList<WindowSegment>? segments = null,
+        IReadOnlyList<WindowTag>? tags = null)
     {
-        this.openWindows.Add(new OpenWindow(windowName, key, startPosition, source, partition));
+        this.openWindows.Add(new OpenWindow(
+            windowName,
+            key,
+            startPosition,
+            source,
+            partition,
+            Segments: segments,
+            Tags: tags));
         return this;
     }
 
@@ -110,9 +133,33 @@ public sealed class WindowHistoryFixtureBuilder
                 window.WindowName,
                 window.Key,
                 window.Source,
-                window.Partition)
+                window.Partition,
+                StableSegments(window.Segments))
                 ?? throw new InvalidOperationException("Kyft window recording key could not be created.");
             open.Add(key, window);
         }
+    }
+
+    private static string StableSegments(IReadOnlyList<WindowSegment> segments)
+    {
+        if (segments.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var builder = new System.Text.StringBuilder();
+        for (var i = 0; i < segments.Count; i++)
+        {
+            var segment = segments[i];
+            builder
+                .Append(segment.ParentName ?? string.Empty)
+                .Append('/')
+                .Append(segment.Name)
+                .Append('=')
+                .Append(segment.Value)
+                .Append(';');
+        }
+
+        return builder.ToString();
     }
 }

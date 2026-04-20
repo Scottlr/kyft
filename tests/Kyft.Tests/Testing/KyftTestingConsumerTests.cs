@@ -65,6 +65,50 @@ public sealed class KyftTestingConsumerTests
     }
 
     [Fact]
+    public void FixtureBuilderCanCreateSegmentedWindowHistories()
+    {
+        var history = new WindowHistoryFixtureBuilder()
+            .AddClosedWindow(
+                "SelectionPriced",
+                "selection-1",
+                1,
+                5,
+                source: "source-a",
+                segments: [new WindowSegment("phase", "InPlay")])
+            .Build();
+
+        var result = history.Compare("Segmented fixture QA")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope.Window("SelectionPriced").Segment("phase", "InPlay"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        Assert.Single(result.ResidualRows);
+    }
+
+    [Fact]
+    public void FixtureBuilderCanKeepTwoOpenSegmentsForSameKey()
+    {
+        var history = new WindowHistoryFixtureBuilder()
+            .AddOpenWindow(
+                "MarketPriced",
+                "market-1",
+                1,
+                source: "source-a",
+                segments: [new WindowSegment("phase", "Pregame")])
+            .AddOpenWindow(
+                "MarketPriced",
+                "market-1",
+                2,
+                source: "source-a",
+                segments: [new WindowSegment("phase", "InPlay")])
+            .Build();
+
+        Assert.Equal(2, history.OpenWindows.Count);
+    }
+
+    [Fact]
     public void PackageAssertionsThrowFrameworkNeutralException()
     {
         var result = new ComparisonResult(

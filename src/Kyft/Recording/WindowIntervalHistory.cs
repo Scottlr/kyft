@@ -362,7 +362,8 @@ public sealed class WindowIntervalHistory
                 emission.WindowName,
                 emission.Key,
                 emission.Source,
-                emission.Partition);
+                emission.Partition,
+                StableSegments(emission.Segments));
 
             if (emission.Kind == WindowTransitionKind.Opened)
             {
@@ -611,11 +612,35 @@ public sealed class WindowIntervalHistory
         };
     }
 
+    private static string StableSegments(IReadOnlyList<WindowSegment> segments)
+    {
+        if (segments.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var builder = new System.Text.StringBuilder();
+        for (var i = 0; i < segments.Count; i++)
+        {
+            var segment = segments[i];
+            builder
+                .Append(segment.ParentName ?? string.Empty)
+                .Append('/')
+                .Append(segment.Name)
+                .Append('=')
+                .Append(StableObjectValue(segment.Value))
+                .Append(';');
+        }
+
+        return builder.ToString();
+    }
+
     private static bool IsSameScope(ClosedWindow first, ClosedWindow second)
     {
         return string.Equals(first.WindowName, second.WindowName, StringComparison.Ordinal)
             && EqualityComparer<object>.Default.Equals(first.Key, second.Key)
-            && EqualityComparer<object?>.Default.Equals(first.Partition, second.Partition);
+            && EqualityComparer<object?>.Default.Equals(first.Partition, second.Partition)
+            && string.Equals(StableSegments(first.Segments), StableSegments(second.Segments), StringComparison.Ordinal);
     }
 
     private static bool HasSegment(WindowRecord window, string name, object? value)

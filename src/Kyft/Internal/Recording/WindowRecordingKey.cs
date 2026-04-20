@@ -4,4 +4,5 @@ internal sealed record WindowRecordingKey(
     string WindowName,
     object Key,
     object? Source,
-    object? Partition);
+    object? Partition,
+    string SegmentContext = "");
