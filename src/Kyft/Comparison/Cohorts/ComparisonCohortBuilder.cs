@@ -50,6 +50,11 @@ public sealed class ComparisonCohortBuilder
 
     internal ComparisonSelector Build(string name)
     {
+        if (this.sources.Count == 0)
+        {
+            throw new InvalidOperationException("Cohort must declare at least one source.");
+        }
+
         if (this.activity.Count.HasValue && this.activity.Count.Value > this.sources.Count)
         {
             throw new InvalidOperationException("Cohort activity count cannot exceed the number of declared sources.");

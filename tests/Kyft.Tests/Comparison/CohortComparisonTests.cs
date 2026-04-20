@@ -197,6 +197,23 @@ public sealed class CohortComparisonTests
     }
 
     [Fact]
+    public void CohortMustDeclareAtLeastOneSource()
+    {
+        var pipeline = CreatePipeline();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            pipeline.Intervals
+                .Compare("Invalid cohort")
+                .Target("source-a", selector => selector.Source("source-a"))
+                .AgainstCohort("cohort", cohort => cohort)
+                .Within(scope => scope.Window("SelectionPriced"))
+                .Using(comparators => comparators.Residual())
+                .Build());
+
+        Assert.Contains("at least one source", exception.Message);
+    }
+
+    [Fact]
     public void NegativeCohortActivityCountsAreRejected()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => CohortActivity.AtMost(-1));
