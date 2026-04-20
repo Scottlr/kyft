@@ -132,6 +132,7 @@ internal static class ComparisonRuntime
         var asOfArray = asOfRows.ToArray();
         var rowFinalities = BuildRowFinalities(
             prepared,
+            aligned,
             overlapArray,
             residualArray,
             missingArray,
@@ -847,6 +848,7 @@ internal static class ComparisonRuntime
 
     private static ComparisonRowFinality[] BuildRowFinalities(
         PreparedComparison prepared,
+        AlignedComparison aligned,
         IReadOnlyList<OverlapRow> overlapRows,
         IReadOnlyList<ResidualRow> residualRows,
         IReadOnlyList<MissingRow> missingRows,
@@ -872,6 +874,7 @@ internal static class ComparisonRuntime
             + containmentRows.Count
             + leadLagRows.Count
             + asOfRows.Count);
+        var cohortEvidence = CohortEvidence.Create(prepared);
 
         for (var i = 0; i < overlapRows.Count; i++)
         {
@@ -881,7 +884,16 @@ internal static class ComparisonRuntime
 
         for (var i = 0; i < residualRows.Count; i++)
         {
-            AddRowFinality(finalities, provisionalRecordIds, "residual", i, residualRows[i].TargetRecordIds);
+            var row = residualRows[i];
+            if (cohortEvidence.HasCohort
+                && TryGetAlignedAgainstIds(aligned, row, out var againstRecordIds))
+            {
+                AddRowFinality(finalities, provisionalRecordIds, "residual", i, row.TargetRecordIds, againstRecordIds);
+            }
+            else
+            {
+                AddRowFinality(finalities, provisionalRecordIds, "residual", i, row.TargetRecordIds);
+            }
         }
 
         for (var i = 0; i < missingRows.Count; i++)
@@ -986,6 +998,49 @@ internal static class ComparisonRuntime
         }
 
         return false;
+    }
+
+    private static bool TryGetAlignedAgainstIds(
+        AlignedComparison aligned,
+        ResidualRow row,
+        out IReadOnlyList<WindowRecordId> againstRecordIds)
+    {
+        for (var i = 0; i < aligned.Segments.Count; i++)
+        {
+            var segment = aligned.Segments[i];
+            if (string.Equals(segment.WindowName, row.WindowName, StringComparison.Ordinal)
+                && EqualityComparer<object>.Default.Equals(segment.Key, row.Key)
+                && EqualityComparer<object?>.Default.Equals(segment.Partition, row.Partition)
+                && segment.Range == row.Range
+                && RecordIdsEqual(segment.TargetRecordIds, row.TargetRecordIds))
+            {
+                againstRecordIds = segment.AgainstRecordIds;
+                return true;
+            }
+        }
+
+        againstRecordIds = [];
+        return false;
+    }
+
+    private static bool RecordIdsEqual(
+        IReadOnlyList<WindowRecordId> left,
+        IReadOnlyList<WindowRecordId> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            if (left[i] != right[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool HasBlockingDiagnostics(IReadOnlyList<ComparisonPlanDiagnostic> diagnostics)

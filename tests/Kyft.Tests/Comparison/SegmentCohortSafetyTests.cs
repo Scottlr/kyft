@@ -60,6 +60,46 @@ public sealed class SegmentCohortSafetyTests
             diagnostic.Code == ComparisonPlanValidationCode.FutureWindowExcluded);
     }
 
+    [Fact]
+    public void CohortResidualIsProvisionalWhenThresholdEvidenceIsOpen()
+    {
+        var pipeline = CreatePipeline();
+
+        pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: true, "InPlay"), source: "source-a");
+        pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: true, "InPlay"), source: "source-b");
+        pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: false, "InPlay"), source: "source-a");
+
+        var result = RunAtLeastCohortResidual(pipeline, live: true);
+        var thresholdSegment = Assert.Single(
+            result.ResidualRows,
+            row => row.Range.Start == TemporalPoint.ForPosition(2));
+        var thresholdIndex = FindResidualIndex(result.ResidualRows, thresholdSegment);
+        var finality = Assert.Single(
+            result.RowFinalities,
+            row => row.RowId == "residual[" + thresholdIndex + "]");
+
+        Assert.Equal(ComparisonFinality.Provisional, finality.Finality);
+    }
+
+    [Fact]
+    public void CohortResidualChangelogRevisesWhenThresholdEvidenceCloses()
+    {
+        var pipeline = CreatePipeline();
+
+        pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: true, "InPlay"), source: "source-a");
+        pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: true, "InPlay"), source: "source-b");
+        pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: false, "InPlay"), source: "source-a");
+
+        var previous = RunAtLeastCohortResidual(pipeline, live: true);
+
+        pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: false, "InPlay"), source: "source-b");
+
+        var current = RunAtLeastCohortResidual(pipeline, live: false);
+        var changes = ComparisonChangelog.Create(previous.RowFinalities, current.RowFinalities);
+
+        Assert.Contains(changes, change => change.Finality == ComparisonFinality.Revised);
+    }
+
     private static EventPipeline<PriceUpdate> CreatePipeline()
     {
         return Kyft
@@ -89,6 +129,39 @@ public sealed class SegmentCohortSafetyTests
 
         pipeline.Intervals.Record([open], start, eventTime: null);
         pipeline.Intervals.Record([close], end, eventTime: null);
+    }
+
+    private static ComparisonResult RunAtLeastCohortResidual(
+        EventPipeline<PriceUpdate> pipeline,
+        bool live)
+    {
+        var builder = pipeline.Intervals
+            .Compare("Threshold cohort residual")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .AgainstCohort("cohort", cohort => cohort
+                .Sources("source-b", "source-c")
+                .Activity(CohortActivity.AtLeast(2)))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Residual());
+
+        return live
+            ? builder.RunLive(TemporalPoint.ForPosition(5))
+            : builder.Run();
+    }
+
+    private static int FindResidualIndex(
+        IReadOnlyList<ResidualRow> rows,
+        ResidualRow target)
+    {
+        for (var i = 0; i < rows.Count; i++)
+        {
+            if (rows[i] == target)
+            {
+                return i;
+            }
+        }
+
+        throw new InvalidOperationException("Residual row was not found.");
     }
 
     private sealed record PriceUpdate(string SelectionId, bool HasPrice, string Phase);
