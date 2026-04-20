@@ -51,6 +51,38 @@ public sealed class WindowHistoryFixtureBuilder
     }
 
     /// <summary>
+    /// Adds a closed window to the fixture history using a window builder.
+    /// </summary>
+    /// <param name="windowName">The configured window name.</param>
+    /// <param name="key">The window key.</param>
+    /// <param name="startPosition">The inclusive start processing position.</param>
+    /// <param name="endPosition">The exclusive end processing position.</param>
+    /// <param name="configure">Configures source, partition, segments, and tags.</param>
+    /// <returns>This builder.</returns>
+    public WindowHistoryFixtureBuilder AddClosedWindow(
+        string windowName,
+        object key,
+        long startPosition,
+        long endPosition,
+        Action<WindowHistoryFixtureWindowBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var builder = new WindowHistoryFixtureWindowBuilder();
+        configure(builder);
+
+        return AddClosedWindow(
+            windowName,
+            key,
+            startPosition,
+            endPosition,
+            builder.SourceValue,
+            builder.PartitionValue,
+            builder.Segments,
+            builder.Tags);
+    }
+
+    /// <summary>
     /// Adds an open window to the fixture history.
     /// </summary>
     /// <param name="windowName">The configured window name.</param>
@@ -79,6 +111,35 @@ public sealed class WindowHistoryFixtureBuilder
             Segments: segments,
             Tags: tags));
         return this;
+    }
+
+    /// <summary>
+    /// Adds an open window to the fixture history using a window builder.
+    /// </summary>
+    /// <param name="windowName">The configured window name.</param>
+    /// <param name="key">The window key.</param>
+    /// <param name="startPosition">The inclusive start processing position.</param>
+    /// <param name="configure">Configures source, partition, segments, and tags.</param>
+    /// <returns>This builder.</returns>
+    public WindowHistoryFixtureBuilder AddOpenWindow(
+        string windowName,
+        object key,
+        long startPosition,
+        Action<WindowHistoryFixtureWindowBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var builder = new WindowHistoryFixtureWindowBuilder();
+        configure(builder);
+
+        return AddOpenWindow(
+            windowName,
+            key,
+            startPosition,
+            builder.SourceValue,
+            builder.PartitionValue,
+            builder.Segments,
+            builder.Tags);
     }
 
     /// <summary>

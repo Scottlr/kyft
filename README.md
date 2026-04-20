@@ -341,7 +341,15 @@ Use `Kyft.Testing` when a test needs a compact comparison history.
 using Kyft.Testing; // Import fixture and assertion helpers.
 
 var history = new WindowHistoryFixtureBuilder() // Create a compact recorded history.
-    .AddClosedWindow("DeviceOffline", "device-1", 1, 5, source: "provider-a") // Add provider A's window.
+    .AddClosedWindow( // Add provider A's segmented window.
+        "DeviceOffline", // Use the same window name a pipeline would record.
+        "device-1", // Set the logical key.
+        1, // Start at processing position 1.
+        5, // End before processing position 5.
+        window => window // Configure window metadata.
+            .Source("provider-a") // Attach the source identity.
+            .Segment("lifecycle", "Incident") // Attach a boundary segment.
+            .Tag("fleet", "critical")) // Attach a descriptive tag.
     .AddClosedWindow("DeviceOffline", "device-1", 3, 7, source: "provider-b") // Add provider B's window.
     .Build(); // Build a WindowIntervalHistory.
 

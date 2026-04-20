@@ -88,6 +88,39 @@ public sealed class KyftTestingConsumerTests
     }
 
     [Fact]
+    public void FixtureBuilderCanCreateSegmentedTaggedWindowHistories()
+    {
+        var history = new WindowHistoryFixtureBuilder()
+            .AddClosedWindow(
+                "DeviceOffline",
+                "device-1",
+                1,
+                5,
+                window => window
+                    .Source("source-a")
+                    .Segment("lifecycle", "Incident")
+                    .Segment("stage", "Escalated", parentName: "lifecycle")
+                    .Tag("fleet", "critical"))
+            .Build();
+
+        var result = history.Compare("Fixture segment tag QA")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope
+                .Window("DeviceOffline")
+                .Segment("lifecycle", "Incident")
+                .Segment("stage", "Escalated")
+                .Tag("fleet", "critical"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        var window = Assert.Single(history.Windows);
+        Assert.Equal("critical", Assert.Single(window.Tags).Value);
+        Assert.Equal("lifecycle", window.Segments[1].ParentName);
+        Assert.Single(result.ResidualRows);
+    }
+
+    [Fact]
     public void FixtureBuilderCanKeepTwoOpenSegmentsForSameKey()
     {
         var history = new WindowHistoryFixtureBuilder()
@@ -106,6 +139,35 @@ public sealed class KyftTestingConsumerTests
             .Build();
 
         Assert.Equal(2, history.OpenWindows.Count);
+    }
+
+    [Fact]
+    public void FixtureBuilderCanCreateOpenSegmentedTaggedWindows()
+    {
+        var history = new WindowHistoryFixtureBuilder()
+            .AddOpenWindow(
+                "DeviceOffline",
+                "device-1",
+                1,
+                window => window
+                    .Source("source-a")
+                    .Segment("lifecycle", "Incident")
+                    .Tag("fleet", "critical"))
+            .Build();
+
+        var result = history.Compare("Live segmented fixture QA")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope
+                .Window("DeviceOffline")
+                .Segment("lifecycle", "Incident")
+                .Tag("fleet", "critical"))
+            .Using(comparators => comparators.Residual())
+            .RunLive(TemporalPoint.ForPosition(10));
+
+        Assert.Single(history.OpenWindows);
+        Assert.Single(result.ResidualRows);
+        Assert.True(result.HasProvisionalRows());
     }
 
     [Fact]
