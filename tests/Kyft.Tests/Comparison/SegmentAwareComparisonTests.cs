@@ -170,6 +170,29 @@ public sealed class SegmentAwareComparisonTests
         Assert.Contains("phase Pregame -&gt; InPlay", html);
     }
 
+    [Fact]
+    public void DebugHtmlShowsNestedSegmentBands()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4, period: "FinalQuarter");
+        AddClosedWindow(pipeline, source: "source-b", phase: "InPlay", start: 2, end: 5, period: "FinalQuarter");
+
+        var result = pipeline.Intervals
+            .Compare("Nested segment debug")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Overlap())
+            .Run();
+
+        var html = result.ExportDebugHtml();
+
+        Assert.Contains("Segment Context Bands", html);
+        Assert.Contains("FinalQuarter", html);
+        Assert.Contains("parent phase", html);
+    }
+
     private static EventPipeline<PriceUpdate> CreateSegmentedPipeline()
     {
         return Kyft
@@ -186,15 +209,19 @@ public sealed class SegmentAwareComparisonTests
         long end,
         string? fleet = null,
         WindowBoundaryReason? boundaryReason = null,
-        IReadOnlyList<WindowBoundaryChange>? boundaryChanges = null)
+        IReadOnlyList<WindowBoundaryChange>? boundaryChanges = null,
+        string? period = null)
     {
+        IReadOnlyList<WindowSegment> segments = period is null
+            ? [new WindowSegment("phase", phase)]
+            : [new WindowSegment("phase", phase), new WindowSegment("period", period, ParentName: "phase")];
         var open = new WindowEmission<PriceUpdate>(
             "SelectionPriced",
             "selection-1",
             new PriceUpdate("selection-1", HasPrice: true),
             WindowTransitionKind.Opened,
             source,
-            Segments: [new WindowSegment("phase", phase)],
+            Segments: segments,
             Tags: fleet is null ? [] : [new WindowTag("fleet", fleet)]);
         var close = new WindowEmission<PriceUpdate>(
             open.WindowName,

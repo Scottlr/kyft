@@ -19,6 +19,7 @@ internal static class ComparisonDebugHtmlExporter
         AppendHero(builder, result);
         AppendSummary(builder, result);
         AppendTimeline(builder, result, scale);
+        AppendSegmentBands(builder, result, scale);
         AppendAlignedSegments(builder, result, scale);
         AppendDiagnostics(builder, result);
         AppendMetadata(builder, result);
@@ -278,6 +279,51 @@ h3 {
   border-radius: 3px;
 }
 
+.band-lane {
+  display: grid;
+  grid-template-columns: minmax(180px, 250px) minmax(280px, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.band-title {
+  overflow-wrap: anywhere;
+  font-weight: 720;
+}
+
+.band-track {
+  position: relative;
+  min-height: 36px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f9faf9;
+}
+
+.band-segment {
+  position: absolute;
+  top: 5px;
+  height: 24px;
+  min-width: 4px;
+  overflow: hidden;
+  padding: 2px 8px;
+  border: 1px solid rgba(23, 32, 27, 0.18);
+  border-radius: 6px;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.band-segment.c0 { background: #dbeafe; }
+.band-segment.c1 { background: #dcfce7; }
+.band-segment.c2 { background: #fef3c7; }
+.band-segment.c3 { background: #fce7f3; }
+.band-segment.c4 { background: #ccfbf1; }
+.band-segment.c5 { background: #e5e7eb; }
+
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--line);
@@ -328,7 +374,7 @@ tr:last-child td { border-bottom: 0; }
   main { width: min(100% - 20px, 1220px); padding-top: 16px; }
   .hero, .panel { padding: 18px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .lane { grid-template-columns: 1fr; }
+  .lane, .band-lane { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 520px) {
@@ -536,6 +582,114 @@ tr:last-child td { border-bottom: 0; }
             .AppendLine("      </tbody>")
             .AppendLine("    </table>")
             .AppendLine("  </div>");
+    }
+
+    private static void AppendSegmentBands(StringBuilder builder, ComparisonResult result, TimelineScale? scale)
+    {
+        if (result.Aligned is null || result.Aligned.Segments.Count == 0 || scale is null)
+        {
+            return;
+        }
+
+        var bands = result.Aligned.Segments
+            .SelectMany(static segment => segment.Segments.Select(context => new SegmentBand(
+                new SegmentBandLaneKey(
+                    segment.WindowName,
+                    FormatObject(segment.Key),
+                    FormatObject(segment.Partition),
+                    context.Name,
+                    context.ParentName ?? string.Empty),
+                FormatObject(context.Value),
+                segment.Range)))
+            .ToArray();
+
+        if (bands.Length == 0)
+        {
+            return;
+        }
+
+        var laneGroups = bands
+            .GroupBy(static band => band.Key)
+            .OrderBy(static group => group.Key.WindowName, StringComparer.Ordinal)
+            .ThenBy(static group => group.Key.Key, StringComparer.Ordinal)
+            .ThenBy(static group => group.Key.Partition, StringComparer.Ordinal)
+            .ThenBy(static group => group.Key.ParentName, StringComparer.Ordinal)
+            .ThenBy(static group => group.Key.SegmentName, StringComparer.Ordinal)
+            .ToArray();
+
+        builder
+            .AppendLine("<section class=\"panel\">")
+            .AppendLine("  <div class=\"section-head\">")
+            .AppendLine("    <div>")
+            .AppendLine("      <h2>Segment Context Bands</h2>")
+            .AppendLine("      <p class=\"section-note\">Bands show the segment values attached to aligned windows, making phase, period, and other boundary changes visible before inspecting individual rows.</p>")
+            .AppendLine("    </div>")
+            .AppendLine("  </div>")
+            .AppendLine("  <div class=\"timeline\">");
+
+        foreach (var lane in laneGroups.Take(60))
+        {
+            builder
+                .AppendLine("    <div class=\"band-lane\">")
+                .Append("      <div class=\"band-title\">");
+            AppendText(builder, lane.Key.SegmentName);
+            builder.Append("<span class=\"lane-meta\">");
+            AppendText(builder, lane.Key.WindowName);
+            builder.Append(" / key ");
+            AppendText(builder, lane.Key.Key);
+
+            if (!string.IsNullOrEmpty(lane.Key.Partition))
+            {
+                builder.Append(" / partition ");
+                AppendText(builder, lane.Key.Partition);
+            }
+
+            if (!string.IsNullOrEmpty(lane.Key.ParentName))
+            {
+                builder.Append(" / parent ");
+                AppendText(builder, lane.Key.ParentName);
+            }
+
+            builder
+                .AppendLine("</span></div>")
+                .AppendLine("      <div class=\"band-track\">");
+
+            foreach (var band in lane.OrderBy(static band => band.Range.Start))
+            {
+                if (TryGetRangeCss(band.Range, scale, out var left, out var width))
+                {
+                    builder
+                        .Append("        <div class=\"band-segment c")
+                        .Append(GetBandColourIndex(lane.Key.SegmentName + "=" + band.Value))
+                        .Append("\" style=\"left:")
+                        .Append(left)
+                        .Append("%;width:")
+                        .Append(width)
+                        .Append("%\" title=\"");
+                    AppendAttribute(builder, FormatBandTitle(lane.Key, band));
+                    builder.Append("\">");
+                    AppendText(builder, band.Value);
+                    builder.AppendLine("</div>");
+                }
+            }
+
+            builder
+                .AppendLine("      </div>")
+                .AppendLine("    </div>");
+        }
+
+        builder.AppendLine("  </div>");
+        AppendAxis(builder, scale);
+
+        if (laneGroups.Length > 60)
+        {
+            builder
+                .Append("  <div class=\"empty\" style=\"margin-top:18px\">Showing first 60 of ");
+            AppendText(builder, laneGroups.Length.ToString(CultureInfo.InvariantCulture));
+            builder.AppendLine(" segment band lanes.</div>");
+        }
+
+        builder.AppendLine("</section>");
     }
 
     private static void AppendAlignedSegments(StringBuilder builder, ComparisonResult result, TimelineScale? scale)
@@ -990,6 +1144,30 @@ tr:last-child td { border-bottom: 0; }
             + " / " + FormatRange(segment.Range);
     }
 
+    private static string FormatBandTitle(SegmentBandLaneKey key, SegmentBand band)
+    {
+        return key.SegmentName
+            + "=" + band.Value
+            + " / " + key.WindowName
+            + " / key " + key.Key
+            + (string.IsNullOrEmpty(key.ParentName) ? string.Empty : " / parent " + key.ParentName)
+            + " / " + FormatRange(band.Range);
+    }
+
+    private static int GetBandColourIndex(string value)
+    {
+        unchecked
+        {
+            var hash = 17;
+            for (var i = 0; i < value.Length; i++)
+            {
+                hash = (hash * 31) + value[i];
+            }
+
+            return (hash & int.MaxValue) % 6;
+        }
+    }
+
     private static string GetSegmentClass(AlignedSegment segment)
     {
         return (segment.TargetRecordIds.Count > 0, segment.AgainstRecordIds.Count > 0) switch
@@ -1159,6 +1337,15 @@ tr:last-child td { border-bottom: 0; }
     private readonly record struct TimelineLaneKey(ComparisonSide Side, string SelectorName, string WindowName);
 
     private readonly record struct SegmentLaneKey(string WindowName, string Key, string Partition, string Segments);
+
+    private readonly record struct SegmentBandLaneKey(
+        string WindowName,
+        string Key,
+        string Partition,
+        string SegmentName,
+        string ParentName);
+
+    private readonly record struct SegmentBand(SegmentBandLaneKey Key, string Value, TemporalRange Range);
 
     private sealed record TimelineScale(TemporalAxis Axis, long Min, long Max)
     {
