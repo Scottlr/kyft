@@ -228,6 +228,64 @@ live.ExportDebugHtml("artifacts/live-provider-qa.html"); // Capture the current 
 
 The same plan converges with batch execution when all source windows close.
 
+## Boundary Segments
+
+Use segments when a value should split an active window while the state remains
+active. This records the analytical shape during ingestion instead of slicing
+windows later.
+
+```csharp
+var pipeline = Kyft // Start a Kyft pipeline definition.
+    .For<PriceUpdate>() // Configure the event type that will be ingested.
+    .RecordIntervals() // Store open and closed windows for comparison.
+    .TrackWindow("SelectionPriced", window => window // Define one priced-selection window.
+        .Key(update => update.SelectionId) // Track each selection independently.
+        .ActiveWhen(update => update.HasPrice) // Keep the window open while a price exists.
+        .Segment("phase", phase => phase // Split when the fixture phase changes.
+            .Value(update => update.Phase) // Attach the current phase value.
+            .Child("period", period => period // Nest period under phase.
+                .Value(update => update.Period))) // Split again when the period changes.
+        .Tag("competition", update => update.CompetitionId)); // Attach metadata without splitting.
+
+public sealed record PriceUpdate( // Define the event shape.
+    string SelectionId, // Selection identity.
+    bool HasPrice, // Whether a price is currently present.
+    string Phase, // Pregame, in-play, or another phase.
+    string? Period, // Period inside the phase, when any.
+    string CompetitionId); // Descriptive metadata.
+```
+
+If `Phase` changes from pregame to in-play while `HasPrice` is still true,
+Kyft closes the pregame window and opens the in-play window at the same
+position. Ranges stay half-open, so there is no gap or overlap.
+
+Roll-ups preserve segment context by default, so selection windows can roll up
+to market and fixture windows without merging pregame and in-play evidence.
+
+## Cohort Comparison
+
+Use cohorts when the comparison side is a group rather than one source. An
+any-member cohort is active whenever at least one declared member source is
+active.
+
+```csharp
+var unmatched = pipeline.Intervals // Start from recorded segmented windows.
+    .Compare("Source A unmatched while suspended") // Name the comparison.
+    .Target("source-a", selector => selector.Source("source-a")) // Treat source A as the target.
+    .AgainstCohort("cohort", cohort => cohort // Compare against the whole cohort.
+        .Sources("source-b", "source-c", "source-d") // Include these member sources.
+        .Activity(CohortActivity.Any())) // Any active member covers the cohort.
+    .Within(scope => scope // Restrict the analytical question.
+        .Window("SelectionPriced") // Use priced-selection windows.
+        .Segment("phase", "InPlay") // Only in-play windows.
+        .Segment("period", "FinalQuarter") // Only final-quarter windows.
+        .Segment("tradingState", "Suspended")) // Only suspended windows.
+    .Using(comparators => comparators.Residual()) // Emit target-only rows against the cohort.
+    .Run(); // Execute the comparison.
+
+var total = unmatched.ResidualRows.TotalPositionLength(); // Sum unmatched processing-position length.
+```
+
 ## Known-At Safety
 
 Use `KnownAtPosition(...)` when a backtest, replay, or audit must only use

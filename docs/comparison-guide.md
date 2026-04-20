@@ -222,6 +222,70 @@ the comparison source. Diagonal cells are identity rows and do not run
 comparators. Missing sources are still emitted as explicit cells so reports do
 not silently drop an expected provider.
 
+## Runtime Boundary Segments
+
+Segments are analytical boundary dimensions. When a segment value changes while
+the active predicate remains true, Kyft closes the current window and opens a
+new one at the same processing position or event timestamp.
+
+```csharp
+var pipeline = Kyft // Start a Kyft pipeline definition.
+    .For<PriceUpdate>() // Configure the event type.
+    .RecordIntervals() // Store windows for comparison.
+    .Window("SelectionPriced", window => window // Define the source window.
+        .Key(update => update.SelectionId) // Track each selection independently.
+        .ActiveWhen(update => update.HasPrice) // Keep it open while a price exists.
+        .Segment("phase", phase => phase // Split on fixture phase.
+            .Value(update => update.Phase) // Store the phase value.
+            .Child("period", period => period // Nest period under phase.
+                .Value(update => update.Period))) // Split on period changes.
+        .Tag("competition", update => update.CompetitionId)) // Attach metadata without splitting.
+    .RollUp("MarketPriced", update => update.MarketId, children => children.ActiveCount > 0) // Preserve segments at market level.
+    .RollUp("FixturePriced", update => update.FixtureId, children => children.ActiveCount > 0) // Preserve segments at fixture level.
+    .Build(); // Build the pipeline.
+```
+
+Runtime partition, segment, and tag have different meanings:
+
+- partition isolates runtime state
+- segment splits active windows and participates in comparison scope
+- tag describes a window without creating a boundary
+
+Comparison scopes can filter by segment:
+
+```csharp
+var finalQuarter = pipeline.Intervals // Start from recorded windows.
+    .Compare("Final-quarter coverage") // Name the comparison.
+    .Target("source-a", selector => selector.Source("source-a")) // Select the target source.
+    .Against("source-b", selector => selector.Source("source-b")) // Select the comparison source.
+    .Within(scope => scope // Scope the comparison.
+        .Window("SelectionPriced") // Use priced-selection windows.
+        .Segment("phase", "InPlay") // Require in-play segments.
+        .Segment("period", "FinalQuarter")) // Require final-quarter segments.
+    .Using(comparators => comparators.Overlap().Residual()) // Emit agreement and target-only rows.
+    .Run(); // Execute the comparison.
+```
+
+## Cohorts
+
+Use `AgainstCohort(...)` when the comparison side is a group. The first cohort
+rule is `CohortActivity.Any()`, where any active member source covers the cohort
+lane. This is different from summing pairwise residuals, which can overcount.
+
+```csharp
+var result = pipeline.Intervals // Start from recorded segmented windows.
+    .Compare("Source A vs cohort") // Name the comparison.
+    .Target("source-a", selector => selector.Source("source-a")) // Treat source A as target.
+    .AgainstCohort("cohort", cohort => cohort // Define the cohort side.
+        .Sources("source-b", "source-c") // Include member sources.
+        .Activity(CohortActivity.Any())) // The cohort is active if either member is active.
+    .Within(scope => scope.Window("SelectionPriced")) // Compare one window family.
+    .Using(comparators => comparators.Residual()) // Emit target-only rows against the cohort.
+    .Run(); // Execute the comparison.
+
+var unmatchedLength = result.ResidualRows.TotalPositionLength(); // Sum target-only processing positions.
+```
+
 ## Hierarchy Explanation
 
 Use hierarchy comparison to explain parent rollup activity from child
