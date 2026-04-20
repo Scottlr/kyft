@@ -119,6 +119,21 @@ public sealed class WindowIntervalHistory
     }
 
     /// <summary>
+    /// Gets recorded windows that contain a required tag value.
+    /// </summary>
+    /// <param name="name">The tag name.</param>
+    /// <param name="value">The required tag value.</param>
+    /// <returns>Recorded windows that contain the required tag value.</returns>
+    public IReadOnlyList<WindowRecord> WithTag(string name, object? value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return Windows
+            .Where(window => HasTag(window, name, value))
+            .ToArray();
+    }
+
+    /// <summary>
     /// Builds a directional source matrix for one recorded window name.
     /// </summary>
     /// <remarks>
@@ -650,6 +665,21 @@ public sealed class WindowIntervalHistory
             var segment = window.Segments[i];
             if (string.Equals(segment.Name, name, StringComparison.Ordinal)
                 && EqualityComparer<object?>.Default.Equals(segment.Value, value))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasTag(WindowRecord window, string name, object? value)
+    {
+        for (var i = 0; i < window.Tags.Count; i++)
+        {
+            var tag = window.Tags[i];
+            if (string.Equals(tag.Name, name, StringComparison.Ordinal)
+                && EqualityComparer<object?>.Default.Equals(tag.Value, value))
             {
                 return true;
             }

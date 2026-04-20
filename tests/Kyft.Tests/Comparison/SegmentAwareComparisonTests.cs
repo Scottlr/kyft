@@ -19,6 +19,20 @@ public sealed class SegmentAwareComparisonTests
     }
 
     [Fact]
+    public void HistoryCanQueryWindowsByTag()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 3, fleet: "critical");
+        AddClosedWindow(pipeline, source: "source-b", phase: "InPlay", start: 3, end: 5, fleet: "standard");
+
+        var critical = pipeline.Intervals.WithTag("fleet", "critical");
+
+        var window = Assert.Single(critical);
+        Assert.Equal("source-a", window.Source);
+    }
+
+    [Fact]
     public void ComparisonScopeCanFilterBySegment()
     {
         var pipeline = CreateSegmentedPipeline();
