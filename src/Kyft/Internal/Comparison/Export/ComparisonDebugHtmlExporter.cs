@@ -250,6 +250,16 @@ h3 {
 .bar.gap { background: var(--gap); }
 .bar.open { outline: 2px dashed rgba(23, 32, 27, 0.46); outline-offset: 2px; }
 
+.boundary-marker {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--warning);
+  box-shadow: 0 0 0 2px rgba(255, 247, 237, 0.92);
+}
+
 .axis {
   display: flex;
   justify-content: space-between;
@@ -519,6 +529,18 @@ tr:last-child td { border-bottom: 0; }
                         .Append(width)
                         .Append("%\" title=\"");
                     AppendAttribute(laneBuilder, FormatWindowTitle(record));
+                    laneBuilder.AppendLine("\"></div>");
+                }
+
+                if (record.Range.End.HasValue
+                    && record.Window.BoundaryReason is not null
+                    && TryGetPointCss(record.Range.End.Value, scale!, out var boundaryLeft))
+                {
+                    laneBuilder
+                        .Append("        <div class=\"boundary-marker\" style=\"left:")
+                        .Append(boundaryLeft)
+                        .Append("%\" title=\"");
+                    AppendAttribute(laneBuilder, FormatBoundary(record.Window));
                     laneBuilder.AppendLine("\"></div>");
                 }
             }
@@ -1120,6 +1142,22 @@ tr:last-child td { border-bottom: 0; }
 
         left = FormatPercent(leftValue);
         width = FormatPercent(Math.Min(100d - leftValue, widthValue));
+        return true;
+    }
+
+    private static bool TryGetPointCss(
+        TemporalPoint point,
+        TimelineScale scale,
+        out string left)
+    {
+        if (!TryGetScalar(point, out var scalar))
+        {
+            left = string.Empty;
+            return false;
+        }
+
+        var span = Math.Max(1d, scale.Max - scale.Min);
+        left = FormatPercent(((scalar - scale.Min) / span) * 100d);
         return true;
     }
 

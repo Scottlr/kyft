@@ -167,6 +167,7 @@ public sealed class SegmentAwareComparisonTests
 
         Assert.Contains("fleet=critical", html);
         Assert.Contains("SegmentChanged", html);
+        Assert.Contains("boundary-marker", html);
         Assert.Contains("phase Pregame -&gt; InPlay", html);
     }
 
