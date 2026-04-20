@@ -306,11 +306,15 @@ var unmatched = pipeline.Intervals // Start from recorded segmented windows.
     .Run(); // Execute the comparison.
 
 var total = unmatched.ResidualRows.TotalPositionLength(); // Sum unmatched processing-position length.
+
+var evidence = unmatched.CohortEvidence(); // Parse cohort evidence into typed records.
+var inactive = evidence.Where(row => !row.IsActive); // Inspect segments the cohort did not cover.
 ```
 
 Kyft emits compact cohort evidence metadata for each aligned segment, including
 the rule, required active count, actual active count, and whether the cohort was
-active. JSON, Markdown, and debug HTML exports include that evidence.
+active. `CohortEvidence()` turns that metadata into typed records for code, and
+JSON, Markdown, and debug HTML exports include the same evidence for humans.
 
 ## Known-At Safety
 

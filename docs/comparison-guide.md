@@ -307,6 +307,9 @@ var result = pipeline.Intervals // Start from recorded segmented windows.
     .Run(); // Execute the comparison.
 
 var unmatchedLength = result.ResidualRows.TotalPositionLength(); // Sum target-only processing positions.
+
+var evidence = result.CohortEvidence(); // Parse cohort evidence into typed records.
+var uncovered = evidence.Where(row => !row.IsActive); // Find segments the cohort did not cover.
 ```
 
 Available cohort activity rules:
@@ -320,8 +323,9 @@ Available cohort activity rules:
 
 Kyft stores cohort evidence in result extension metadata. The evidence includes
 the rule, required active count, actual active count, active member sources, and
-whether the cohort lane was active. `ExportJson()`, `ExportMarkdown()`, and
-`ExportDebugHtml(...)` include this evidence.
+whether the cohort lane was active. `CohortEvidence()` turns that metadata into
+typed records for code, while `ExportJson()`, `ExportMarkdown()`, and
+`ExportDebugHtml(...)` include the same evidence for humans.
 
 ## Hierarchy Explanation
 
