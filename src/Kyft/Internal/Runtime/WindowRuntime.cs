@@ -39,6 +39,7 @@ internal sealed class WindowRuntime<TEvent>
             && wasActive
             && previousState is not null
             && !SegmentsEqual(previousState.Segments, currentSegments);
+        var observedRollUps = false;
 
         if (changed && isActive)
         {
@@ -100,8 +101,58 @@ internal sealed class WindowRuntime<TEvent>
                     currentSegments,
                     currentTags));
             changed = true;
+            ObserveRollUps(
+                @event,
+                source,
+                partition,
+                key,
+                childIsActive: false,
+                childChanged: true,
+                previousState.Segments,
+                previousState.Tags,
+                ref emissions);
+            ObserveRollUps(
+                @event,
+                source,
+                partition,
+                key,
+                childIsActive: true,
+                childChanged: true,
+                currentSegments,
+                currentTags,
+                ref emissions);
+            observedRollUps = true;
         }
 
+        if (!observedRollUps)
+        {
+            var observedState = isActive
+                ? new ActiveWindowState(currentSegments, currentTags)
+                : previousState ?? new ActiveWindowState(Segments: [], Tags: []);
+            ObserveRollUps(
+                @event,
+                source,
+                partition,
+                key,
+                isActive,
+                changed,
+                observedState.Segments,
+                observedState.Tags,
+                ref emissions);
+        }
+    }
+
+    private void ObserveRollUps(
+        TEvent @event,
+        object? source,
+        object? partition,
+        object key,
+        bool childIsActive,
+        bool childChanged,
+        IReadOnlyList<WindowSegment> segments,
+        IReadOnlyList<WindowTag> tags,
+        ref List<WindowEmission<TEvent>>? emissions)
+    {
         foreach (var rollUp in this.rollUps)
         {
             rollUp.ObserveChild(
@@ -109,8 +160,10 @@ internal sealed class WindowRuntime<TEvent>
                 source,
                 partition,
                 key,
-                isActive,
-                changed,
+                childIsActive,
+                childChanged,
+                segments,
+                tags,
                 ref emissions);
         }
     }
