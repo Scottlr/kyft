@@ -59,6 +59,27 @@ public sealed class SegmentAwareComparisonTests
         Assert.All(result.Aligned!.Segments, segment => Assert.Single(segment.Segments));
     }
 
+    [Fact]
+    public void DebugHtmlShowsSegmentContext()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4);
+        AddClosedWindow(pipeline, source: "source-b", phase: "InPlay", start: 2, end: 3);
+
+        var result = pipeline.Intervals
+            .Compare("Segment debug")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Overlap())
+            .Run();
+
+        var html = result.ExportDebugHtml();
+
+        Assert.Contains("phase=InPlay", html);
+    }
+
     private static EventPipeline<PriceUpdate> CreateSegmentedPipeline()
     {
         return Kyft

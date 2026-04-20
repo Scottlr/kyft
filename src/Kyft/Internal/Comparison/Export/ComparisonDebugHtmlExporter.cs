@@ -497,10 +497,15 @@ tr:last-child td { border-bottom: 0; }
             builder.AppendLine("  <div class=\"timeline\">");
 
             var lanes = result.Aligned.Segments
-                .GroupBy(static segment => new SegmentLaneKey(segment.WindowName, FormatObject(segment.Key), FormatObject(segment.Partition)))
+                .GroupBy(static segment => new SegmentLaneKey(
+                    segment.WindowName,
+                    FormatObject(segment.Key),
+                    FormatObject(segment.Partition),
+                    FormatSegments(segment.Segments)))
                 .OrderBy(static group => group.Key.WindowName, StringComparer.Ordinal)
                 .ThenBy(static group => group.Key.Key, StringComparer.Ordinal)
-                .ThenBy(static group => group.Key.Partition, StringComparer.Ordinal);
+                .ThenBy(static group => group.Key.Partition, StringComparer.Ordinal)
+                .ThenBy(static group => group.Key.Segments, StringComparer.Ordinal);
 
             foreach (var lane in lanes)
             {
@@ -514,6 +519,12 @@ tr:last-child td { border-bottom: 0; }
                 {
                     builder.Append(" / partition ");
                     AppendText(builder, lane.Key.Partition);
+                }
+
+                if (!string.IsNullOrEmpty(lane.Key.Segments))
+                {
+                    builder.Append(" / ");
+                    AppendText(builder, lane.Key.Segments);
                 }
 
                 builder
@@ -566,7 +577,7 @@ tr:last-child td { border-bottom: 0; }
             .AppendLine("  <div class=\"table-wrap\" style=\"margin-top:18px\">")
             .AppendLine("    <table>")
             .AppendLine("      <thead>")
-            .AppendLine("        <tr><th>Kind</th><th>Window</th><th>Key</th><th>Range</th><th>Target IDs</th><th>Against IDs</th></tr>")
+            .AppendLine("        <tr><th>Kind</th><th>Window</th><th>Key</th><th>Segments</th><th>Range</th><th>Target IDs</th><th>Against IDs</th></tr>")
             .AppendLine("      </thead>")
             .AppendLine("      <tbody>");
 
@@ -580,6 +591,8 @@ tr:last-child td { border-bottom: 0; }
             AppendText(builder, segment.WindowName);
             builder.Append("</td><td>");
             AppendText(builder, FormatObject(segment.Key));
+            builder.Append("</td><td>");
+            AppendText(builder, FormatSegments(segment.Segments));
             builder.Append("</td><td class=\"mono\">");
             AppendText(builder, FormatRange(segment.Range));
             builder.Append("</td><td class=\"mono\">");
@@ -594,7 +607,7 @@ tr:last-child td { border-bottom: 0; }
         {
             builder
                 .AppendLine("        <tr>")
-                .Append("          <td colspan=\"6\">Showing first 80 of ");
+                    .Append("          <td colspan=\"7\">Showing first 80 of ");
             AppendText(builder, result.Aligned.Segments.Count.ToString(CultureInfo.InvariantCulture));
             builder.AppendLine(" aligned segments.</td>")
                 .AppendLine("        </tr>");
@@ -848,6 +861,7 @@ tr:last-child td { border-bottom: 0; }
         return record.Window.WindowName
             + " / key " + FormatObject(record.Window.Key)
             + " / source " + FormatObject(record.Window.Source)
+            + " / " + FormatSegments(record.Segments)
             + " / " + FormatRange(record.Range)
             + " / id " + ShortId(record.RecordId);
     }
@@ -857,6 +871,7 @@ tr:last-child td { border-bottom: 0; }
         return GetSegmentLabel(segment)
             + " / " + segment.WindowName
             + " / key " + FormatObject(segment.Key)
+            + " / " + FormatSegments(segment.Segments)
             + " / " + FormatRange(segment.Range);
     }
 
@@ -932,6 +947,18 @@ tr:last-child td { border-bottom: 0; }
         return string.Join(", ", ids.Select(ShortId));
     }
 
+    private static string FormatSegments(IReadOnlyList<WindowSegment> segments)
+    {
+        if (segments.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        return string.Join(
+            ", ",
+            segments.Select(static segment => segment.Name + "=" + FormatObject(segment.Value)));
+    }
+
     private static string ShortId(WindowRecordId id)
     {
         return id.Value.Length <= 12 ? id.Value : id.Value[..12];
@@ -980,7 +1007,7 @@ tr:last-child td { border-bottom: 0; }
 
     private readonly record struct TimelineLaneKey(ComparisonSide Side, string SelectorName, string WindowName);
 
-    private readonly record struct SegmentLaneKey(string WindowName, string Key, string Partition);
+    private readonly record struct SegmentLaneKey(string WindowName, string Key, string Partition, string Segments);
 
     private sealed record TimelineScale(TemporalAxis Axis, long Min, long Max)
     {
