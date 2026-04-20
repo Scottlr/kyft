@@ -74,6 +74,29 @@ public sealed class WindowComparisonBuilder
     }
 
     /// <summary>
+    /// Adds an any-member comparison cohort.
+    /// </summary>
+    /// <remarks>
+    /// The cohort is materialized as a single comparison side: when any member
+    /// source is active over an aligned segment, the cohort covers that segment.
+    /// This avoids pairwise residual overcounting for target-vs-cohort
+    /// questions.
+    /// </remarks>
+    /// <param name="name">The cohort name used in output and diagnostics.</param>
+    /// <param name="configure">The cohort configuration.</param>
+    /// <returns>This builder.</returns>
+    public WindowComparisonBuilder AgainstCohort(
+        string name,
+        Func<ComparisonCohortBuilder, ComparisonCohortBuilder> configure)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        this.against.Add(configure(new ComparisonCohortBuilder()).Build(name));
+        return this;
+    }
+
+    /// <summary>
     /// Sets the comparison scope.
     /// </summary>
     /// <param name="configure">The scope configuration.</param>

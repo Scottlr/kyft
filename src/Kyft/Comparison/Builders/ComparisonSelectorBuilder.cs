@@ -36,6 +36,16 @@ public sealed class ComparisonSelectorBuilder
     }
 
     /// <summary>
+    /// Selects windows from any of several source identities.
+    /// </summary>
+    /// <param name="sources">The source identities.</param>
+    /// <returns>A multi-source selector.</returns>
+    public ComparisonSelector Sources(params object[] sources)
+    {
+        return ComparisonSelector.ForSources(sources);
+    }
+
+    /// <summary>
     /// Selects windows by partition identity.
     /// </summary>
     /// <param name="partition">The partition identity.</param>

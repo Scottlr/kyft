@@ -98,7 +98,45 @@ public readonly record struct ComparisonSelector
             $"source:{source}",
             $"source = {source}",
             isSerializable: true,
-            window => EqualityComparer<object?>.Default.Equals(window.Source, source));
+                window => EqualityComparer<object?>.Default.Equals(window.Source, source));
+    }
+
+    /// <summary>
+    /// Creates a selector for any of several source identities.
+    /// </summary>
+    /// <param name="sources">The source identities.</param>
+    /// <returns>A serializable multi-source selector.</returns>
+    public static ComparisonSelector ForSources(IEnumerable<object> sources)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+
+        var orderedSources = sources as object[] ?? sources.ToArray();
+        if (orderedSources.Length == 0)
+        {
+            throw new ArgumentException("At least one source is required.", nameof(sources));
+        }
+
+        for (var i = 0; i < orderedSources.Length; i++)
+        {
+            ArgumentNullException.ThrowIfNull(orderedSources[i]);
+        }
+
+        return new ComparisonSelector(
+            "sources:" + string.Join(",", orderedSources.Select(static source => source.ToString())),
+            "source in [" + string.Join(", ", orderedSources.Select(static source => source.ToString())) + "]",
+            isSerializable: true,
+            window =>
+            {
+                for (var i = 0; i < orderedSources.Length; i++)
+                {
+                    if (EqualityComparer<object?>.Default.Equals(window.Source, orderedSources[i]))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
     }
 
     /// <summary>
