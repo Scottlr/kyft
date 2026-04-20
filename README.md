@@ -300,7 +300,8 @@ var unmatched = pipeline.Intervals // Start from recorded segmented windows.
     .Within(scope => scope // Restrict the analytical question.
         .Window("DeviceOffline") // Use device-offline windows.
         .Segment("lifecycle", "Incident") // Only incident lifecycle windows.
-        .Segment("stage", "Escalated")) // Only escalated incident windows.
+        .Segment("stage", "Escalated") // Only escalated incident windows.
+        .Tag("fleet", "critical")) // Only critical-fleet windows.
     .Using(comparators => comparators.Residual()) // Emit target-only rows against the cohort.
     .Run(); // Execute the comparison.
 

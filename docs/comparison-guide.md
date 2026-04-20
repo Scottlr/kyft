@@ -257,7 +257,7 @@ Runtime partition, segment, and tag have different meanings:
 - segment splits active windows and participates in comparison scope
 - tag describes a window without creating a boundary
 
-Comparison scopes can filter by segment:
+Comparison scopes can filter by segment and tag:
 
 ```csharp
 var escalatedIncidents = pipeline.Intervals // Start from recorded windows.
@@ -267,7 +267,8 @@ var escalatedIncidents = pipeline.Intervals // Start from recorded windows.
     .Within(scope => scope // Scope the comparison.
         .Window("DeviceOffline") // Use device-offline windows.
         .Segment("lifecycle", "Incident") // Require incident lifecycle.
-        .Segment("stage", "Escalated")) // Require escalated stage.
+        .Segment("stage", "Escalated") // Require escalated stage.
+        .Tag("fleet", "critical")) // Require critical fleet metadata.
     .Using(comparators => comparators.Overlap().Residual()) // Emit agreement and target-only rows.
     .Run(); // Execute the comparison.
 ```
