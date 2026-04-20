@@ -141,6 +141,7 @@ internal static class ComparisonRuntime
             containmentArray,
             leadLagArray,
             asOfArray);
+        var extensionMetadata = BuildCohortMetadata(prepared, aligned);
 
         return new ComparisonResult(
             prepared.Plan,
@@ -159,7 +160,8 @@ internal static class ComparisonRuntime
             leadLagArray,
             leadLagSummaryArray,
             asOfArray,
-            rowFinalities);
+            rowFinalities,
+            extensionMetadata);
     }
 
     private static void AddOverlapRows(
@@ -1013,6 +1015,34 @@ internal static class ComparisonRuntime
             && EqualityComparer<object?>.Default.Equals(first.Partition, second.Partition);
     }
 
+    private static IReadOnlyList<ComparisonExtensionMetadata> BuildCohortMetadata(
+        PreparedComparison prepared,
+        AlignedComparison aligned)
+    {
+        var evidence = CohortEvidence.Create(prepared);
+        if (!evidence.HasCohort)
+        {
+            return [];
+        }
+
+        var metadata = new List<ComparisonExtensionMetadata>();
+        for (var i = 0; i < aligned.Segments.Count; i++)
+        {
+            var segment = aligned.Segments[i];
+            if (segment.AgainstRecordIds.Count == 0 && segment.TargetRecordIds.Count == 0)
+            {
+                continue;
+            }
+
+            metadata.Add(new ComparisonExtensionMetadata(
+                "kyft.cohort",
+                "segment[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]",
+                evidence.Describe(segment)));
+        }
+
+        return metadata.ToArray();
+    }
+
     private sealed class CohortEvidence
     {
         private readonly ComparisonSelector? cohort;
@@ -1025,6 +1055,8 @@ internal static class ComparisonRuntime
             this.cohort = cohort;
             this.sourcesByRecordId = sourcesByRecordId;
         }
+
+        public bool HasCohort => this.cohort is not null;
 
         public static CohortEvidence Create(PreparedComparison prepared)
         {
@@ -1050,8 +1082,42 @@ internal static class ComparisonRuntime
                 return segment.AgainstRecordIds.Count > 0;
             }
 
-            var activity = this.cohort.Value.CohortActivity!;
-            var required = activity.RequiredActiveCount(this.cohort.Value.CohortSources.Count);
+            var required = RequiredCount();
+            var activeSources = ActiveSources(segment);
+
+            return activeSources.Count >= required;
+        }
+
+        public string Describe(AlignedSegment segment)
+        {
+            if (this.cohort is null)
+            {
+                return string.Empty;
+            }
+
+            var activeSources = ActiveSources(segment);
+            var active = activeSources.Count >= RequiredCount();
+
+            return "rule="
+                + this.cohort.Value.CohortActivity!.Name
+                + "; required="
+                + RequiredCount().ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + "; activeCount="
+                + activeSources.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + "; isActive="
+                + (active ? "true" : "false")
+                + "; activeSources="
+                + string.Join(",", activeSources.Select(static source => source?.ToString() ?? "<null>"));
+        }
+
+        private int RequiredCount()
+        {
+            var activity = this.cohort!.Value.CohortActivity!;
+            return activity.RequiredActiveCount(this.cohort.Value.CohortSources.Count);
+        }
+
+        private List<object?> ActiveSources(AlignedSegment segment)
+        {
             var activeSources = new List<object?>();
 
             for (var i = 0; i < segment.AgainstRecordIds.Count; i++)
@@ -1067,7 +1133,7 @@ internal static class ComparisonRuntime
                 }
             }
 
-            return activeSources.Count >= required;
+            return activeSources;
         }
 
         private static bool ContainsSource(List<object?> sources, object? source)

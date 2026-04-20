@@ -131,6 +131,30 @@ public sealed class CohortComparisonTests
         Assert.Contains("cohort=at-least:2", result.ExportMarkdown());
     }
 
+    [Fact]
+    public void CohortResultIncludesSegmentEvidenceMetadata()
+    {
+        var pipeline = CreatePipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", start: 1, end: 11);
+        AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
+
+        var result = pipeline.Intervals
+            .Compare("Source A vs cohort evidence")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .AgainstCohort("cohort", cohort => cohort
+                .Sources("source-b", "source-c")
+                .Activity(CohortActivity.AtLeast(2)))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        Assert.Contains(result.ExtensionMetadata, metadata =>
+            metadata.ExtensionId == "kyft.cohort"
+            && metadata.Value.Contains("required=2", StringComparison.Ordinal)
+            && metadata.Value.Contains("isActive=false", StringComparison.Ordinal));
+    }
+
     private static EventPipeline<PriceUpdate> CreatePipeline()
     {
         return Kyft
