@@ -36,4 +36,25 @@ public sealed class BenchmarkSmokeTests
         Assert.NotEmpty(aligned.Segments);
         Assert.NotEmpty(result.ComparatorSummaries);
     }
+
+    [Fact]
+    public void SegmentCohortBenchmarksCompileAndRunSmokePath()
+    {
+        var benchmarks = new SegmentCohortBenchmarks
+        {
+            EventCount = 512
+        };
+
+        benchmarks.GlobalSetup();
+        var history = benchmarks.IngestSegmentedRollUps();
+        var segmentResult = benchmarks.RunSegmentFilteredResidual();
+        var cohortResult = benchmarks.RunAnyCohortResidual();
+        var liveResult = benchmarks.RunLiveSegmentCohortResidual();
+
+        Assert.NotNull(benchmarks.GetDataForSmokeTest());
+        Assert.NotEmpty(history.Windows);
+        Assert.NotEmpty(segmentResult.ComparatorSummaries);
+        Assert.NotEmpty(cohortResult.ComparatorSummaries);
+        Assert.NotEmpty(liveResult.ComparatorSummaries);
+    }
 }
