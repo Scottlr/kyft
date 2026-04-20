@@ -313,6 +313,7 @@ Available cohort activity rules:
 
 - `CohortActivity.Any()` requires at least one active member.
 - `CohortActivity.All()` requires every declared member.
+- `CohortActivity.None()` requires no active members.
 - `CohortActivity.AtLeast(n)` requires at least `n` active members.
 - `CohortActivity.AtMost(n)` requires no more than `n` active members.
 - `CohortActivity.Exactly(n)` requires exactly `n` active members.

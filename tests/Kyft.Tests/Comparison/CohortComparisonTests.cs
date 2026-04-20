@@ -138,6 +138,46 @@ public sealed class CohortComparisonTests
     }
 
     [Fact]
+    public void ResidualAgainstNoneCohortRequiresNoActiveMembers()
+    {
+        var pipeline = CreatePipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", start: 1, end: 11);
+        AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
+
+        var result = pipeline.Intervals
+            .Compare("Source A vs none cohort")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .AgainstCohort("cohort", cohort => cohort
+                .Sources("source-b", "source-c")
+                .Activity(CohortActivity.None()))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        Assert.Equal(5, result.ResidualRows.TotalPositionLength());
+    }
+
+    [Fact]
+    public void NoneCohortRuleExportsWithoutCount()
+    {
+        var pipeline = CreatePipeline();
+
+        var result = pipeline.Intervals
+            .Compare("Source A vs none cohort")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .AgainstCohort("cohort", cohort => cohort
+                .Sources("source-b")
+                .Activity(CohortActivity.None()))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        Assert.Contains("\"activity\": \"none\"", result.ExportJson());
+        Assert.Contains("cohort=none", result.ExportMarkdown());
+    }
+
+    [Fact]
     public void AtLeastCohortCountCannotExceedDeclaredSources()
     {
         var pipeline = CreatePipeline();

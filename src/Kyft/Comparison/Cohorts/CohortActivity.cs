@@ -45,6 +45,15 @@ public sealed record CohortActivity
     }
 
     /// <summary>
+    /// Creates an activity rule where no declared member may be active.
+    /// </summary>
+    /// <returns>A no-active-members activity rule.</returns>
+    public static CohortActivity None()
+    {
+        return new CohortActivity("none");
+    }
+
+    /// <summary>
     /// Creates an activity rule where at least a configured number of members must be active.
     /// </summary>
     /// <param name="count">The required number of active members.</param>
@@ -98,6 +107,7 @@ public sealed record CohortActivity
         {
             "any" => memberCount == 0 ? 1 : 1,
             "all" => memberCount,
+            "none" => 0,
             "at-least" => Count!.Value,
             "at-most" => Count!.Value,
             "exactly" => Count!.Value,
@@ -111,6 +121,7 @@ public sealed record CohortActivity
         {
             "any" => activeCount >= 1,
             "all" => activeCount == memberCount,
+            "none" => activeCount == 0,
             "at-least" => activeCount >= Count!.Value,
             "at-most" => activeCount <= Count!.Value,
             "exactly" => activeCount == Count!.Value,
