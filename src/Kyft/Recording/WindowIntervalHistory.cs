@@ -364,7 +364,9 @@ public sealed class WindowIntervalHistory
                 open.StartTime,
                 eventTime,
                 open.Segments,
-                open.Tags));
+                open.Tags,
+                emission.BoundaryReason,
+                emission.BoundaryChanges));
         }
     }
 

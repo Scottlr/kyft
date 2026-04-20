@@ -36,6 +36,8 @@ public readonly record struct WindowRecordId(string Value)
         Append(builder, "end-status", window.IsClosed ? "closed" : "open");
         AppendSegments(builder, window.Segments);
         AppendTags(builder, window.Tags);
+        Append(builder, "boundary-reason", window.BoundaryReason?.ToString() ?? "<null>");
+        AppendBoundaryChanges(builder, window.BoundaryChanges);
 
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
         return new WindowRecordId(Convert.ToHexString(bytes).ToLowerInvariant());
@@ -98,6 +100,21 @@ public readonly record struct WindowRecordId(string Value)
             var tag = tags[i];
             Append(builder, "tag-name", tag.Name);
             Append(builder, "tag-value", StableObjectValue(tag.Value));
+        }
+    }
+
+    private static void AppendBoundaryChanges(
+        StringBuilder builder,
+        IReadOnlyList<WindowBoundaryChange> changes)
+    {
+        Append(builder, "boundary-changes-count", changes.Count.ToString(CultureInfo.InvariantCulture));
+
+        for (var i = 0; i < changes.Count; i++)
+        {
+            var change = changes[i];
+            Append(builder, "boundary-change-name", change.SegmentName);
+            Append(builder, "boundary-change-previous", StableObjectValue(change.PreviousValue));
+            Append(builder, "boundary-change-current", StableObjectValue(change.CurrentValue));
         }
     }
 }

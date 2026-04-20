@@ -66,10 +66,12 @@ internal sealed class WindowRuntime<TEvent>
                     source,
                     partition,
                     previousState.Segments,
-                    previousState.Tags));
+                    previousState.Tags,
+                    WindowBoundaryReason.ActivePredicateEnded));
         }
         else if (segmentChanged && previousState is not null)
         {
+            var boundaryChanges = GetSegmentChanges(previousState.Segments, currentSegments);
             AddEmission(
                 ref emissions,
                 new WindowEmission<TEvent>(
@@ -80,7 +82,9 @@ internal sealed class WindowRuntime<TEvent>
                     source,
                     partition,
                     previousState.Segments,
-                    previousState.Tags));
+                    previousState.Tags,
+                    WindowBoundaryReason.SegmentChanged,
+                    boundaryChanges));
             this.activeKeys[stateKey] = new ActiveWindowState(currentSegments, Tags: []);
             AddEmission(
                 ref emissions,
@@ -136,5 +140,41 @@ internal sealed class WindowRuntime<TEvent>
         }
 
         return true;
+    }
+
+    private static IReadOnlyList<WindowBoundaryChange> GetSegmentChanges(
+        IReadOnlyList<WindowSegment> previous,
+        IReadOnlyList<WindowSegment> current)
+    {
+        var count = Math.Max(previous.Count, current.Count);
+        var changes = new List<WindowBoundaryChange>();
+
+        for (var i = 0; i < count; i++)
+        {
+            var previousSegment = i < previous.Count ? previous[i] : null;
+            var currentSegment = i < current.Count ? current[i] : null;
+            var name = previousSegment?.Name ?? currentSegment?.Name ?? string.Empty;
+
+            if (previousSegment is null || currentSegment is null)
+            {
+                changes.Add(new WindowBoundaryChange(
+                    name,
+                    previousSegment?.Value,
+                    currentSegment?.Value));
+                continue;
+            }
+
+            if (!string.Equals(previousSegment.Name, currentSegment.Name, StringComparison.Ordinal)
+                || !string.Equals(previousSegment.ParentName, currentSegment.ParentName, StringComparison.Ordinal)
+                || !EqualityComparer<object?>.Default.Equals(previousSegment.Value, currentSegment.Value))
+            {
+                changes.Add(new WindowBoundaryChange(
+                    name,
+                    previousSegment.Value,
+                    currentSegment.Value));
+            }
+        }
+
+        return changes.ToArray();
     }
 }

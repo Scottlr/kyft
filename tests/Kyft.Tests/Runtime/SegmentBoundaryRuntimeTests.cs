@@ -26,10 +26,31 @@ public sealed class SegmentBoundaryRuntimeTests
         var closed = Assert.Single(pipeline.Intervals.ClosedWindows);
         Assert.Equal(1, closed.StartPosition);
         Assert.Equal(2, closed.EndPosition);
+        Assert.Equal(WindowBoundaryReason.SegmentChanged, closed.BoundaryReason);
+        Assert.Equal("phase", Assert.Single(closed.BoundaryChanges).SegmentName);
         Assert.Equal("Pregame", Assert.Single(closed.Segments).Value);
 
         var open = Assert.Single(pipeline.Intervals.OpenWindows);
         Assert.Equal("InPlay", Assert.Single(open.Segments).Value);
+    }
+
+    [Fact]
+    public void ActivePredicateCloseRecordsPredicateEndedBoundaryReason()
+    {
+        var pipeline = Kyft
+            .For<PriceUpdate>()
+            .RecordIntervals()
+            .TrackWindow("SelectionPriced", window => window
+                .Key(update => update.SelectionId)
+                .ActiveWhen(update => update.HasPrice)
+                .Segment("phase", phase => phase.Value(update => update.Phase)));
+
+        pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: true, "InPlay", "FirstHalf"));
+        pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: false, "InPlay", "FirstHalf"));
+
+        var closed = Assert.Single(pipeline.Intervals.ClosedWindows);
+        Assert.Equal(WindowBoundaryReason.ActivePredicateEnded, closed.BoundaryReason);
+        Assert.Empty(closed.BoundaryChanges);
     }
 
     [Fact]

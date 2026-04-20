@@ -35,7 +35,9 @@ public sealed record OpenWindow : WindowRecord
         StartTime,
         EndTime: null,
         Segments,
-        Tags)
+        Tags,
+        BoundaryReason: null,
+        BoundaryChanges: null)
     {
     }
 }
