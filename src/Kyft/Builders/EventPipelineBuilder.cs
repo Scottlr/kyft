@@ -102,6 +102,33 @@ public sealed class EventPipelineBuilder<TEvent>
     }
 
     /// <summary>
+    /// Adds a state-driven source window using the full definition builder.
+    /// </summary>
+    /// <param name="name">The default window name.</param>
+    /// <param name="configure">Configures the window definition.</param>
+    /// <returns>A builder positioned at the newly added window.</returns>
+    public WindowPipelineBuilder<TEvent> Window(
+        string name,
+        Action<WindowDefinitionBuilder<TEvent>> configure)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var builder = new WindowDefinitionBuilder<TEvent>(name);
+        configure(builder);
+        var definition = builder.Build();
+        ThrowIfNameExists(definition.Name, this.windowNames);
+        this.windows.Add(definition);
+
+        return new WindowPipelineBuilder<TEvent>(
+            this.windows,
+            this.windowNames,
+            this.emissionCallbacks,
+            this.options,
+            definition);
+    }
+
+    /// <summary>
     /// Builds a pipeline for a single state-driven source window.
     /// </summary>
     /// <typeparam name="TKey">The key type used to track independent window state.</typeparam>
@@ -152,6 +179,19 @@ public sealed class EventPipelineBuilder<TEvent>
         where TWindow : IWindowDefinition<TEvent>, new()
     {
         return Window<TWindow>().Build();
+    }
+
+    /// <summary>
+    /// Builds a pipeline for a single source window using the full definition builder.
+    /// </summary>
+    /// <param name="name">The default window name.</param>
+    /// <param name="configure">Configures the window definition.</param>
+    /// <returns>A pipeline ready to ingest events.</returns>
+    public EventPipeline<TEvent> TrackWindow(
+        string name,
+        Action<WindowDefinitionBuilder<TEvent>> configure)
+    {
+        return Window(name, configure).Build();
     }
 
     /// <summary>

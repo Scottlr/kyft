@@ -6,13 +6,13 @@ namespace Kyft.Internal.Runtime;
 internal sealed class WindowRuntime<TEvent>
 {
     private readonly WindowDefinition<TEvent> definition;
-    private readonly HashSet<RuntimeStateKey> activeKeys;
+    private readonly Dictionary<RuntimeStateKey, ActiveWindowState> activeKeys;
     private readonly RollUpRuntime<TEvent>[] rollUps;
 
     public WindowRuntime(WindowDefinition<TEvent> definition)
     {
         this.definition = definition;
-        this.activeKeys = new HashSet<RuntimeStateKey>(
+        this.activeKeys = new Dictionary<RuntimeStateKey, ActiveWindowState>(
             new RuntimeStateKeyComparer(definition.KeyComparer));
         this.rollUps = new RollUpRuntime<TEvent>[definition.RollUps.Count];
 
@@ -31,12 +31,17 @@ internal sealed class WindowRuntime<TEvent>
         var key = this.definition.GetKey(@event);
         var isActive = this.definition.IsActive(@event);
         var stateKey = new RuntimeStateKey(key, source, partition);
-        var wasActive = this.activeKeys.Contains(stateKey);
+        var wasActive = this.activeKeys.TryGetValue(stateKey, out var previousState);
         var changed = isActive != wasActive;
+        var currentSegments = isActive ? this.definition.GetSegments(@event) : [];
+        var segmentChanged = isActive
+            && wasActive
+            && previousState is not null
+            && !SegmentsEqual(previousState.Segments, currentSegments);
 
         if (changed && isActive)
         {
-            this.activeKeys.Add(stateKey);
+            this.activeKeys[stateKey] = new ActiveWindowState(currentSegments, Tags: []);
             AddEmission(
                 ref emissions,
                 new WindowEmission<TEvent>(
@@ -45,9 +50,10 @@ internal sealed class WindowRuntime<TEvent>
                     @event,
                     WindowTransitionKind.Opened,
                     source,
-                    partition));
+                    partition,
+                    currentSegments));
         }
-        else if (changed)
+        else if (changed && previousState is not null)
         {
             this.activeKeys.Remove(stateKey);
             AddEmission(
@@ -58,7 +64,35 @@ internal sealed class WindowRuntime<TEvent>
                     @event,
                     WindowTransitionKind.Closed,
                     source,
-                    partition));
+                    partition,
+                    previousState.Segments,
+                    previousState.Tags));
+        }
+        else if (segmentChanged && previousState is not null)
+        {
+            AddEmission(
+                ref emissions,
+                new WindowEmission<TEvent>(
+                    this.definition.Name,
+                    key,
+                    @event,
+                    WindowTransitionKind.Closed,
+                    source,
+                    partition,
+                    previousState.Segments,
+                    previousState.Tags));
+            this.activeKeys[stateKey] = new ActiveWindowState(currentSegments, Tags: []);
+            AddEmission(
+                ref emissions,
+                new WindowEmission<TEvent>(
+                    this.definition.Name,
+                    key,
+                    @event,
+                    WindowTransitionKind.Opened,
+                    source,
+                    partition,
+                    currentSegments));
+            changed = true;
         }
 
         foreach (var rollUp in this.rollUps)
@@ -80,5 +114,27 @@ internal sealed class WindowRuntime<TEvent>
     {
         emissions ??= [];
         emissions.Add(emission);
+    }
+
+    private static bool SegmentsEqual(
+        IReadOnlyList<WindowSegment> left,
+        IReadOnlyList<WindowSegment> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            if (!string.Equals(left[i].Name, right[i].Name, StringComparison.Ordinal)
+                || !string.Equals(left[i].ParentName, right[i].ParentName, StringComparison.Ordinal)
+                || !EqualityComparer<object?>.Default.Equals(left[i].Value, right[i].Value))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

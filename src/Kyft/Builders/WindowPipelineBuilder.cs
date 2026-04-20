@@ -201,6 +201,33 @@ public sealed class WindowPipelineBuilder<TEvent>
     }
 
     /// <summary>
+    /// Adds another state-driven source window using the full definition builder.
+    /// </summary>
+    /// <param name="name">The default window name.</param>
+    /// <param name="configure">Configures the window definition.</param>
+    /// <returns>A builder positioned at the newly added window.</returns>
+    public WindowPipelineBuilder<TEvent> Window(
+        string name,
+        Action<WindowDefinitionBuilder<TEvent>> configure)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var builder = new WindowDefinitionBuilder<TEvent>(name);
+        configure(builder);
+        var definition = builder.Build();
+        EventPipelineBuilder<TEvent>.ThrowIfNameExists(definition.Name, this.windowNames);
+        Windows.Add(definition);
+
+        return new WindowPipelineBuilder<TEvent>(
+            Windows,
+            this.windowNames,
+            this.emissionCallbacks,
+            this.options,
+            definition);
+    }
+
+    /// <summary>
     /// Builds an event pipeline from the configured windows and options.
     /// </summary>
     /// <returns>A pipeline ready to ingest events.</returns>

@@ -14,11 +14,13 @@ public sealed class WindowDefinitionBuilder<TEvent>
     private Func<TEvent, object>? keySelector;
     private IEqualityComparer<object>? keyComparer;
     private Func<TEvent, bool>? isActiveSelector;
+    private readonly List<SegmentBuilder<TEvent>> segments;
 
     internal WindowDefinitionBuilder(string defaultName)
     {
         this.name = defaultName;
         this.callbacks = new WindowCallbackSet<TEvent>();
+        this.segments = [];
     }
 
     /// <summary>
@@ -68,6 +70,25 @@ public sealed class WindowDefinitionBuilder<TEvent>
     }
 
     /// <summary>
+    /// Adds an analytical segment dimension that can split active windows when its value changes.
+    /// </summary>
+    /// <param name="name">The segment dimension name.</param>
+    /// <param name="configure">Configures the segment value and optional child segments.</param>
+    /// <returns>The current builder.</returns>
+    public WindowDefinitionBuilder<TEvent> Segment(
+        string name,
+        Action<SegmentBuilder<TEvent>> configure)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var segment = new SegmentBuilder<TEvent>(name);
+        configure(segment);
+        this.segments.Add(segment);
+        return this;
+    }
+
+    /// <summary>
     /// Registers a callback invoked when this window opens.
     /// </summary>
     /// <param name="callback">The callback to invoke for open emissions.</param>
@@ -111,11 +132,29 @@ public sealed class WindowDefinitionBuilder<TEvent>
             this.name,
             this.keySelector,
             this.keyComparer ?? EqualityComparer<object>.Default,
-            this.isActiveSelector);
+            this.isActiveSelector,
+            BuildSegments());
 
         definition.Callbacks.Opened.AddRange(this.callbacks.Opened);
         definition.Callbacks.Closed.AddRange(this.callbacks.Closed);
 
         return definition;
+    }
+
+    private IReadOnlyList<SegmentDefinition<TEvent>> BuildSegments()
+    {
+        if (this.segments.Count == 0)
+        {
+            return [];
+        }
+
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var definitions = new SegmentDefinition<TEvent>[this.segments.Count];
+        for (var i = 0; i < definitions.Length; i++)
+        {
+            definitions[i] = this.segments[i].Build(names);
+        }
+
+        return definitions;
     }
 }
