@@ -61,6 +61,88 @@ public sealed class SegmentCohortSafetyTests
     }
 
     [Fact]
+    public void KnownAtExcludesFutureSegmentWindows()
+    {
+        var pipeline = CreatePipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", start: 1, end: 5, period: "FirstPeriod");
+        AddClosedWindow(pipeline, source: "source-a", start: 6, end: 10, period: "SecondPeriod");
+
+        var prepared = pipeline.Intervals
+            .Compare("Known-at segmented audit")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Normalize(normalization => normalization.KnownAtPosition(5))
+            .Using(comparators => comparators.Residual())
+            .Prepare();
+
+        var normalized = Assert.Single(prepared.NormalizedWindows);
+
+        Assert.Contains(normalized.Segments, segment =>
+            string.Equals(segment.Name, "period", StringComparison.Ordinal)
+            && Equals(segment.Value, "FirstPeriod"));
+        Assert.DoesNotContain(prepared.NormalizedWindows, window =>
+            window.Segments.Any(segment => Equals(segment.Value, "SecondPeriod")));
+        Assert.Contains(prepared.Diagnostics, diagnostic =>
+            diagnostic.Code == ComparisonPlanValidationCode.FutureWindowExcluded);
+    }
+
+    [Fact]
+    public void KnownAtCohortActivityDoesNotUseUnavailableMembers()
+    {
+        var pipeline = CreatePipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", start: 1, end: 6);
+        AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
+        AddClosedWindow(pipeline, source: "source-c", start: 1, end: 11);
+
+        var result = pipeline.Intervals
+            .Compare("Known-at cohort threshold")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .AgainstCohort("cohort", cohort => cohort
+                .Sources("source-b", "source-c")
+                .Activity(CohortActivity.AtLeast(2)))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Normalize(normalization => normalization.KnownAtPosition(6))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        Assert.Equal(5, result.ResidualRows.TotalPositionLength());
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == ComparisonPlanValidationCode.FutureWindowExcluded);
+    }
+
+    [Fact]
+    public void KnownAtAsOfCohortPlanDoesNotMatchUnavailableFutureMember()
+    {
+        var pipeline = CreatePipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", start: 10, end: 11);
+        AddClosedWindow(pipeline, source: "source-b", start: 8, end: 11);
+        AddClosedWindow(pipeline, source: "source-c", start: 12, end: 20);
+
+        var result = pipeline.Intervals
+            .Compare("Known-at cohort as-of")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .AgainstCohort("cohort", cohort => cohort.Sources("source-b", "source-c"))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Normalize(normalization => normalization.KnownAtPosition(11))
+            .Using(comparators => comparators.AsOf(
+                AsOfDirection.Next,
+                TemporalAxis.ProcessingPosition,
+                toleranceMagnitude: 5))
+            .Run();
+
+        var row = Assert.Single(result.AsOfRows);
+
+        Assert.Equal(AsOfMatchStatus.NoMatch, row.Status);
+        Assert.Null(row.MatchedRecordId);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == ComparisonPlanValidationCode.FutureWindowExcluded);
+    }
+
+    [Fact]
     public void CohortResidualIsProvisionalWhenThresholdEvidenceIsOpen()
     {
         var pipeline = CreatePipeline();
@@ -112,7 +194,8 @@ public sealed class SegmentCohortSafetyTests
         EventPipeline<PriceUpdate> pipeline,
         string source,
         long start,
-        long end)
+        long end,
+        string period = "FinalQuarter")
     {
         var open = new WindowEmission<PriceUpdate>(
             "SelectionPriced",
@@ -120,7 +203,11 @@ public sealed class SegmentCohortSafetyTests
             new PriceUpdate("selection-1", HasPrice: true, "InPlay"),
             WindowTransitionKind.Opened,
             source,
-            Segments: [new WindowSegment("phase", "InPlay")]);
+            Segments:
+            [
+                new WindowSegment("phase", "InPlay"),
+                new WindowSegment("period", period, ParentName: "phase")
+            ]);
         var close = open with
         {
             Event = new PriceUpdate("selection-1", HasPrice: false, "InPlay"),
