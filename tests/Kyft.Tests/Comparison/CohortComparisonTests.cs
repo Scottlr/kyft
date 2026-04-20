@@ -264,6 +264,34 @@ public sealed class CohortComparisonTests
     }
 
     [Fact]
+    public void CohortEvidenceMetadataCanBeQueriedAsTypedValues()
+    {
+        var pipeline = CreatePipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", start: 1, end: 11);
+        AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
+
+        var result = pipeline.Intervals
+            .Compare("Source A vs typed cohort evidence")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .AgainstCohort("cohort", cohort => cohort
+                .Sources("source-b", "source-c")
+                .Activity(CohortActivity.AtLeast(2)))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        var inactive = Assert.Single(result.CohortEvidence(), evidence =>
+            !evidence.IsActive
+            && evidence.ActiveCount == 1);
+
+        Assert.Equal("at-least", inactive.Rule);
+        Assert.Equal(2, inactive.RequiredCount);
+        Assert.Contains("source-b", inactive.ActiveSources);
+        Assert.Contains("required=2", inactive.RawValue);
+    }
+
+    [Fact]
     public void DebugHtmlShowsCohortEvidenceMetadata()
     {
         var pipeline = CreatePipeline();
