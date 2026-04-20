@@ -395,15 +395,27 @@ internal static class ComparisonExplainer
             return "<missing>";
         }
 
-        var value = "window=" + (scope.WindowName ?? "<all>") + "; axis=" + scope.TimeAxis;
-        if (scope.SegmentFilters.Count == 0)
+        var parts = new List<string>
         {
-            return value;
+            "window=" + (scope.WindowName ?? "<all>"),
+            "axis=" + scope.TimeAxis
+        };
+
+        if (scope.SegmentFilters.Count > 0)
+        {
+            parts.Add("segments=" + string.Join(
+                ", ",
+                scope.SegmentFilters.Select(static filter => filter.Name + "=" + StableObjectValue(filter.Value))));
         }
 
-        return value + "; segments=" + string.Join(
-            ", ",
-            scope.SegmentFilters.Select(static filter => filter.Name + "=" + StableObjectValue(filter.Value)));
+        if (scope.TagFilters.Count > 0)
+        {
+            parts.Add("tags=" + string.Join(
+                ", ",
+                scope.TagFilters.Select(static filter => filter.Name + "=" + StableObjectValue(filter.Value))));
+        }
+
+        return string.Join("; ", parts);
     }
 
     private static string FormatNormalization(ComparisonNormalizationPolicy policy)

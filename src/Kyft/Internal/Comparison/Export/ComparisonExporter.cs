@@ -364,6 +364,21 @@ internal static class ComparisonExporter
             writer.WriteEndArray();
         }
 
+        if (scope.TagFilters.Count > 0)
+        {
+            writer.WritePropertyName("tagFilters");
+            writer.WriteStartArray();
+            for (var i = 0; i < scope.TagFilters.Count; i++)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("name", scope.TagFilters[i].Name);
+                WriteObjectValue(writer, "value", scope.TagFilters[i].Value);
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndArray();
+        }
+
         writer.WriteEndObject();
     }
 

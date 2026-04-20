@@ -40,6 +40,51 @@ public sealed class SegmentAwareComparisonTests
     }
 
     [Fact]
+    public void ComparisonScopeCanFilterByTag()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4, fleet: "critical");
+        AddClosedWindow(pipeline, source: "source-b", phase: "InPlay", start: 1, end: 4, fleet: "standard");
+
+        var result = pipeline.Intervals
+            .Compare("Critical fleet residual")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope.Window("SelectionPriced").Tag("fleet", "critical"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        Assert.Single(result.Prepared!.NormalizedWindows);
+        Assert.Single(result.ResidualRows);
+        Assert.Contains("\"tagFilters\"", result.ExportJson());
+        Assert.Contains("tags=fleet=System.String:critical", result.Explain());
+    }
+
+    [Fact]
+    public void ComparisonScopeCanFilterBySegmentAndTag()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4, fleet: "critical");
+        AddClosedWindow(pipeline, source: "source-b", phase: "Pregame", start: 1, end: 4, fleet: "critical");
+
+        var result = pipeline.Intervals
+            .Compare("Critical in-play residual")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .Against("source-b", selector => selector.Source("source-b"))
+            .Within(scope => scope
+                .Window("SelectionPriced")
+                .Segment("phase", "InPlay")
+                .Tag("fleet", "critical"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        Assert.Single(result.Prepared!.NormalizedWindows);
+        Assert.Single(result.ResidualRows);
+    }
+
+    [Fact]
     public void AlignmentDoesNotCombineDifferentSegmentContexts()
     {
         var pipeline = CreateSegmentedPipeline();
@@ -93,7 +138,8 @@ public sealed class SegmentAwareComparisonTests
         string source,
         string phase,
         long start,
-        long end)
+        long end,
+        string? fleet = null)
     {
         var open = new WindowEmission<PriceUpdate>(
             "SelectionPriced",
@@ -101,7 +147,8 @@ public sealed class SegmentAwareComparisonTests
             new PriceUpdate("selection-1", HasPrice: true),
             WindowTransitionKind.Opened,
             source,
-            Segments: [new WindowSegment("phase", phase)]);
+            Segments: [new WindowSegment("phase", phase)],
+            Tags: fleet is null ? [] : [new WindowTag("fleet", fleet)]);
         var close = open with
         {
             Event = new PriceUpdate("selection-1", HasPrice: false),
