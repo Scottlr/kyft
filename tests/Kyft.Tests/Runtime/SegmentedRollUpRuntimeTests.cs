@@ -142,6 +142,82 @@ public sealed class SegmentedRollUpRuntimeTests
             });
     }
 
+    [Fact]
+    public void RollUpCanRenameChildSegment()
+    {
+        var pipeline = Kyft
+            .For<PriceUpdate>()
+            .RecordIntervals()
+            .Window("SelectionPriced", window => window
+                .Key(update => update.SelectionId)
+                .ActiveWhen(update => update.HasPrice)
+                .Segment("phase", phase => phase.Value(update => update.Phase)))
+            .RollUp(
+                "MarketPriced",
+                update => update.MarketId,
+                children => children.ActiveCount > 0,
+                segments => segments.Rename("phase", "lifecycle"))
+            .Build();
+
+        pipeline.Ingest(new PriceUpdate("selection-1", "market-1", "fixture-1", HasPrice: true, "InPlay"));
+
+        var openMarket = Assert.Single(
+            pipeline.Intervals.OpenWindows,
+            window => window.WindowName == "MarketPriced");
+        var segment = Assert.Single(openMarket.Segments);
+        Assert.Equal("lifecycle", segment.Name);
+        Assert.Equal("InPlay", segment.Value);
+    }
+
+    [Fact]
+    public void RollUpCanTransformChildSegmentValue()
+    {
+        var pipeline = Kyft
+            .For<PriceUpdate>()
+            .RecordIntervals()
+            .Window("SelectionPriced", window => window
+                .Key(update => update.SelectionId)
+                .ActiveWhen(update => update.HasPrice)
+                .Segment("phase", phase => phase.Value(update => update.Phase)))
+            .RollUp(
+                "MarketPriced",
+                update => update.MarketId,
+                children => children.ActiveCount > 0,
+                segments => segments.Transform("phase", value => value?.ToString()?.ToUpperInvariant()))
+            .Build();
+
+        pipeline.Ingest(new PriceUpdate("selection-1", "market-1", "fixture-1", HasPrice: true, "in-play"));
+
+        var openMarket = Assert.Single(
+            pipeline.Intervals.OpenWindows,
+            window => window.WindowName == "MarketPriced");
+        Assert.Equal("IN-PLAY", Assert.Single(openMarket.Segments).Value);
+    }
+
+    [Fact]
+    public void RollUpRejectsDuplicateProjectedSegmentNames()
+    {
+        var pipeline = Kyft
+            .For<PriceUpdate>()
+            .RecordIntervals()
+            .Window("SelectionPriced", window => window
+                .Key(update => update.SelectionId)
+                .ActiveWhen(update => update.HasPrice)
+                .Segment("phase", phase => phase
+                    .Value(update => update.Phase)
+                    .Child("period", period => period.Value(update => update.Period))))
+            .RollUp(
+                "MarketPriced",
+                update => update.MarketId,
+                children => children.ActiveCount > 0,
+                segments => segments.Rename("period", "phase"))
+            .Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            pipeline.Ingest(new PriceUpdate("selection-1", "market-1", "fixture-1", HasPrice: true, "InPlay", "Q4")));
+        Assert.Contains("duplicate segment 'phase'", exception.Message);
+    }
+
     private sealed record PriceUpdate(
         string SelectionId,
         string MarketId,
