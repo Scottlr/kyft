@@ -343,7 +343,9 @@ public sealed class WindowIntervalHistory
                     processingPosition,
                     emission.Source,
                     emission.Partition,
-                    eventTime);
+                    eventTime,
+                    emission.Segments,
+                    emission.Tags);
                 continue;
             }
 
@@ -360,7 +362,9 @@ public sealed class WindowIntervalHistory
                 open.Source,
                 open.Partition,
                 open.StartTime,
-                eventTime));
+                eventTime,
+                open.Segments,
+                open.Tags));
         }
     }
 

@@ -34,6 +34,8 @@ public readonly record struct WindowRecordId(string Value)
         Append(builder, "start-time", StableTimestampValue(window.StartTime));
         Append(builder, "end-time", StableTimestampValue(window.EndTime));
         Append(builder, "end-status", window.IsClosed ? "closed" : "open");
+        AppendSegments(builder, window.Segments);
+        AppendTags(builder, window.Tags);
 
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
         return new WindowRecordId(Convert.ToHexString(bytes).ToLowerInvariant());
@@ -72,5 +74,30 @@ public readonly record struct WindowRecordId(string Value)
     private static string StableTimestampValue(DateTimeOffset? value)
     {
         return value?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture) ?? "<null>";
+    }
+
+    private static void AppendSegments(StringBuilder builder, IReadOnlyList<WindowSegment> segments)
+    {
+        Append(builder, "segments-count", segments.Count.ToString(CultureInfo.InvariantCulture));
+
+        for (var i = 0; i < segments.Count; i++)
+        {
+            var segment = segments[i];
+            Append(builder, "segment-name", segment.Name);
+            Append(builder, "segment-value", StableObjectValue(segment.Value));
+            Append(builder, "segment-parent", segment.ParentName ?? "<null>");
+        }
+    }
+
+    private static void AppendTags(StringBuilder builder, IReadOnlyList<WindowTag> tags)
+    {
+        Append(builder, "tags-count", tags.Count.ToString(CultureInfo.InvariantCulture));
+
+        for (var i = 0; i < tags.Count; i++)
+        {
+            var tag = tags[i];
+            Append(builder, "tag-name", tag.Name);
+            Append(builder, "tag-value", StableObjectValue(tag.Value));
+        }
     }
 }

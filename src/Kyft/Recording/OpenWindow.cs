@@ -14,13 +14,17 @@ public sealed record OpenWindow : WindowRecord
     /// <param name="Source">Optional source identity supplied when the window opened.</param>
     /// <param name="Partition">Optional partition identity supplied when the window opened.</param>
     /// <param name="StartTime">Optional event timestamp where the window opened.</param>
+    /// <param name="Segments">Analytical segment values attached to this window.</param>
+    /// <param name="Tags">Descriptive non-boundary metadata attached to this window.</param>
     public OpenWindow(
         string WindowName,
         object Key,
         long StartPosition,
         object? Source = null,
         object? Partition = null,
-        DateTimeOffset? StartTime = null)
+        DateTimeOffset? StartTime = null,
+        IReadOnlyList<WindowSegment>? Segments = null,
+        IReadOnlyList<WindowTag>? Tags = null)
         : base(
         WindowName,
         Key,
@@ -29,7 +33,9 @@ public sealed record OpenWindow : WindowRecord
         Source,
         Partition,
         StartTime,
-        EndTime: null)
+        EndTime: null,
+        Segments,
+        Tags)
     {
     }
 }

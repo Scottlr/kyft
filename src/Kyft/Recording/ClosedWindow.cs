@@ -16,6 +16,8 @@ public sealed record ClosedWindow : WindowRecord
     /// <param name="Partition">Optional partition identity supplied when the window opened.</param>
     /// <param name="StartTime">Optional event timestamp where the window opened.</param>
     /// <param name="EndTime">Optional event timestamp where the window closed.</param>
+    /// <param name="Segments">Analytical segment values attached to this window.</param>
+    /// <param name="Tags">Descriptive non-boundary metadata attached to this window.</param>
     public ClosedWindow(
         string WindowName,
         object Key,
@@ -24,7 +26,9 @@ public sealed record ClosedWindow : WindowRecord
         object? Source = null,
         object? Partition = null,
         DateTimeOffset? StartTime = null,
-        DateTimeOffset? EndTime = null)
+        DateTimeOffset? EndTime = null,
+        IReadOnlyList<WindowSegment>? Segments = null,
+        IReadOnlyList<WindowTag>? Tags = null)
         : base(
         WindowName,
         Key,
@@ -33,7 +37,9 @@ public sealed record ClosedWindow : WindowRecord
         Source,
         Partition,
         StartTime,
-        EndTime)
+        EndTime,
+        Segments,
+        Tags)
     {
     }
 }
