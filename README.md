@@ -266,7 +266,7 @@ to market and fixture windows without merging pregame and in-play evidence.
 
 Use cohorts when the comparison side is a group rather than one source. An
 any-member cohort is active whenever at least one declared member source is
-active.
+active. `All()` and `AtLeast(n)` let you ask stricter consensus questions.
 
 ```csharp
 var unmatched = pipeline.Intervals // Start from recorded segmented windows.
@@ -285,6 +285,10 @@ var unmatched = pipeline.Intervals // Start from recorded segmented windows.
 
 var total = unmatched.ResidualRows.TotalPositionLength(); // Sum unmatched processing-position length.
 ```
+
+Kyft emits compact cohort evidence metadata for each aligned segment, including
+the rule, required active count, actual active count, and whether the cohort was
+active. JSON, Markdown, and debug HTML exports include that evidence.
 
 ## Known-At Safety
 

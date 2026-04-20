@@ -268,9 +268,10 @@ var finalQuarter = pipeline.Intervals // Start from recorded windows.
 
 ## Cohorts
 
-Use `AgainstCohort(...)` when the comparison side is a group. The first cohort
-rule is `CohortActivity.Any()`, where any active member source covers the cohort
-lane. This is different from summing pairwise residuals, which can overcount.
+Use `AgainstCohort(...)` when the comparison side is a group. Cohort activity
+rules collapse member sources into one derived comparison lane before
+comparators run. This is different from summing pairwise residuals, which can
+overcount.
 
 ```csharp
 var result = pipeline.Intervals // Start from recorded segmented windows.
@@ -285,6 +286,17 @@ var result = pipeline.Intervals // Start from recorded segmented windows.
 
 var unmatchedLength = result.ResidualRows.TotalPositionLength(); // Sum target-only processing positions.
 ```
+
+Available cohort activity rules:
+
+- `CohortActivity.Any()` requires at least one active member.
+- `CohortActivity.All()` requires every declared member.
+- `CohortActivity.AtLeast(n)` requires at least `n` active members.
+
+Kyft stores cohort evidence in result extension metadata. The evidence includes
+the rule, required active count, actual active count, active member sources, and
+whether the cohort lane was active. `ExportJson()`, `ExportMarkdown()`, and
+`ExportDebugHtml(...)` include this evidence.
 
 ## Hierarchy Explanation
 
