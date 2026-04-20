@@ -18,6 +18,7 @@ internal static class ComparisonRuntime
         }
 
         var aligned = prepared.Align();
+        var cohortEvidence = CohortEvidence.Create(prepared);
         var summaries = new List<ComparatorSummary>();
         var overlapRows = new List<OverlapRow>();
         var residualRows = new List<ResidualRow>();
@@ -63,7 +64,7 @@ internal static class ComparisonRuntime
             if (string.Equals(comparator, "overlap", StringComparison.Ordinal))
             {
                 var before = overlapRows.Count;
-                AddOverlapRows(prepared, aligned, overlapRows);
+                AddOverlapRows(cohortEvidence, aligned, overlapRows);
                 summaries.Add(new ComparatorSummary(comparator, overlapRows.Count - before));
                 continue;
             }
@@ -71,7 +72,7 @@ internal static class ComparisonRuntime
             if (string.Equals(comparator, "residual", StringComparison.Ordinal))
             {
                 var before = residualRows.Count;
-                AddResidualRows(prepared, aligned, residualRows);
+                AddResidualRows(cohortEvidence, aligned, residualRows);
                 summaries.Add(new ComparatorSummary(comparator, residualRows.Count - before));
                 continue;
             }
@@ -79,7 +80,7 @@ internal static class ComparisonRuntime
             if (string.Equals(comparator, "missing", StringComparison.Ordinal))
             {
                 var before = missingRows.Count;
-                AddMissingRows(prepared, aligned, missingRows);
+                AddMissingRows(cohortEvidence, aligned, missingRows);
                 summaries.Add(new ComparatorSummary(comparator, missingRows.Count - before));
                 continue;
             }
@@ -87,7 +88,7 @@ internal static class ComparisonRuntime
             if (string.Equals(comparator, "coverage", StringComparison.Ordinal))
             {
                 var before = coverageRows.Count;
-                AddCoverageRows(prepared, aligned, coverageRows, coverageSummaries);
+                AddCoverageRows(cohortEvidence, aligned, coverageRows, coverageSummaries);
                 summaries.Add(new ComparatorSummary(comparator, coverageRows.Count - before));
                 continue;
             }
@@ -103,7 +104,7 @@ internal static class ComparisonRuntime
             if (string.Equals(comparator, "symmetric-difference", StringComparison.Ordinal))
             {
                 var before = symmetricDifferenceRows.Count;
-                AddSymmetricDifferenceRows(prepared, aligned, symmetricDifferenceRows);
+                AddSymmetricDifferenceRows(cohortEvidence, aligned, symmetricDifferenceRows);
                 summaries.Add(new ComparatorSummary(comparator, symmetricDifferenceRows.Count - before));
                 continue;
             }
@@ -133,6 +134,7 @@ internal static class ComparisonRuntime
         var rowFinalities = BuildRowFinalities(
             prepared,
             aligned,
+            cohortEvidence,
             overlapArray,
             residualArray,
             missingArray,
@@ -142,7 +144,7 @@ internal static class ComparisonRuntime
             containmentArray,
             leadLagArray,
             asOfArray);
-        var extensionMetadata = BuildCohortMetadata(prepared, aligned);
+        var extensionMetadata = BuildCohortMetadata(cohortEvidence, aligned);
 
         return new ComparisonResult(
             prepared.Plan,
@@ -166,11 +168,10 @@ internal static class ComparisonRuntime
     }
 
     private static void AddOverlapRows(
-        PreparedComparison prepared,
+        CohortEvidence evidence,
         AlignedComparison aligned,
         List<OverlapRow> rows)
     {
-        var evidence = CohortEvidence.Create(prepared);
         for (var i = 0; i < aligned.Segments.Count; i++)
         {
             var segment = aligned.Segments[i];
@@ -190,11 +191,10 @@ internal static class ComparisonRuntime
     }
 
     private static void AddResidualRows(
-        PreparedComparison prepared,
+        CohortEvidence evidence,
         AlignedComparison aligned,
         List<ResidualRow> rows)
     {
-        var evidence = CohortEvidence.Create(prepared);
         for (var i = 0; i < aligned.Segments.Count; i++)
         {
             var segment = aligned.Segments[i];
@@ -213,11 +213,10 @@ internal static class ComparisonRuntime
     }
 
     private static void AddMissingRows(
-        PreparedComparison prepared,
+        CohortEvidence evidence,
         AlignedComparison aligned,
         List<MissingRow> rows)
     {
-        var evidence = CohortEvidence.Create(prepared);
         for (var i = 0; i < aligned.Segments.Count; i++)
         {
             var segment = aligned.Segments[i];
@@ -236,12 +235,11 @@ internal static class ComparisonRuntime
     }
 
     private static void AddCoverageRows(
-        PreparedComparison prepared,
+        CohortEvidence evidence,
         AlignedComparison aligned,
         List<CoverageRow> rows,
         List<CoverageSummary> summaries)
     {
-        var evidence = CohortEvidence.Create(prepared);
         var summary = new Dictionary<CoverageScope, (double Target, double Covered)>();
 
         for (var i = 0; i < aligned.Segments.Count; i++)
@@ -310,11 +308,10 @@ internal static class ComparisonRuntime
     }
 
     private static void AddSymmetricDifferenceRows(
-        PreparedComparison prepared,
+        CohortEvidence evidence,
         AlignedComparison aligned,
         List<SymmetricDifferenceRow> rows)
     {
-        var evidence = CohortEvidence.Create(prepared);
         for (var i = 0; i < aligned.Segments.Count; i++)
         {
             var segment = aligned.Segments[i];
@@ -849,6 +846,7 @@ internal static class ComparisonRuntime
     private static ComparisonRowFinality[] BuildRowFinalities(
         PreparedComparison prepared,
         AlignedComparison aligned,
+        CohortEvidence cohortEvidence,
         IReadOnlyList<OverlapRow> overlapRows,
         IReadOnlyList<ResidualRow> residualRows,
         IReadOnlyList<MissingRow> missingRows,
@@ -874,7 +872,6 @@ internal static class ComparisonRuntime
             + containmentRows.Count
             + leadLagRows.Count
             + asOfRows.Count);
-        var cohortEvidence = CohortEvidence.Create(prepared);
 
         for (var i = 0; i < overlapRows.Count; i++)
         {
@@ -1071,10 +1068,9 @@ internal static class ComparisonRuntime
     }
 
     private static IReadOnlyList<ComparisonExtensionMetadata> BuildCohortMetadata(
-        PreparedComparison prepared,
+        CohortEvidence evidence,
         AlignedComparison aligned)
     {
-        var evidence = CohortEvidence.Create(prepared);
         if (!evidence.HasCohort)
         {
             return [];
