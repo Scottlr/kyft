@@ -155,6 +155,30 @@ public sealed class CohortComparisonTests
             && metadata.Value.Contains("isActive=false", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void DebugHtmlShowsCohortEvidenceMetadata()
+    {
+        var pipeline = CreatePipeline();
+
+        AddClosedWindow(pipeline, source: "source-a", start: 1, end: 11);
+        AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
+
+        var result = pipeline.Intervals
+            .Compare("Source A vs cohort evidence")
+            .Target("source-a", selector => selector.Source("source-a"))
+            .AgainstCohort("cohort", cohort => cohort
+                .Sources("source-b", "source-c")
+                .Activity(CohortActivity.AtLeast(2)))
+            .Within(scope => scope.Window("SelectionPriced"))
+            .Using(comparators => comparators.Residual())
+            .Run();
+
+        var html = result.ExportDebugHtml();
+
+        Assert.Contains("kyft.cohort", html);
+        Assert.Contains("required=2", html);
+    }
+
     private static EventPipeline<PriceUpdate> CreatePipeline()
     {
         return Kyft

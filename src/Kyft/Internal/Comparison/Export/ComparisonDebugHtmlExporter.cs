@@ -21,6 +21,7 @@ internal static class ComparisonDebugHtmlExporter
         AppendTimeline(builder, result, scale);
         AppendAlignedSegments(builder, result, scale);
         AppendDiagnostics(builder, result);
+        AppendMetadata(builder, result);
         AppendRows(builder, result);
         AppendDocumentEnd(builder);
 
@@ -657,6 +658,62 @@ tr:last-child td { border-bottom: 0; }
                 builder.Append("</td><td>");
                 AppendText(builder, diagnostic.Message);
                 builder.AppendLine("</td>")
+                    .AppendLine("        </tr>");
+            }
+
+            builder
+                .AppendLine("      </tbody>")
+                .AppendLine("    </table>")
+                .AppendLine("  </div>");
+        }
+
+        builder.AppendLine("</section>");
+    }
+
+    private static void AppendMetadata(StringBuilder builder, ComparisonResult result)
+    {
+        builder
+            .AppendLine("<section class=\"panel\">")
+            .AppendLine("  <div class=\"section-head\">")
+            .AppendLine("    <div>")
+            .AppendLine("      <h2>Metadata</h2>")
+            .AppendLine("      <p class=\"section-note\">Compact extension metadata explains derived artifacts such as cohort activity evidence.</p>")
+            .AppendLine("    </div>")
+            .AppendLine("  </div>");
+
+        if (result.ExtensionMetadata.Count == 0)
+        {
+            builder.AppendLine("  <div class=\"empty\">No extension metadata was emitted.</div>");
+        }
+        else
+        {
+            builder
+                .AppendLine("  <div class=\"table-wrap\">")
+                .AppendLine("    <table>")
+                .AppendLine("      <thead><tr><th>Extension</th><th>Key</th><th>Value</th></tr></thead>")
+                .AppendLine("      <tbody>");
+
+            foreach (var item in result.ExtensionMetadata.Take(120))
+            {
+                builder
+                    .AppendLine("        <tr>")
+                    .Append("          <td>");
+                AppendText(builder, item.ExtensionId);
+                builder.Append("</td><td class=\"mono\">");
+                AppendText(builder, item.Key);
+                builder.Append("</td><td>");
+                AppendText(builder, item.Value);
+                builder.AppendLine("</td>")
+                    .AppendLine("        </tr>");
+            }
+
+            if (result.ExtensionMetadata.Count > 120)
+            {
+                builder
+                    .AppendLine("        <tr>")
+                    .Append("          <td colspan=\"3\">Showing first 120 of ");
+                AppendText(builder, result.ExtensionMetadata.Count.ToString(CultureInfo.InvariantCulture));
+                builder.AppendLine(" metadata entries.</td>")
                     .AppendLine("        </tr>");
             }
 
