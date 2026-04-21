@@ -51,9 +51,16 @@ a {
 }
 
 .brand {
-  font-size: 18px;
-  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
   text-decoration: none;
+}
+
+.brand img {
+  display: block;
+  width: 148px;
+  height: auto;
 }
 
 .nav {

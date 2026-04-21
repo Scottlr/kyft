@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/brand/spanfold-logo.svg" alt="Spanfold" width="280">
+</p>
+
 # Spanfold
 
 Spanfold is a C# library for recording temporal state windows and comparing them
