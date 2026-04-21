@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Kyft API reference for pipeline creation, window recording, comparison, live analysis, exports, and temporal types.">
+  <meta name="description" content="Kyft API reference with classes, methods, comparison builders, exports, temporal types, and testing helpers.">
   <title>Kyft API reference</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -22,161 +22,478 @@
   <main>
     <section class="api-hero">
       <p class="eyebrow">API reference</p>
-      <h1>Kyft public API map.</h1>
+      <h1>Kyft API reference.</h1>
       <p>
-        This page documents the main package surface for building pipelines,
-        recording window history, comparing sources, exporting artifacts, and
-        reasoning at live or historical horizons. The NuGet package also ships
-        XML documentation generated from the public comments.
+        Static reference for the public package surface. The NuGet package also
+        ships XML documentation generated from the public comments; this page is
+        the GitHub Pages view for the APIs engineers use most often.
       </p>
       <pre><code>dotnet add package Kyft
 dotnet add package Kyft.Testing</code></pre>
     </section>
 
-    <section class="api-layout">
-      <aside class="api-toc" aria-label="API sections">
-        <a href="#pipeline">Pipeline</a>
-        <a href="#windows">Windows</a>
-        <a href="#history">History</a>
-        <a href="#comparison">Comparison</a>
-        <a href="#normalization">Normalization</a>
-        <a href="#results">Results</a>
-        <a href="#exports">Exports</a>
-        <a href="#temporal">Temporal types</a>
-        <a href="#liveness">Liveness</a>
-        <a href="#testing">Testing</a>
+    <section class="api-reference-layout">
+      <aside class="api-tree" aria-label="API member tree">
+        <div class="api-tree-title">Namespaces</div>
+        <details open>
+          <summary>Kyft</summary>
+          <a class="type-link" href="#Kyft">Kyft</a>
+          <a class="member-link" href="#Kyft">For&lt;TEvent&gt;()</a>
+          <a class="type-link" href="#EventPipelineBuilder">EventPipelineBuilder&lt;TEvent&gt;</a>
+          <a class="member-link" href="#EventPipelineBuilder">Window(...)</a>
+          <a class="member-link" href="#EventPipelineBuilder">TrackWindow(...)</a>
+          <a class="member-link" href="#EventPipelineBuilder">RecordWindows()</a>
+          <a class="member-link" href="#EventPipelineBuilder">Build()</a>
+          <a class="type-link" href="#WindowPipelineBuilder">WindowPipelineBuilder&lt;TEvent&gt;</a>
+          <a class="member-link" href="#WindowPipelineBuilder">Window(...)</a>
+          <a class="member-link" href="#WindowPipelineBuilder">RollUp(...)</a>
+          <a class="member-link" href="#WindowPipelineBuilder">Build()</a>
+          <a class="type-link" href="#EventPipeline">EventPipeline&lt;TEvent&gt;</a>
+          <a class="member-link" href="#EventPipeline">History</a>
+          <a class="member-link" href="#EventPipeline">Ingest(...)</a>
+          <a class="member-link" href="#EventPipeline">IngestMany(...)</a>
+        </details>
+        <details open>
+          <summary>Kyft.Windows</summary>
+          <a class="type-link" href="#WindowDefinitionBuilder">WindowDefinitionBuilder&lt;TEvent&gt;</a>
+          <a class="member-link" href="#WindowDefinitionBuilder">Named(...)</a>
+          <a class="member-link" href="#WindowDefinitionBuilder">Key(...)</a>
+          <a class="member-link" href="#WindowDefinitionBuilder">ActiveWhen(...)</a>
+          <a class="member-link" href="#WindowDefinitionBuilder">Segment(...)</a>
+          <a class="member-link" href="#WindowDefinitionBuilder">Tag(...)</a>
+          <a class="type-link" href="#SegmentBuilder">SegmentBuilder&lt;TEvent&gt;</a>
+          <a class="member-link" href="#SegmentBuilder">Value(...)</a>
+          <a class="member-link" href="#SegmentBuilder">Child(...)</a>
+          <a class="type-link" href="#WindowEmission">WindowEmission&lt;TEvent&gt;</a>
+          <a class="member-link" href="#WindowEmission">WindowName</a>
+          <a class="member-link" href="#WindowEmission">Kind</a>
+          <a class="member-link" href="#WindowEmission">Segments</a>
+          <a class="type-link" href="#WindowRecord">WindowRecord</a>
+          <a class="member-link" href="#WindowRecord">StartPosition</a>
+          <a class="member-link" href="#WindowRecord">EndPosition</a>
+          <a class="member-link" href="#WindowRecord">Id</a>
+        </details>
+        <details open>
+          <summary>Kyft.Recording</summary>
+          <a class="type-link" href="#WindowHistory">WindowHistory</a>
+          <a class="member-link" href="#WindowHistory">Query()</a>
+          <a class="member-link" href="#WindowHistory">SnapshotAt(...)</a>
+          <a class="member-link" href="#WindowHistory">Compare(...)</a>
+          <a class="member-link" href="#WindowHistory">Annotate(...)</a>
+          <a class="type-link" href="#WindowHistoryQuery">WindowHistoryQuery</a>
+          <a class="member-link" href="#WindowHistoryQuery">Window(...)</a>
+          <a class="member-link" href="#WindowHistoryQuery">Lane(...)</a>
+          <a class="member-link" href="#WindowHistoryQuery">ClosedWindows()</a>
+          <a class="member-link" href="#WindowHistoryQuery">OpenWindowsAt(...)</a>
+          <a class="type-link" href="#WindowHistorySnapshot">WindowHistorySnapshot</a>
+          <a class="member-link" href="#WindowHistorySnapshot">OpenWindows</a>
+          <a class="member-link" href="#WindowHistorySnapshot">Latest(...)</a>
+          <a class="type-link" href="#WindowAnnotation">WindowAnnotation</a>
+          <a class="member-link" href="#WindowAnnotation">Reason</a>
+          <a class="member-link" href="#WindowAnnotation">ObservedAt</a>
+        </details>
+        <details open>
+          <summary>Kyft.Comparison</summary>
+          <a class="type-link" href="#WindowComparisonBuilder">WindowComparisonBuilder</a>
+          <a class="member-link" href="#WindowComparisonBuilder">Target(...)</a>
+          <a class="member-link" href="#WindowComparisonBuilder">Against(...)</a>
+          <a class="member-link" href="#WindowComparisonBuilder">Normalize(...)</a>
+          <a class="member-link" href="#WindowComparisonBuilder">Compare(...)</a>
+          <a class="member-link" href="#WindowComparisonBuilder">Run(...)</a>
+          <a class="type-link" href="#ComparisonSelectorBuilder">ComparisonSelectorBuilder</a>
+          <a class="member-link" href="#ComparisonSelectorBuilder">Source(...)</a>
+          <a class="member-link" href="#ComparisonSelectorBuilder">Key(...)</a>
+          <a class="member-link" href="#ComparisonSelectorBuilder">Partition(...)</a>
+          <a class="type-link" href="#ComparisonCohortBuilder">ComparisonCohortBuilder</a>
+          <a class="member-link" href="#ComparisonCohortBuilder">Sources(...)</a>
+          <a class="member-link" href="#ComparisonCohortBuilder">Activity(...)</a>
+          <a class="member-link" href="#ComparisonCohortBuilder">CohortActivity.AtLeast(...)</a>
+          <a class="member-link" href="#ComparisonCohortBuilder">CohortActivity.All()</a>
+          <a class="type-link" href="#ComparisonNormalizationBuilder">ComparisonNormalizationBuilder</a>
+          <a class="member-link" href="#ComparisonNormalizationBuilder">RequireClosedWindows()</a>
+          <a class="member-link" href="#ComparisonNormalizationBuilder">ClipOpenWindowsTo(...)</a>
+          <a class="member-link" href="#ComparisonNormalizationBuilder">OnEventTime()</a>
+          <a class="type-link" href="#ComparisonComparatorBuilder">ComparisonComparatorBuilder</a>
+          <a class="member-link" href="#ComparisonComparatorBuilder">Overlap()</a>
+          <a class="member-link" href="#ComparisonComparatorBuilder">Residual()</a>
+          <a class="member-link" href="#ComparisonComparatorBuilder">Missing()</a>
+          <a class="member-link" href="#ComparisonComparatorBuilder">Coverage()</a>
+          <a class="type-link" href="#ComparisonResult">ComparisonResult</a>
+          <a class="member-link" href="#ComparisonResult">Prepared</a>
+          <a class="member-link" href="#ComparisonResult">Aligned</a>
+          <a class="member-link" href="#ComparisonResult">Rows</a>
+        </details>
+        <details>
+          <summary>Exports, Temporal, Liveness</summary>
+          <a class="type-link" href="#ComparisonExportExtensions">ComparisonExportExtensions</a>
+          <a class="member-link" href="#ComparisonExportExtensions">ExportJson()</a>
+          <a class="member-link" href="#ComparisonExportExtensions">ExportDebugHtml()</a>
+          <a class="type-link" href="#TemporalPoint">TemporalPoint</a>
+          <a class="member-link" href="#TemporalPoint">ForPosition(...)</a>
+          <a class="member-link" href="#TemporalPoint">ForTime(...)</a>
+          <a class="type-link" href="#TemporalRange">TemporalRange</a>
+          <a class="member-link" href="#TemporalRange">Closed(...)</a>
+          <a class="member-link" href="#TemporalRange">OpenEnded(...)</a>
+          <a class="member-link" href="#TemporalRange">Overlaps(...)</a>
+          <a class="type-link" href="#LaneLivenessTracker">LaneLivenessTracker</a>
+          <a class="member-link" href="#LaneLivenessTracker">Observe(...)</a>
+          <a class="member-link" href="#LaneLivenessTracker">Check(...)</a>
+        </details>
+        <details>
+          <summary>Kyft.Testing</summary>
+          <a class="type-link" href="#WindowHistoryFixtureBuilder">WindowHistoryFixtureBuilder</a>
+          <a class="member-link" href="#WindowHistoryFixtureBuilder">Closed(...)</a>
+          <a class="member-link" href="#WindowHistoryFixtureBuilder">Open(...)</a>
+          <a class="member-link" href="#WindowHistoryFixtureBuilder">Build()</a>
+          <a class="type-link" href="#KyftAssert">KyftAssert</a>
+          <a class="member-link" href="#KyftAssert">IsValid(...)</a>
+          <a class="member-link" href="#KyftAssert">HasRowCount(...)</a>
+          <a class="type-link" href="#KyftSnapshot">KyftSnapshot</a>
+          <a class="member-link" href="#KyftSnapshot">Normalize(...)</a>
+          <a class="member-link" href="#KyftSnapshot">AssertEqual(...)</a>
+        </details>
       </aside>
 
-      <div class="api-content">
-        <section class="api-section" id="pipeline">
-          <h2>Pipeline Creation</h2>
-          <p>Start with `Kyft.For&lt;TEvent&gt;()`, define one or more windows, then build an `EventPipeline&lt;TEvent&gt;`.</p>
-          <div class="api-table">
-            <div><code>Kyft.For&lt;TEvent&gt;()</code><span>Creates an event pipeline builder for the event type.</span></div>
-            <div><code>EventPipelineBuilder&lt;TEvent&gt;.RecordWindows()</code><span>Enables recording of open and closed windows during ingestion.</span></div>
-            <div><code>WithEventTime(...)</code><span>Configures event timestamps for timestamp-based comparisons and exports.</span></div>
-            <div><code>TrackWindow(...)</code><span>Builds a pipeline for one state-driven source window.</span></div>
-            <div><code>Build()</code><span>Builds an event pipeline from configured windows and options.</span></div>
-          </div>
+      <div class="api-reference-content">
+        <section class="api-member" id="Kyft">
+          <p class="member-kind">static class</p>
+          <h2>Kyft</h2>
+          <p>Entry point for configuring a Kyft event pipeline.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>For&lt;TEvent&gt;()</code></td><td>Creates an `EventPipelineBuilder&lt;TEvent&gt;` for the event type.</td></tr>
+          </table>
         </section>
 
-        <section class="api-section" id="windows">
-          <h2>Window Definitions</h2>
-          <p>A window opens when its active predicate becomes true for a key and closes when it becomes false or a boundary splits the recorded history.</p>
-          <div class="api-table">
-            <div><code>Window(...)</code><span>Adds an independent source window to a pipeline builder.</span></div>
-            <div><code>WindowDefinitionBuilder.Key(...)</code><span>Selects the logical key that owns independent state.</span></div>
-            <div><code>ActiveWhen(...)</code><span>Defines the predicate that keeps the window active.</span></div>
-            <div><code>Segment(...)</code><span>Adds a boundary-aware analytical dimension that can split windows when the value changes.</span></div>
-            <div><code>Tag(...)</code><span>Captures descriptive metadata when a window opens.</span></div>
-            <div><code>OnOpened(...)</code> / <code>OnClosed(...)</code><span>Registers transition callbacks.</span></div>
-          </div>
+        <section class="api-member" id="EventPipelineBuilder">
+          <p class="member-kind">sealed class</p>
+          <h2>EventPipelineBuilder&lt;TEvent&gt;</h2>
+          <p>Top-level builder for windows, callbacks, event time, and history recording.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Window(...)</code></td><td>Adds a source window and returns a `WindowPipelineBuilder&lt;TEvent&gt;`.</td></tr>
+            <tr><td><code>TrackWindow(...)</code></td><td>Builds a pipeline for one state-driven source window.</td></tr>
+            <tr><td><code>RecordWindows()</code></td><td>Enables recording of open and closed windows during ingestion.</td></tr>
+            <tr><td><code>WithEventTime(...)</code></td><td>Sets the event timestamp selector.</td></tr>
+            <tr><td><code>OnEmission(...)</code></td><td>Registers a callback for emitted transitions.</td></tr>
+            <tr><td><code>Build()</code></td><td>Builds the configured `EventPipeline&lt;TEvent&gt;`.</td></tr>
+          </table>
         </section>
 
-        <section class="api-section" id="history">
-          <h2>Recorded History</h2>
-          <p>`EventPipeline.History` is the main surface for direct history queries, annotations, snapshots, and comparison builders.</p>
-          <div class="api-table">
-            <div><code>WindowHistory.ClosedWindows</code><span>Materializes closed windows recorded by the pipeline.</span></div>
-            <div><code>WindowHistory.OpenWindows</code><span>Materializes windows still open in runtime state.</span></div>
-            <div><code>Query()</code><span>Starts a read-only direct query over recorded windows.</span></div>
-            <div><code>SnapshotAt(TemporalPoint)</code><span>Evaluates recorded history at a horizon without mutating runtime state.</span></div>
-            <div><code>Annotate(...)</code><span>Attaches append-only metadata to open or closed windows.</span></div>
-            <div><code>AnnotationsKnownAt(...)</code><span>Reads annotations that were knowable at or before a horizon.</span></div>
-          </div>
-          <pre><code>var open = pipeline.History.Query()
-    .Window("DeviceOffline")
-    .Lane("provider-a")
-    .OpenWindowsAt(TemporalPoint.ForPosition(100));</code></pre>
+        <section class="api-member" id="WindowPipelineBuilder">
+          <p class="member-kind">sealed class</p>
+          <h2>WindowPipelineBuilder&lt;TEvent&gt;</h2>
+          <p>Builder returned after adding a window. It keeps window and roll-up concepts close together.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Window(...)</code></td><td>Adds another independent source window.</td></tr>
+            <tr><td><code>RollUp(...)</code></td><td>Adds a parent window derived from child activity.</td></tr>
+            <tr><td><code>RecordWindows()</code></td><td>Enables recorded history.</td></tr>
+            <tr><td><code>WithEventTime(...)</code></td><td>Configures timestamps.</td></tr>
+            <tr><td><code>Build()</code></td><td>Builds the pipeline.</td></tr>
+          </table>
         </section>
 
-        <section class="api-section" id="comparison">
-          <h2>Comparison Builder</h2>
-          <p>The comparison builder is staged so the question remains readable: target, comparison side, scope, normalization, comparator, execution.</p>
-          <div class="api-table">
-            <div><code>Compare(name)</code><span>Starts a staged comparison over recorded history.</span></div>
-            <div><code>Target(name, selector =&gt; ...)</code><span>Sets the baseline side.</span></div>
-            <div><code>Against(name, selector =&gt; ...)</code><span>Adds one comparison side.</span></div>
-            <div><code>AgainstCohort(name, cohort =&gt; ...)</code><span>Collapses a group of sources into one derived comparison side.</span></div>
-            <div><code>Within(scope =&gt; ...)</code><span>Limits the comparison to a window, segment, tag, or full scope.</span></div>
-            <div><code>Using(comparators =&gt; ...)</code><span>Selects the comparator row families to emit.</span></div>
-            <div><code>Run()</code> / <code>RunLive(...)</code><span>Executes historical or live comparison.</span></div>
-          </div>
+        <section class="api-member" id="EventPipeline">
+          <p class="member-kind">sealed class</p>
+          <h2>EventPipeline&lt;TEvent&gt;</h2>
+          <p>Runtime pipeline that ingests events and exposes recorded history.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>History</code></td><td>Recorded `WindowHistory` for direct queries, annotations, snapshots, and comparison.</td></tr>
+            <tr><td><code>Metadata</code></td><td>Configured event type and window hierarchy metadata.</td></tr>
+            <tr><td><code>Ingest(event)</code></td><td>Processes one event without source context.</td></tr>
+            <tr><td><code>Ingest(event, source)</code></td><td>Processes one event with source/lane context.</td></tr>
+            <tr><td><code>Ingest(event, source, partition)</code></td><td>Processes one event with source and partition context.</td></tr>
+            <tr><td><code>IngestMany(events)</code></td><td>Processes events sequentially.</td></tr>
+          </table>
         </section>
 
-        <section class="api-section" id="normalization">
-          <h2>Normalization And Selection</h2>
-          <p>Normalization makes temporal rules explicit before alignment and comparator execution.</p>
-          <div class="api-table">
-            <div><code>RequireClosedWindows()</code><span>Rejects open windows for historical comparison.</span></div>
-            <div><code>ClipOpenWindowsTo(horizon)</code><span>Clips open windows to a live evaluation horizon.</span></div>
-            <div><code>OnPosition()</code> / <code>OnEventTime()</code><span>Selects the temporal axis used for alignment.</span></div>
-            <div><code>KnownAtPosition(...)</code> / <code>KnownAt(...)</code><span>Filters to windows knowable at a decision point.</span></div>
-            <div><code>CoalesceAdjacentWindows()</code><span>Coalesces adjacent windows when analysis requires that policy.</span></div>
-            <div><code>RejectDuplicateWindows()</code><span>Fails validation when duplicate windows are present.</span></div>
-          </div>
+        <section class="api-member" id="WindowDefinitionBuilder">
+          <p class="member-kind">sealed class</p>
+          <h2>WindowDefinitionBuilder&lt;TEvent&gt;</h2>
+          <p>Defines one state window: key, active predicate, segments, tags, and callbacks.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Named(name)</code></td><td>Sets the public window name.</td></tr>
+            <tr><td><code>Key(...)</code></td><td>Selects the logical key that owns state.</td></tr>
+            <tr><td><code>ActiveWhen(...)</code></td><td>Predicate that keeps the window active.</td></tr>
+            <tr><td><code>Segment(name, ...)</code></td><td>Adds a boundary-aware segment dimension.</td></tr>
+            <tr><td><code>Tag(name, ...)</code></td><td>Captures descriptive metadata when a window opens.</td></tr>
+            <tr><td><code>OnOpened(...)</code> / <code>OnClosed(...)</code></td><td>Registers transition callbacks.</td></tr>
+          </table>
         </section>
 
-        <section class="api-section" id="results">
-          <h2>Comparators And Result Rows</h2>
-          <p>Comparator rows are structured output for auditing overlap, divergence, coverage, and timing drift.</p>
-          <div class="api-table">
-            <div><code>Overlap()</code><span>Rows where target and comparison windows are active at the same time.</span></div>
-            <div><code>Residual()</code><span>Target-only rows: what the comparison missed.</span></div>
-            <div><code>Missing()</code><span>Comparison-only rows: what the target did not see.</span></div>
-            <div><code>Coverage()</code><span>Coverage rows and summaries by target magnitude.</span></div>
-            <div><code>Gap()</code><span>Empty spaces inside an observed scope envelope.</span></div>
-            <div><code>SymmetricDifference()</code><span>Target-only and comparison-only disagreement in one row family.</span></div>
-            <div><code>Containment()</code><span>Whether target windows stay inside comparison windows.</span></div>
-            <div><code>LeadLag(...)</code> / <code>AsOf(...)</code><span>Transition drift and point-in-time lookup.</span></div>
-          </div>
+        <section class="api-member" id="SegmentBuilder">
+          <p class="member-kind">sealed class</p>
+          <h2>SegmentBuilder&lt;TEvent&gt;</h2>
+          <p>Builds segment dimensions, including nested segment hierarchies.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Value(...)</code></td><td>Selects the segment value from the event.</td></tr>
+            <tr><td><code>Child(name, ...)</code></td><td>Adds a child segment under this segment.</td></tr>
+          </table>
         </section>
 
-        <section class="api-section" id="exports">
-          <h2>Exports And Debugging</h2>
-          <p>Exports are intended for workflow boundaries, tests, issue reports, notebooks, and support handoff rather than ingestion hot paths.</p>
-          <div class="api-table">
-            <div><code>ExportJson()</code><span>Writes deterministic JSON for plans or results.</span></div>
-            <div><code>ExportJsonLines()</code><span>Streams result rows as JSON Lines.</span></div>
-            <div><code>ExportMarkdown()</code><span>Writes deterministic Markdown explanations.</span></div>
-            <div><code>Explain()</code><span>Renders deterministic diagnostic text.</span></div>
-            <div><code>ExportDebugHtml()</code><span>Creates a self-contained visual timeline and segment graph.</span></div>
-            <div><code>ComparisonDebugHtmlOptions.ToFile(...)</code><span>Lets configuration decide whether `Run()` or `RunLive()` writes a debug artifact.</span></div>
-          </div>
+        <section class="api-member" id="WindowEmission">
+          <p class="member-kind">record</p>
+          <h2>WindowEmission&lt;TEvent&gt;</h2>
+          <p>Represents an emitted window transition from ingestion.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>WindowName</code>, <code>Key</code>, <code>Event</code></td><td>Identity and source event for the transition.</td></tr>
+            <tr><td><code>Kind</code></td><td>`Opened` or `Closed`.</td></tr>
+            <tr><td><code>Source</code>, <code>Partition</code></td><td>Lane and partition context.</td></tr>
+            <tr><td><code>Segments</code>, <code>Tags</code></td><td>Analytical context captured with the emission.</td></tr>
+          </table>
         </section>
 
-        <section class="api-section" id="temporal">
-          <h2>Temporal Types</h2>
-          <p>Kyft supports processing-position analysis and timestamp analysis with explicit temporal types.</p>
-          <div class="api-table">
-            <div><code>TemporalPoint.ForPosition(long)</code><span>Creates a processing-position horizon or comparison point.</span></div>
-            <div><code>TemporalPoint.ForTimestamp(DateTimeOffset, clock)</code><span>Creates a timestamp-based temporal point.</span></div>
-            <div><code>TemporalRange.Closed(start, end)</code><span>Creates a half-open closed range with a known end.</span></div>
-            <div><code>TemporalRange.Open(start)</code><span>Creates an open range for live or ongoing state.</span></div>
-            <div><code>GetPositionLength()</code> / <code>GetTimeDuration()</code><span>Measures ranges on the appropriate axis.</span></div>
-          </div>
+        <section class="api-member" id="WindowRecord">
+          <p class="member-kind">abstract record</p>
+          <h2>WindowRecord, OpenWindow, ClosedWindow</h2>
+          <p>Recorded temporal evidence created from emissions.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>WindowName</code>, <code>Key</code>, <code>Source</code>, <code>Partition</code></td><td>Scope identity.</td></tr>
+            <tr><td><code>StartPosition</code>, <code>EndPosition</code></td><td>Processing-position bounds.</td></tr>
+            <tr><td><code>StartTime</code>, <code>EndTime</code></td><td>Timestamp bounds when event time is configured.</td></tr>
+            <tr><td><code>Segments</code>, <code>Tags</code></td><td>Context for filtering, grouping, and debug output.</td></tr>
+            <tr><td><code>Id</code></td><td>Stable `WindowRecordId` derived from the window identity.</td></tr>
+          </table>
         </section>
 
-        <section class="api-section" id="liveness">
-          <h2>Lane Liveness</h2>
-          <p>`LaneLivenessTracker` converts sparse observations into liveness signals that can be recorded as ordinary Kyft windows.</p>
-          <div class="api-table">
-            <div><code>LaneLivenessTracker.ForLanes(...)</code><span>Creates a deterministic liveness tracker for expected lanes.</span></div>
-            <div><code>Observe(lane, observedAt)</code><span>Records that a lane reported at a timestamp.</span></div>
-            <div><code>Check(horizon)</code><span>Emits no-signal or recovered signals at a horizon.</span></div>
-            <div><code>LaneLivenessSignal</code><span>Event type suitable for recording silence windows with a normal Kyft pipeline.</span></div>
-          </div>
+        <section class="api-member" id="WindowHistory">
+          <p class="member-kind">sealed class</p>
+          <h2>WindowHistory</h2>
+          <p>Recorded open and closed windows plus query, annotation, snapshot, and comparison entry points.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>ClosedWindows</code> / <code>OpenWindows</code> / <code>Windows</code></td><td>Materialized recorded history.</td></tr>
+            <tr><td><code>Query()</code></td><td>Direct read-only history query.</td></tr>
+            <tr><td><code>SnapshotAt(horizon)</code></td><td>Read-only horizon snapshot.</td></tr>
+            <tr><td><code>Compare(name)</code></td><td>Starts a staged comparison.</td></tr>
+            <tr><td><code>Annotate(...)</code></td><td>Append-only late metadata.</td></tr>
+            <tr><td><code>CompareSources(...)</code>, <code>CompareHierarchy(...)</code></td><td>Source matrix and hierarchy explanation helpers.</td></tr>
+          </table>
         </section>
 
-        <section class="api-section" id="testing">
-          <h2>Testing Helpers</h2>
-          <p>`Kyft.Testing` is a separate optional package for consumer test suites.</p>
-          <div class="api-table">
-            <div><code>WindowHistoryFixtureBuilder</code><span>Builds compact recorded histories without running a full event pipeline.</span></div>
-            <div><code>KyftAssert</code><span>Framework-neutral assertions for comparison artifacts.</span></div>
-            <div><code>KyftSnapshot</code><span>Small snapshot helpers for Kyft JSON and Markdown artifacts.</span></div>
-          </div>
-          <p class="note">For exhaustive member signatures, use the XML documentation included in the NuGet package. A future docs pipeline could publish this with DocFX, but this page remains plain static HTML for GitHub Pages.</p>
+        <section class="api-member" id="WindowHistoryQuery">
+          <p class="member-kind">sealed class</p>
+          <h2>WindowHistoryQuery</h2>
+          <p>Filters recorded history by window, key, source/lane, partition, segment, and tag.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Window(...)</code>, <code>Key(...)</code>, <code>Lane(...)</code></td><td>Restrict query scope.</td></tr>
+            <tr><td><code>Segment(...)</code>, <code>Tag(...)</code></td><td>Require context values.</td></tr>
+            <tr><td><code>Windows()</code>, <code>ClosedWindows()</code>, <code>OpenWindows()</code></td><td>Materialize matching records.</td></tr>
+            <tr><td><code>WindowsAt(...)</code>, <code>OpenWindowsAt(...)</code></td><td>Evaluate at a horizon.</td></tr>
+            <tr><td><code>LatestWindow()</code> / <code>LatestWindowAt(...)</code></td><td>Return the latest matching record.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="WindowHistorySnapshot">
+          <p class="member-kind">sealed class</p>
+          <h2>WindowHistorySnapshot</h2>
+          <p>Read-only view of recorded history at an explicit horizon.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Horizon</code></td><td>The point used to evaluate open and closed windows.</td></tr>
+            <tr><td><code>Query()</code></td><td>Starts a `WindowSnapshotQuery` over snapshot records.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="WindowAnnotation">
+          <p class="member-kind">records</p>
+          <h2>WindowAnnotation and WindowAnnotationTarget</h2>
+          <p>Append-only metadata attached after a window opens or closes.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Name</code>, <code>Value</code>, <code>KnownAt</code></td><td>Annotation payload and point-in-time safety.</td></tr>
+            <tr><td><code>Revision</code></td><td>Append order for repeated annotation names.</td></tr>
+            <tr><td><code>WindowAnnotationTarget.From(window)</code></td><td>Stable target based on the window start identity.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="WindowComparisonBuilder">
+          <p class="member-kind">sealed class</p>
+          <h2>WindowComparisonBuilder</h2>
+          <p>Staged comparison flow for target, against, scope, normalization, comparator selection, and execution.</p>
+          <pre><code>var result = pipeline.History
+    .Compare("Provider QA")
+    .Target("provider-a", s =&gt; s.Source("provider-a"))
+    .Against("provider-b", s =&gt; s.Source("provider-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(c =&gt; c.Overlap().Residual().Missing())
+    .Run();</code></pre>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Target(...)</code>, <code>Against(...)</code></td><td>Select comparison sides.</td></tr>
+            <tr><td><code>AgainstCohort(...)</code></td><td>Compare against a derived cohort side.</td></tr>
+            <tr><td><code>Within(...)</code></td><td>Set scope.</td></tr>
+            <tr><td><code>Normalize(...)</code></td><td>Set temporal normalization policy.</td></tr>
+            <tr><td><code>Using(...)</code></td><td>Select comparator row families.</td></tr>
+            <tr><td><code>Prepare()</code>, <code>Run()</code>, <code>RunLive(...)</code></td><td>Materialize stages or execute comparison.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="ComparisonSelectorBuilder">
+          <p class="member-kind">sealed class</p>
+          <h2>ComparisonSelectorBuilder</h2>
+          <p>Creates serializable or runtime selectors for target and comparison sides.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>WindowName(...)</code>, <code>Key(...)</code>, <code>Source(...)</code></td><td>Select by identity.</td></tr>
+            <tr><td><code>Sources(...)</code></td><td>Select multiple source identities.</td></tr>
+            <tr><td><code>Partition(...)</code></td><td>Select a partition.</td></tr>
+            <tr><td><code>PositionRange(...)</code>, <code>TimeRange(...)</code></td><td>Select temporal ranges.</td></tr>
+            <tr><td><code>Runtime(...)</code></td><td>Creates a runtime-only predicate selector.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="ComparisonCohortBuilder">
+          <p class="member-kind">sealed class</p>
+          <h2>ComparisonCohortBuilder and CohortActivity</h2>
+          <p>Collapses several sources into one derived comparison side before comparators run.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Sources(...)</code></td><td>Declares cohort members.</td></tr>
+            <tr><td><code>Activity(CohortActivity)</code></td><td>Sets when the cohort is active.</td></tr>
+            <tr><td><code>CohortActivity.Any()</code> / <code>All()</code> / <code>None()</code></td><td>Basic activity rules.</td></tr>
+            <tr><td><code>AtLeast(n)</code>, <code>AtMost(n)</code>, <code>Exactly(n)</code></td><td>Threshold rules.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="ComparisonNormalizationBuilder">
+          <p class="member-kind">sealed class</p>
+          <h2>ComparisonNormalizationBuilder</h2>
+          <p>Makes temporal policies explicit before alignment.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>RequireClosedWindows()</code></td><td>Rejects open windows for historical comparison.</td></tr>
+            <tr><td><code>ClipOpenWindowsTo(horizon)</code></td><td>Clips open windows to a live horizon.</td></tr>
+            <tr><td><code>OnPosition()</code> / <code>OnEventTime()</code></td><td>Selects processing-position or timestamp analysis.</td></tr>
+            <tr><td><code>KnownAtPosition(...)</code> / <code>KnownAt(...)</code></td><td>Prevents future leakage.</td></tr>
+            <tr><td><code>CoalesceAdjacentWindows()</code>, <code>RejectDuplicateWindows()</code></td><td>Optional normalization policies.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="ComparisonComparatorBuilder">
+          <p class="member-kind">sealed class</p>
+          <h2>ComparisonComparatorBuilder</h2>
+          <p>Selects result row families.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Overlap()</code></td><td>Both sides active.</td></tr>
+            <tr><td><code>Residual()</code></td><td>Target active without comparison coverage.</td></tr>
+            <tr><td><code>Missing()</code></td><td>Comparison active without target coverage.</td></tr>
+            <tr><td><code>Coverage()</code></td><td>Coverage rows and summaries.</td></tr>
+            <tr><td><code>Gap()</code>, <code>SymmetricDifference()</code>, <code>Containment()</code></td><td>Additional shape and invariant checks.</td></tr>
+            <tr><td><code>LeadLag(...)</code>, <code>AsOf(...)</code></td><td>Transition timing drift and point-in-time lookup.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="ComparisonResult">
+          <p class="member-kind">sealed class</p>
+          <h2>ComparisonResult</h2>
+          <p>Structured comparison artifact containing diagnostics, stages, rows, summaries, finality, and metadata.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Prepared</code>, <code>Aligned</code></td><td>Comparison stages when execution reached them.</td></tr>
+            <tr><td><code>OverlapRows</code>, <code>ResidualRows</code>, <code>MissingRows</code></td><td>Core row families.</td></tr>
+            <tr><td><code>CoverageRows</code>, <code>GapRows</code>, <code>LeadLagRows</code>, <code>AsOfRows</code></td><td>Additional row families.</td></tr>
+            <tr><td><code>Diagnostics</code></td><td>Validation and execution diagnostics.</td></tr>
+            <tr><td><code>RowFinalities</code></td><td>Final or provisional status for live rows.</td></tr>
+            <tr><td><code>IsValid</code></td><td>True when no error diagnostics are present.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="ComparisonExportExtensions">
+          <p class="member-kind">static class</p>
+          <h2>ComparisonExportExtensions</h2>
+          <p>Deterministic export helpers for plans and results.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>ExportJson()</code></td><td>Stable JSON for plans or results.</td></tr>
+            <tr><td><code>ExportJsonLines()</code></td><td>Lazy JSON Lines for result rows.</td></tr>
+            <tr><td><code>ExportMarkdown()</code></td><td>Deterministic Markdown explanation.</td></tr>
+            <tr><td><code>ExportDebugHtml()</code></td><td>Self-contained visual comparison document.</td></tr>
+            <tr><td><code>ComparisonDebugHtmlOptions.ToFile(...)</code></td><td>Configuration-driven debug output from `Run()` or `RunLive()`.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="TemporalPoint">
+          <p class="member-kind">readonly record struct</p>
+          <h2>TemporalPoint</h2>
+          <p>Explicit point on a temporal axis.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>ForPosition(long)</code></td><td>Processing-position point.</td></tr>
+            <tr><td><code>ForTimestamp(DateTimeOffset, clock)</code></td><td>Timestamp point.</td></tr>
+            <tr><td><code>CompareTo(...)</code>, <code>IsBefore(...)</code>, <code>IsAfter(...)</code></td><td>Axis-safe comparison helpers.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="TemporalRange">
+          <p class="member-kind">readonly record struct</p>
+          <h2>TemporalRange</h2>
+          <p>Half-open range used by windows, aligned segments, and result rows.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Closed(start, end)</code></td><td>Known-ended range.</td></tr>
+            <tr><td><code>Open(start)</code></td><td>Open range for ongoing windows.</td></tr>
+            <tr><td><code>WithEffectiveEnd(...)</code></td><td>Clips or evaluates the range at an effective end.</td></tr>
+            <tr><td><code>GetPositionLength()</code>, <code>GetTimeDuration()</code></td><td>Measures range magnitude.</td></tr>
+            <tr><td><code>Overlaps(...)</code>, <code>Contains(...)</code></td><td>Range predicates.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="LaneLivenessTracker">
+          <p class="member-kind">sealed class</p>
+          <h2>LaneLivenessTracker</h2>
+          <p>Converts sparse observations into liveness signals that can be recorded as ordinary windows.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>ForLanes(...)</code></td><td>Creates a deterministic tracker for expected lanes.</td></tr>
+            <tr><td><code>Observe(lane, observedAt)</code></td><td>Records that a lane reported.</td></tr>
+            <tr><td><code>Check(horizon)</code></td><td>Emits silence or recovery signals at a horizon.</td></tr>
+            <tr><td><code>LaneLivenessSignal</code></td><td>Event shape for recording silence windows.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="WindowHistoryFixtureBuilder">
+          <p class="member-kind">Kyft.Testing sealed class</p>
+          <h2>WindowHistoryFixtureBuilder</h2>
+          <p>Builds compact recorded histories for comparator and contract tests.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>AddClosedWindow(...)</code></td><td>Adds a closed fixture window.</td></tr>
+            <tr><td><code>AddOpenWindow(...)</code></td><td>Adds an open fixture window.</td></tr>
+            <tr><td><code>Build()</code></td><td>Creates a `WindowHistory` fixture.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="KyftAssert">
+          <p class="member-kind">Kyft.Testing static class</p>
+          <h2>KyftAssert</h2>
+          <p>Framework-neutral assertions for comparison artifacts.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>IsValid(...)</code></td><td>Asserts that a comparison result has no error diagnostics.</td></tr>
+            <tr><td><code>HasNoDiagnostics(...)</code></td><td>Asserts that no diagnostics were emitted.</td></tr>
+            <tr><td><code>HasDiagnostic(...)</code></td><td>Returns a matching diagnostic code or fails.</td></tr>
+            <tr><td><code>HasRowCount(...)</code></td><td>Asserts an expected row count for a named row family.</td></tr>
+          </table>
+        </section>
+
+        <section class="api-member" id="KyftSnapshot">
+          <p class="member-kind">Kyft.Testing static class</p>
+          <h2>KyftSnapshot</h2>
+          <p>Snapshot helpers for deterministic JSON and Markdown artifacts.</p>
+          <table class="member-table">
+            <tr><th>Member</th><th>Purpose</th></tr>
+            <tr><td><code>Normalize(...)</code></td><td>Normalizes line endings, trailing whitespace, and deterministic record IDs.</td></tr>
+            <tr><td><code>AssertEqual(...)</code></td><td>Compares two normalized snapshot strings.</td></tr>
+          </table>
         </section>
       </div>
     </section>

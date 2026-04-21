@@ -159,6 +159,39 @@ h3 {
   color: var(--muted);
 }
 
+.timeline-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.timeline-tools input {
+  width: auto;
+}
+
+.timeline-tools:has(input:checked) + .timeline-shell .timeline-canvas {
+  --timeline-width: 2600px;
+}
+
+.timeline-shell {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.timeline-canvas {
+  min-width: var(--timeline-width, 1100px);
+  padding: 14px;
+}
+
 .timeline {
   display: grid;
   gap: 12px;
@@ -346,7 +379,7 @@ tr:last-child td { border-bottom: 0; }
   main { width: min(100% - 20px, 1220px); padding-top: 16px; }
   .hero, .panel { padding: 18px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .lane, .band-lane { grid-template-columns: 1fr; }
+  .timeline-canvas { min-width: var(--timeline-width, 900px); }
 }
 
 @media (max-width: 520px) {
@@ -400,7 +433,13 @@ tr:last-child td { border-bottom: 0; }
       <p class="section-note">Each lane shows normalized windows after selector, scope, known-at, and open-window policy have been applied.</p>
     </div>
   </div>
-  <div class="timeline">
+  <div class="timeline-tools">
+    <label><input type="checkbox" aria-label="Widen timeline"> Widen timeline</label>
+    <span>Scroll horizontally to inspect dense or long-running lane histories.</span>
+  </div>
+  <div class="timeline-shell" data-kyft-timeline>
+    <div class="timeline-canvas">
+      <div class="timeline">
     <div class="lane">
       <div class="lane-title">Target / ingest<span class="lane-meta">StageBacklog</span></div>
       <div class="track">
@@ -420,9 +459,11 @@ tr:last-child td { border-bottom: 0; }
         <div class="bar against open" style="left:28.571%;width:71.429%" title="StageBacklog / key job-42 / source worker / phase=Active, period=P3 / tags priority=urgent / boundary  / [pos 9, pos 24) OpenAtHorizon / id cb531fe0746c"></div>
       </div>
     </div>
-  </div>
+      </div>
   <div class="axis">
     <span>pos 3</span><span>pos 24</span>
+  </div>
+    </div>
   </div>
   <div class="legend">
     <span class="legend-item"><span class="swatch" style="background:var(--target)"></span>Target window</span>
@@ -460,7 +501,13 @@ tr:last-child td { border-bottom: 0; }
       <p class="section-note">Bands show the segment values attached to aligned windows, making phase, period, and other boundary changes visible before inspecting individual rows.</p>
     </div>
   </div>
-  <div class="timeline">
+  <div class="timeline-tools">
+    <label><input type="checkbox" aria-label="Widen timeline"> Widen timeline</label>
+    <span>Scroll horizontally to inspect dense or long-running lane histories.</span>
+  </div>
+  <div class="timeline-shell" data-kyft-timeline>
+    <div class="timeline-canvas">
+      <div class="timeline">
     <div class="band-lane">
       <div class="band-title">phase<span class="lane-meta">StageBacklog / key job-42</span></div>
       <div class="band-track">
@@ -485,9 +532,11 @@ tr:last-child td { border-bottom: 0; }
         <div class="band-segment c0" style="left:28.571%;width:71.429%" title="period=P3 / StageBacklog / key job-42 / parent phase / [pos 9, pos 24) Closed">P3</div>
       </div>
     </div>
-  </div>
+      </div>
   <div class="axis">
     <span>pos 3</span><span>pos 24</span>
+  </div>
+    </div>
   </div>
 </section>
 <section class="panel">
@@ -497,7 +546,13 @@ tr:last-child td { border-bottom: 0; }
       <p class="section-note">Segments are the comparison-ready temporal pieces. Their colour shows whether target and comparison windows were both active, target-only, comparison-only, or empty.</p>
     </div>
   </div>
-  <div class="timeline">
+  <div class="timeline-tools">
+    <label><input type="checkbox" aria-label="Widen timeline"> Widen timeline</label>
+    <span>Scroll horizontally to inspect dense or long-running lane histories.</span>
+  </div>
+  <div class="timeline-shell" data-kyft-timeline>
+    <div class="timeline-canvas">
+      <div class="timeline">
     <div class="lane">
       <div class="lane-title">StageBacklog<span class="lane-meta">key job-42 / phase=Active, period=P2</span></div>
       <div class="track">
@@ -520,9 +575,11 @@ tr:last-child td { border-bottom: 0; }
         <div class="bar missing" style="left:9.524%;width:4.762%" title="comparison only / StageBacklog / key job-42 / phase=Warmup, period=P1 / [pos 5, pos 6) Closed"></div>
       </div>
     </div>
-  </div>
+      </div>
   <div class="axis">
     <span>pos 3</span><span>pos 24</span>
+  </div>
+    </div>
   </div>
   <div class="legend">
     <span class="legend-item"><span class="swatch" style="background:var(--target)"></span>Target window</span>

@@ -159,6 +159,39 @@ h3 {
   color: var(--muted);
 }
 
+.timeline-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.timeline-tools input {
+  width: auto;
+}
+
+.timeline-tools:has(input:checked) + .timeline-shell .timeline-canvas {
+  --timeline-width: 2600px;
+}
+
+.timeline-shell {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.timeline-canvas {
+  min-width: var(--timeline-width, 1100px);
+  padding: 14px;
+}
+
 .timeline {
   display: grid;
   gap: 12px;
@@ -346,7 +379,7 @@ tr:last-child td { border-bottom: 0; }
   main { width: min(100% - 20px, 1220px); padding-top: 16px; }
   .hero, .panel { padding: 18px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .lane, .band-lane { grid-template-columns: 1fr; }
+  .timeline-canvas { min-width: var(--timeline-width, 900px); }
 }
 
 @media (max-width: 520px) {
@@ -400,7 +433,13 @@ tr:last-child td { border-bottom: 0; }
       <p class="section-note">Each lane shows normalized windows after selector, scope, known-at, and open-window policy have been applied.</p>
     </div>
   </div>
-  <div class="timeline">
+  <div class="timeline-tools">
+    <label><input type="checkbox" aria-label="Widen timeline"> Widen timeline</label>
+    <span>Scroll horizontally to inspect dense or long-running lane histories.</span>
+  </div>
+  <div class="timeline-shell" data-kyft-timeline>
+    <div class="timeline-canvas">
+      <div class="timeline">
     <div class="lane">
       <div class="lane-title">Target / gateway-a<span class="lane-meta">ThermalExcursion</span></div>
       <div class="track">
@@ -431,9 +470,11 @@ tr:last-child td { border-bottom: 0; }
         <div class="boundary-marker" style="left:24.138%" title="ActivePredicateEnded"></div>
       </div>
     </div>
-  </div>
+      </div>
   <div class="axis">
     <span>pos 5</span><span>pos 34</span>
+  </div>
+    </div>
   </div>
   <div class="legend">
     <span class="legend-item"><span class="swatch" style="background:var(--target)"></span>Target window</span>
@@ -474,7 +515,13 @@ tr:last-child td { border-bottom: 0; }
       <p class="section-note">Segments are the comparison-ready temporal pieces. Their colour shows whether target and comparison windows were both active, target-only, comparison-only, or empty.</p>
     </div>
   </div>
-  <div class="timeline">
+  <div class="timeline-tools">
+    <label><input type="checkbox" aria-label="Widen timeline"> Widen timeline</label>
+    <span>Scroll horizontally to inspect dense or long-running lane histories.</span>
+  </div>
+  <div class="timeline-shell" data-kyft-timeline>
+    <div class="timeline-canvas">
+      <div class="timeline">
     <div class="lane">
       <div class="lane-title">ThermalExcursion<span class="lane-meta">key pump-7</span></div>
       <div class="track">
@@ -489,9 +536,11 @@ tr:last-child td { border-bottom: 0; }
         <div class="bar overlap" style="left:31.034%;width:68.966%" title="overlap / ThermalExcursion / key pump-7 /  / [pos 14, pos 34) Closed"></div>
       </div>
     </div>
-  </div>
+      </div>
   <div class="axis">
     <span>pos 5</span><span>pos 34</span>
+  </div>
+    </div>
   </div>
   <div class="legend">
     <span class="legend-item"><span class="swatch" style="background:var(--target)"></span>Target window</span>

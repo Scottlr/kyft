@@ -159,6 +159,39 @@ h3 {
   color: var(--muted);
 }
 
+.timeline-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.timeline-tools input {
+  width: auto;
+}
+
+.timeline-tools:has(input:checked) + .timeline-shell .timeline-canvas {
+  --timeline-width: 2600px;
+}
+
+.timeline-shell {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.timeline-canvas {
+  min-width: var(--timeline-width, 1100px);
+  padding: 14px;
+}
+
 .timeline {
   display: grid;
   gap: 12px;
@@ -346,7 +379,7 @@ tr:last-child td { border-bottom: 0; }
   main { width: min(100% - 20px, 1220px); padding-top: 16px; }
   .hero, .panel { padding: 18px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .lane, .band-lane { grid-template-columns: 1fr; }
+  .timeline-canvas { min-width: var(--timeline-width, 900px); }
 }
 
 @media (max-width: 520px) {
@@ -363,31 +396,31 @@ tr:last-child td { border-bottom: 0; }
   <p class="lead">Inspect which windows were active, where sources overlapped or diverged, and whether live rows are final or provisional.</p>
   <div class="badges">
     <span class="badge valid">Valid result</span>
-    <span class="badge live">Live horizon pos 25</span>
+    <span class="badge live">Live horizon pos 40</span>
     <span class="badge">processing position</span>
   </div>
 </section>
 <section class="grid" aria-label="Comparison summary">
   <div class="card">
-    <div class="label">Selected windows</div><div class="value">3</div>
+    <div class="label">Selected windows</div><div class="value">8</div>
   </div>
   <div class="card">
-    <div class="label">Normalized windows</div><div class="value">3</div>
+    <div class="label">Normalized windows</div><div class="value">8</div>
   </div>
   <div class="card">
-    <div class="label">Aligned segments</div><div class="value">4</div>
+    <div class="label">Aligned segments</div><div class="value">13</div>
   </div>
   <div class="card">
-    <div class="label">Result rows</div><div class="value">8</div>
+    <div class="label">Result rows</div><div class="value">27</div>
   </div>
   <div class="card">
     <div class="label">Diagnostics</div><div class="value">0</div>
   </div>
   <div class="card">
-    <div class="label">Provisional rows</div><div class="value">2</div>
+    <div class="label">Provisional rows</div><div class="value">12</div>
   </div>
   <div class="card">
-    <div class="label">Comparators</div><div class="value">4</div>
+    <div class="label">Comparators</div><div class="value">5</div>
   </div>
   <div class="card">
     <div class="label">Excluded windows</div><div class="value">0</div>
@@ -400,25 +433,61 @@ tr:last-child td { border-bottom: 0; }
       <p class="section-note">Each lane shows normalized windows after selector, scope, known-at, and open-window policy have been applied.</p>
     </div>
   </div>
-  <div class="timeline">
+  <div class="timeline-tools">
+    <label><input type="checkbox" aria-label="Widen timeline"> Widen timeline</label>
+    <span>Scroll horizontally to inspect dense or long-running lane histories.</span>
+  </div>
+  <div class="timeline-shell" data-kyft-timeline>
+    <div class="timeline-canvas">
+      <div class="timeline">
     <div class="lane">
       <div class="lane-title">Target / provider-a<span class="lane-meta">DeviceOffline</span></div>
       <div class="track">
-        <div class="bar target" style="left:0%;width:13.636%" title="DeviceOffline / key device-17 / source provider-a /  / tags  / boundary ActivePredicateEnded / [pos 3, pos 6) Closed / id bfb0ba5b1a3d"></div>
-        <div class="boundary-marker" style="left:13.636%" title="ActivePredicateEnded"></div>
-        <div class="bar target open" style="left:18.182%;width:81.818%" title="DeviceOffline / key device-17 / source provider-a /  / tags  / boundary  / [pos 7, pos 25) OpenAtHorizon / id aa8165280c02"></div>
+        <div class="bar target" style="left:0%;width:24.242%" title="DeviceOffline / key device-17 / source provider-a /  / tags  / boundary ActivePredicateEnded / [pos 7, pos 15) Closed / id 6949af6daacc"></div>
+        <div class="boundary-marker" style="left:24.242%" title="ActivePredicateEnded"></div>
+        <div class="bar target open" style="left:33.333%;width:66.667%" title="DeviceOffline / key device-17 / source provider-a /  / tags  / boundary  / [pos 18, pos 40) OpenAtHorizon / id fa34275c9e49"></div>
       </div>
     </div>
     <div class="lane">
       <div class="lane-title">Against / provider-b<span class="lane-meta">DeviceOffline</span></div>
       <div class="track">
-        <div class="bar against" style="left:4.545%;width:4.545%" title="DeviceOffline / key device-17 / source provider-b /  / tags  / boundary ActivePredicateEnded / [pos 4, pos 5) Closed / id ecfd24ae31b1"></div>
-        <div class="boundary-marker" style="left:9.091%" title="ActivePredicateEnded"></div>
+        <div class="bar against" style="left:3.03%;width:12.121%" title="DeviceOffline / key device-17 / source provider-b /  / tags  / boundary ActivePredicateEnded / [pos 8, pos 12) Closed / id 55bc023af815"></div>
+        <div class="boundary-marker" style="left:15.152%" title="ActivePredicateEnded"></div>
       </div>
     </div>
-  </div>
+    <div class="lane">
+      <div class="lane-title">Against / provider-c<span class="lane-meta">DeviceOffline</span></div>
+      <div class="track">
+        <div class="bar against" style="left:6.061%;width:12.121%" title="DeviceOffline / key device-17 / source provider-c /  / tags  / boundary ActivePredicateEnded / [pos 9, pos 13) Closed / id 29f522725bf2"></div>
+        <div class="boundary-marker" style="left:18.182%" title="ActivePredicateEnded"></div>
+        <div class="bar against open" style="left:36.364%;width:63.636%" title="DeviceOffline / key device-17 / source provider-c /  / tags  / boundary  / [pos 19, pos 40) OpenAtHorizon / id 3440d55205c8"></div>
+      </div>
+    </div>
+    <div class="lane">
+      <div class="lane-title">Against / provider-d<span class="lane-meta">DeviceOffline</span></div>
+      <div class="track">
+        <div class="bar against" style="left:9.091%;width:18.182%" title="DeviceOffline / key device-17 / source provider-d /  / tags  / boundary ActivePredicateEnded / [pos 10, pos 16) Closed / id f151e568ead1"></div>
+        <div class="boundary-marker" style="left:27.273%" title="ActivePredicateEnded"></div>
+      </div>
+    </div>
+    <div class="lane">
+      <div class="lane-title">Against / provider-e<span class="lane-meta">DeviceOffline</span></div>
+      <div class="track">
+        <div class="bar against" style="left:12.121%;width:18.182%" title="DeviceOffline / key device-17 / source provider-e /  / tags  / boundary ActivePredicateEnded / [pos 11, pos 17) Closed / id 83460ca90fb1"></div>
+        <div class="boundary-marker" style="left:30.303%" title="ActivePredicateEnded"></div>
+      </div>
+    </div>
+    <div class="lane">
+      <div class="lane-title">Against / provider-f<span class="lane-meta">DeviceOffline</span></div>
+      <div class="track">
+        <div class="bar against open" style="left:21.212%;width:78.788%" title="DeviceOffline / key device-17 / source provider-f /  / tags  / boundary  / [pos 14, pos 40) OpenAtHorizon / id cd817237238f"></div>
+      </div>
+    </div>
+      </div>
   <div class="axis">
-    <span>pos 3</span><span>pos 25</span>
+    <span>pos 7</span><span>pos 40</span>
+  </div>
+    </div>
   </div>
   <div class="legend">
     <span class="legend-item"><span class="swatch" style="background:var(--target)"></span>Target window</span>
@@ -431,13 +500,28 @@ tr:last-child td { border-bottom: 0; }
       </thead>
       <tbody>
         <tr>
-          <td>Target</td><td>provider-a</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 3, pos 6) Closed</td><td></td><td></td><td>ActivePredicateEnded</td>
+          <td>Target</td><td>provider-a</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 7, pos 15) Closed</td><td></td><td></td><td>ActivePredicateEnded</td>
         </tr>
         <tr>
-          <td>Target</td><td>provider-a</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 7, pos 25) OpenAtHorizon</td><td></td><td></td><td></td>
+          <td>Target</td><td>provider-a</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 18, pos 40) OpenAtHorizon</td><td></td><td></td><td></td>
         </tr>
         <tr>
-          <td>Against</td><td>provider-b</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 4, pos 5) Closed</td><td></td><td></td><td>ActivePredicateEnded</td>
+          <td>Against</td><td>provider-b</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 8, pos 12) Closed</td><td></td><td></td><td>ActivePredicateEnded</td>
+        </tr>
+        <tr>
+          <td>Against</td><td>provider-c</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 9, pos 13) Closed</td><td></td><td></td><td>ActivePredicateEnded</td>
+        </tr>
+        <tr>
+          <td>Against</td><td>provider-c</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 19, pos 40) OpenAtHorizon</td><td></td><td></td><td></td>
+        </tr>
+        <tr>
+          <td>Against</td><td>provider-d</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 10, pos 16) Closed</td><td></td><td></td><td>ActivePredicateEnded</td>
+        </tr>
+        <tr>
+          <td>Against</td><td>provider-e</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 11, pos 17) Closed</td><td></td><td></td><td>ActivePredicateEnded</td>
+        </tr>
+        <tr>
+          <td>Against</td><td>provider-f</td><td>DeviceOffline</td><td>device-17</td><td class="mono">[pos 14, pos 40) OpenAtHorizon</td><td></td><td></td><td></td>
         </tr>
       </tbody>
     </table>
@@ -450,19 +534,36 @@ tr:last-child td { border-bottom: 0; }
       <p class="section-note">Segments are the comparison-ready temporal pieces. Their colour shows whether target and comparison windows were both active, target-only, comparison-only, or empty.</p>
     </div>
   </div>
-  <div class="timeline">
+  <div class="timeline-tools">
+    <label><input type="checkbox" aria-label="Widen timeline"> Widen timeline</label>
+    <span>Scroll horizontally to inspect dense or long-running lane histories.</span>
+  </div>
+  <div class="timeline-shell" data-kyft-timeline>
+    <div class="timeline-canvas">
+      <div class="timeline">
     <div class="lane">
       <div class="lane-title">DeviceOffline<span class="lane-meta">key device-17</span></div>
       <div class="track">
-        <div class="bar residual" style="left:0%;width:4.545%" title="target only / DeviceOffline / key device-17 /  / [pos 3, pos 4) Closed"></div>
-        <div class="bar overlap" style="left:4.545%;width:4.545%" title="overlap / DeviceOffline / key device-17 /  / [pos 4, pos 5) Closed"></div>
-        <div class="bar residual" style="left:9.091%;width:4.545%" title="target only / DeviceOffline / key device-17 /  / [pos 5, pos 6) Closed"></div>
-        <div class="bar residual" style="left:18.182%;width:81.818%" title="target only / DeviceOffline / key device-17 /  / [pos 7, pos 25) Closed"></div>
+        <div class="bar residual" style="left:0%;width:3.03%" title="target only / DeviceOffline / key device-17 /  / [pos 7, pos 8) Closed"></div>
+        <div class="bar overlap" style="left:3.03%;width:3.03%" title="overlap / DeviceOffline / key device-17 /  / [pos 8, pos 9) Closed"></div>
+        <div class="bar overlap" style="left:6.061%;width:3.03%" title="overlap / DeviceOffline / key device-17 /  / [pos 9, pos 10) Closed"></div>
+        <div class="bar overlap" style="left:9.091%;width:3.03%" title="overlap / DeviceOffline / key device-17 /  / [pos 10, pos 11) Closed"></div>
+        <div class="bar overlap" style="left:12.121%;width:3.03%" title="overlap / DeviceOffline / key device-17 /  / [pos 11, pos 12) Closed"></div>
+        <div class="bar overlap" style="left:15.152%;width:3.03%" title="overlap / DeviceOffline / key device-17 /  / [pos 12, pos 13) Closed"></div>
+        <div class="bar overlap" style="left:18.182%;width:3.03%" title="overlap / DeviceOffline / key device-17 /  / [pos 13, pos 14) Closed"></div>
+        <div class="bar overlap" style="left:21.212%;width:3.03%" title="overlap / DeviceOffline / key device-17 /  / [pos 14, pos 15) Closed"></div>
+        <div class="bar missing" style="left:24.242%;width:3.03%" title="comparison only / DeviceOffline / key device-17 /  / [pos 15, pos 16) Closed"></div>
+        <div class="bar missing" style="left:27.273%;width:3.03%" title="comparison only / DeviceOffline / key device-17 /  / [pos 16, pos 17) Closed"></div>
+        <div class="bar missing" style="left:30.303%;width:3.03%" title="comparison only / DeviceOffline / key device-17 /  / [pos 17, pos 18) Closed"></div>
+        <div class="bar overlap" style="left:33.333%;width:3.03%" title="overlap / DeviceOffline / key device-17 /  / [pos 18, pos 19) Closed"></div>
+        <div class="bar overlap" style="left:36.364%;width:63.636%" title="overlap / DeviceOffline / key device-17 /  / [pos 19, pos 40) Closed"></div>
       </div>
     </div>
-  </div>
+      </div>
   <div class="axis">
-    <span>pos 3</span><span>pos 25</span>
+    <span>pos 7</span><span>pos 40</span>
+  </div>
+    </div>
   </div>
   <div class="legend">
     <span class="legend-item"><span class="swatch" style="background:var(--target)"></span>Target window</span>
@@ -479,16 +580,43 @@ tr:last-child td { border-bottom: 0; }
       </thead>
       <tbody>
         <tr>
-          <td>target only</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 3, pos 4) Closed</td><td class="mono">bfb0ba5b1a3d</td><td class="mono">-</td>
+          <td>target only</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 7, pos 8) Closed</td><td class="mono">6949af6daacc</td><td class="mono">-</td>
         </tr>
         <tr>
-          <td>overlap</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 4, pos 5) Closed</td><td class="mono">bfb0ba5b1a3d</td><td class="mono">ecfd24ae31b1</td>
+          <td>overlap</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 8, pos 9) Closed</td><td class="mono">6949af6daacc</td><td class="mono">55bc023af815</td>
         </tr>
         <tr>
-          <td>target only</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 5, pos 6) Closed</td><td class="mono">bfb0ba5b1a3d</td><td class="mono">-</td>
+          <td>overlap</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 9, pos 10) Closed</td><td class="mono">6949af6daacc</td><td class="mono">55bc023af815, 29f522725bf2</td>
         </tr>
         <tr>
-          <td>target only</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 7, pos 25) Closed</td><td class="mono">aa8165280c02</td><td class="mono">-</td>
+          <td>overlap</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 10, pos 11) Closed</td><td class="mono">6949af6daacc</td><td class="mono">55bc023af815, 29f522725bf2, f151e568ead1</td>
+        </tr>
+        <tr>
+          <td>overlap</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 11, pos 12) Closed</td><td class="mono">6949af6daacc</td><td class="mono">55bc023af815, 29f522725bf2, f151e568ead1, 83460ca90fb1</td>
+        </tr>
+        <tr>
+          <td>overlap</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 12, pos 13) Closed</td><td class="mono">6949af6daacc</td><td class="mono">29f522725bf2, f151e568ead1, 83460ca90fb1</td>
+        </tr>
+        <tr>
+          <td>overlap</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 13, pos 14) Closed</td><td class="mono">6949af6daacc</td><td class="mono">f151e568ead1, 83460ca90fb1</td>
+        </tr>
+        <tr>
+          <td>overlap</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 14, pos 15) Closed</td><td class="mono">6949af6daacc</td><td class="mono">f151e568ead1, 83460ca90fb1, cd817237238f</td>
+        </tr>
+        <tr>
+          <td>comparison only</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 15, pos 16) Closed</td><td class="mono">-</td><td class="mono">f151e568ead1, 83460ca90fb1, cd817237238f</td>
+        </tr>
+        <tr>
+          <td>comparison only</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 16, pos 17) Closed</td><td class="mono">-</td><td class="mono">83460ca90fb1, cd817237238f</td>
+        </tr>
+        <tr>
+          <td>comparison only</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 17, pos 18) Closed</td><td class="mono">-</td><td class="mono">cd817237238f</td>
+        </tr>
+        <tr>
+          <td>overlap</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 18, pos 19) Closed</td><td class="mono">fa34275c9e49</td><td class="mono">cd817237238f</td>
+        </tr>
+        <tr>
+          <td>overlap</td><td>DeviceOffline</td><td>device-17</td><td></td><td class="mono">[pos 19, pos 40) Closed</td><td class="mono">fa34275c9e49</td><td class="mono">3440d55205c8, cd817237238f</td>
         </tr>
       </tbody>
     </table>
@@ -524,22 +652,22 @@ tr:last-child td { border-bottom: 0; }
       <thead><tr><th>Row family</th><th>Count</th></tr></thead>
       <tbody>
         <tr>
-          <td>overlap</td><td>1</td>
+          <td>overlap</td><td>9</td>
         </tr>
         <tr>
-          <td>residual</td><td>3</td>
+          <td>residual</td><td>1</td>
         </tr>
         <tr>
-          <td>missing</td><td>0</td>
+          <td>missing</td><td>3</td>
         </tr>
         <tr>
-          <td>coverage</td><td>4</td>
+          <td>coverage</td><td>10</td>
         </tr>
         <tr>
           <td>gap</td><td>0</td>
         </tr>
         <tr>
-          <td>symmetric-difference</td><td>0</td>
+          <td>symmetric-difference</td><td>4</td>
         </tr>
         <tr>
           <td>containment</td><td>0</td>
@@ -561,13 +689,40 @@ tr:last-child td { border-bottom: 0; }
           <td class="mono">overlap:overlap[0]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
         </tr>
         <tr>
+          <td class="mono">overlap:overlap[1]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">overlap:overlap[2]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">overlap:overlap[3]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">overlap:overlap[4]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">overlap:overlap[5]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">overlap:overlap[6]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">overlap:overlap[7]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">overlap:overlap[8]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+        </tr>
+        <tr>
           <td class="mono">residual:residual[0]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
         </tr>
         <tr>
-          <td class="mono">residual:residual[1]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+          <td class="mono">missing:missing[0]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
         </tr>
         <tr>
-          <td class="mono">residual:residual[2]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+          <td class="mono">missing:missing[1]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">missing:missing[2]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
         </tr>
         <tr>
           <td class="mono">coverage:coverage[0]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
@@ -579,7 +734,37 @@ tr:last-child td { border-bottom: 0; }
           <td class="mono">coverage:coverage[2]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
         </tr>
         <tr>
-          <td class="mono">coverage:coverage[3]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+          <td class="mono">coverage:coverage[3]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">coverage:coverage[4]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">coverage:coverage[5]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">coverage:coverage[6]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">coverage:coverage[7]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">coverage:coverage[8]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">coverage:coverage[9]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">symmetricDifference:symmetricDifference[0]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">symmetricDifference:symmetricDifference[1]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">symmetricDifference:symmetricDifference[2]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">symmetricDifference:symmetricDifference[3]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
         </tr>
       </tbody>
     </table>

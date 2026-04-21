@@ -197,6 +197,39 @@ h3 {
   color: var(--muted);
 }
 
+.timeline-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.timeline-tools input {
+  width: auto;
+}
+
+.timeline-tools:has(input:checked) + .timeline-shell .timeline-canvas {
+  --timeline-width: 2600px;
+}
+
+.timeline-shell {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.timeline-canvas {
+  min-width: var(--timeline-width, 1100px);
+  padding: 14px;
+}
+
 .timeline {
   display: grid;
   gap: 12px;
@@ -384,7 +417,7 @@ tr:last-child td { border-bottom: 0; }
   main { width: min(100% - 20px, 1220px); padding-top: 16px; }
   .hero, .panel { padding: 18px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .lane, .band-lane { grid-template-columns: 1fr; }
+  .timeline-canvas { min-width: var(--timeline-width, 900px); }
 }
 
 @media (max-width: 520px) {
@@ -467,7 +500,11 @@ tr:last-child td { border-bottom: 0; }
 
         if (result.Prepared?.NormalizedWindows.Count > 0 && scale is not null)
         {
-            builder.AppendLine("  <div class=\"timeline\">");
+            AppendTimelineTools(builder);
+            builder
+                .AppendLine("  <div class=\"timeline-shell\" data-kyft-timeline>")
+                .AppendLine("    <div class=\"timeline-canvas\">")
+                .AppendLine("      <div class=\"timeline\">");
 
             var lanes = result.Prepared.NormalizedWindows
                 .GroupBy(static record => new TimelineLaneKey(record.Side, record.SelectorName, record.Window.WindowName))
@@ -480,8 +517,12 @@ tr:last-child td { border-bottom: 0; }
                 AppendWindowLane(builder, lane.Key, lane.OrderBy(static record => record.Range.Start));
             }
 
-            builder.AppendLine("  </div>");
+            builder
+                .AppendLine("      </div>");
             AppendAxis(builder, scale);
+            builder
+                .AppendLine("    </div>")
+                .AppendLine("  </div>");
             AppendLegend(builder, includeSegments: false);
             AppendWindowDetailTable(builder, result);
         }
@@ -549,6 +590,15 @@ tr:last-child td { border-bottom: 0; }
                 .AppendLine("      </div>")
                 .AppendLine("    </div>");
         }
+    }
+
+    private static void AppendTimelineTools(StringBuilder builder)
+    {
+        builder
+            .AppendLine("  <div class=\"timeline-tools\">")
+            .AppendLine("    <label><input type=\"checkbox\" aria-label=\"Widen timeline\"> Widen timeline</label>")
+            .AppendLine("    <span>Scroll horizontally to inspect dense or long-running lane histories.</span>")
+            .AppendLine("  </div>");
     }
 
     private static void AppendWindowDetailTable(StringBuilder builder, ComparisonResult result)
@@ -646,8 +696,12 @@ tr:last-child td { border-bottom: 0; }
             .AppendLine("      <h2>Segment Context Bands</h2>")
             .AppendLine("      <p class=\"section-note\">Bands show the segment values attached to aligned windows, making phase, period, and other boundary changes visible before inspecting individual rows.</p>")
             .AppendLine("    </div>")
-            .AppendLine("  </div>")
-            .AppendLine("  <div class=\"timeline\">");
+            .AppendLine("  </div>");
+        AppendTimelineTools(builder);
+        builder
+            .AppendLine("  <div class=\"timeline-shell\" data-kyft-timeline>")
+            .AppendLine("    <div class=\"timeline-canvas\">")
+            .AppendLine("      <div class=\"timeline\">");
 
         foreach (var lane in laneGroups.Take(60))
         {
@@ -700,8 +754,11 @@ tr:last-child td { border-bottom: 0; }
                 .AppendLine("    </div>");
         }
 
-        builder.AppendLine("  </div>");
+        builder.AppendLine("      </div>");
         AppendAxis(builder, scale);
+        builder
+            .AppendLine("    </div>")
+            .AppendLine("  </div>");
 
         if (laneGroups.Length > 60)
         {
@@ -727,7 +784,11 @@ tr:last-child td { border-bottom: 0; }
 
         if (result.Aligned?.Segments.Count > 0 && scale is not null)
         {
-            builder.AppendLine("  <div class=\"timeline\">");
+            AppendTimelineTools(builder);
+            builder
+                .AppendLine("  <div class=\"timeline-shell\" data-kyft-timeline>")
+                .AppendLine("    <div class=\"timeline-canvas\">")
+                .AppendLine("      <div class=\"timeline\">");
 
             var lanes = result.Aligned.Segments
                 .GroupBy(static segment => new SegmentLaneKey(
@@ -786,8 +847,11 @@ tr:last-child td { border-bottom: 0; }
                     .AppendLine("    </div>");
             }
 
-            builder.AppendLine("  </div>");
+            builder.AppendLine("      </div>");
             AppendAxis(builder, scale);
+            builder
+                .AppendLine("    </div>")
+                .AppendLine("  </div>");
             AppendLegend(builder, includeSegments: true);
             AppendSegmentTable(builder, result);
         }
