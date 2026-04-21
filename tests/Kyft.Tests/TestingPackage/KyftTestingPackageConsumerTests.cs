@@ -1,8 +1,8 @@
 using Kyft.Testing;
 
-namespace Kyft.Tests.Testing;
+namespace Kyft.Tests.TestingPackage;
 
-public sealed class KyftTestingConsumerTests
+public sealed class KyftTestingPackageConsumerTests
 {
     [Fact]
     public void ConsumerCanAssertComparisonResult()
@@ -69,18 +69,18 @@ public sealed class KyftTestingConsumerTests
     {
         var history = new WindowHistoryFixtureBuilder()
             .AddClosedWindow(
-                "SelectionPriced",
-                "selection-1",
+                "DeviceOffline",
+                "device-1",
                 1,
                 5,
                 source: "source-a",
-                segments: [new WindowSegment("phase", "InPlay")])
+                segments: [new WindowSegment("lifecycle", "Incident")])
             .Build();
 
         var result = history.Compare("Segmented fixture QA")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
-            .Within(scope => scope.Window("SelectionPriced").Segment("phase", "InPlay"))
+            .Within(scope => scope.Window("DeviceOffline").Segment("lifecycle", "Incident"))
             .Using(comparators => comparators.Residual())
             .Run();
 
@@ -125,17 +125,17 @@ public sealed class KyftTestingConsumerTests
     {
         var history = new WindowHistoryFixtureBuilder()
             .AddOpenWindow(
-                "MarketPriced",
-                "market-1",
+                "DeviceOffline",
+                "device-1",
                 1,
                 source: "source-a",
-                segments: [new WindowSegment("phase", "Pregame")])
+                segments: [new WindowSegment("lifecycle", "Normal")])
             .AddOpenWindow(
-                "MarketPriced",
-                "market-1",
+                "DeviceOffline",
+                "device-1",
                 2,
                 source: "source-a",
-                segments: [new WindowSegment("phase", "InPlay")])
+                segments: [new WindowSegment("lifecycle", "Incident")])
             .Build();
 
         Assert.Equal(2, history.OpenWindows.Count);

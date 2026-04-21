@@ -16,6 +16,9 @@ batch. The goal is to keep Kyft readable for humans and predictable for agents.
 under `src` because consumers should be able to reference it from their own test
 suites.
 
+Tests for that package live under `tests/Kyft.Tests/TestingPackage` inside the
+single xUnit test project. There is no separate `tests/Kyft.Testing` project.
+
 ## Core Concepts
 
 The current naming is coherent enough to keep:
