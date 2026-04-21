@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Kyft is a C# package for recording temporal state windows and comparing them across sources, providers, or pipeline stages.">
+  <title>Kyft - temporal window analysis for C#</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Kyft home">Kyft</a>
+    <nav class="nav" aria-label="Primary navigation">
+      <a href="#what">What it does</a>
+      <a href="#use-cases">Use cases</a>
+      <a href="#examples">Examples</a>
+      <a href="#visualiser">Visualiser</a>
+      <a href="https://github.com/Scottlr/kyft">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-content">
+        <p class="eyebrow">C# temporal analysis package</p>
+        <h1 id="hero-title">State changes are easy. State over time is the hard part.</h1>
+        <p class="hero-lead">
+          Kyft records temporal state windows and compares them across sources,
+          providers, or pipeline stages, so you can see who observed a state,
+          who missed it, where histories overlapped, and what was knowable at a
+          specific point in time.
+        </p>
+        <div class="hero-actions" aria-label="Primary actions">
+          <a class="button primary" href="https://github.com/Scottlr/kyft">View on GitHub</a>
+          <a class="button secondary" href="#install">Get started</a>
+        </div>
+        <ul class="proof-list" aria-label="Core capabilities">
+          <li>Recorded open and closed windows</li>
+          <li>Overlap, residual, missing, and coverage rows</li>
+          <li>Live horizons and point-in-time reads</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section intro-grid" id="what">
+      <div>
+        <p class="section-kicker">What it does</p>
+        <h2>Kyft turns event predicates into evidence you can inspect.</h2>
+        <p>
+          In many systems, the latest value is not enough. You need to know when
+          a state was active, which lane reported it, whether another source
+          agreed, and how that answer changes at a historical horizon.
+        </p>
+      </div>
+      <div class="definition-panel">
+        <h3>A temporal window is a recorded period of state.</h3>
+        <p>
+          A window opens when a predicate becomes true for a key. It closes when
+          the predicate becomes false, a boundary splits the analysis, or a live
+          horizon clips the current view.
+        </p>
+        <div class="flow" aria-label="Kyft flow">
+          <span>events</span>
+          <span>predicate</span>
+          <span>windows</span>
+          <span>comparison</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section split" id="why">
+      <div>
+        <p class="section-kicker">Why it exists</p>
+        <h2>Ordinary state tracking throws away the timeline.</h2>
+      </div>
+      <div class="text-stack">
+        <p>
+          A current-state table can tell you that a device is healthy now. It
+          cannot tell you that one monitoring provider reported it offline for
+          ten minutes while another saw only five, or that the comparison source
+          went silent during the period you cared about.
+        </p>
+        <p>
+          Kyft keeps the temporal record as first-class data. It lets C# systems
+          compare observed histories without becoming a general stream
+          processor, metrics backend, or database abstraction.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="use-cases">
+      <div class="section-heading">
+        <p class="section-kicker">Concrete use cases</p>
+        <h2>Use Kyft when the question depends on time, source, and evidence.</h2>
+      </div>
+      <div class="cards four">
+        <article class="card">
+          <h3>Monitoring provider comparison</h3>
+          <p>Find where provider A reported an outage that provider B missed, overlapped, or reported late.</p>
+        </article>
+        <article class="card">
+          <h3>Decision-point audit</h3>
+          <p>Evaluate only the windows known at a specific position or timestamp, without future leakage.</p>
+        </article>
+        <article class="card">
+          <h3>Live open-window analysis</h3>
+          <p>Run comparisons against still-open windows and separate provisional rows from final rows.</p>
+        </article>
+        <article class="card">
+          <h3>Pipeline history analysis</h3>
+          <p>Compare stages in a data pipeline to see where state diverged, lagged, or left gaps.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section capabilities" id="capabilities">
+      <div class="section-heading">
+        <p class="section-kicker">Key capabilities</p>
+        <h2>Small primitives, serious temporal questions.</h2>
+      </div>
+      <div class="capability-grid">
+        <div>
+          <h3>Record windows</h3>
+          <p>Capture when keyed state opens and closes, including source, partition, segment, and tag context.</p>
+        </div>
+        <div>
+          <h3>Compare histories</h3>
+          <p>Emit overlap, residual, missing, coverage, gap, containment, lead/lag, and as-of rows.</p>
+        </div>
+        <div>
+          <h3>Reason at a horizon</h3>
+          <p>Ask what was open or knowable at a processing position or timestamp.</p>
+        </div>
+        <div>
+          <h3>Handle live analysis</h3>
+          <p>Clip ongoing windows to an explicit horizon and mark dependent comparison rows as provisional.</p>
+        </div>
+        <div>
+          <h3>Explain and export</h3>
+          <p>Produce deterministic JSON, JSON Lines, Markdown, and self-contained debug HTML artifacts.</p>
+        </div>
+        <div>
+          <h3>Test recorded history</h3>
+          <p>Use optional testing helpers for compact fixtures and assertions without running a full pipeline.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section examples" id="examples">
+      <div class="section-heading">
+        <p class="section-kicker" id="install">Install and code</p>
+        <h2>Define the state once, then query and compare the recorded history.</h2>
+      </div>
+
+      <div class="code-pair">
+        <article>
+          <h3>Install</h3>
+          <pre><code>dotnet add package Kyft
+dotnet add package Kyft.Testing</code></pre>
+          <p class="note">`Kyft.Testing` is optional. It is useful for compact comparison fixtures in consumer test suites.</p>
+        </article>
+
+        <article>
+          <h3>Track windows</h3>
+          <pre><code>using Kyft;
+
+var pipeline = Kyft
+    .For&lt;DeviceSignal&gt;()
+    .RecordWindows()
+    .TrackWindow(
+        "DeviceOffline",
+        key: signal =&gt; signal.DeviceId,
+        isActive: signal =&gt; !signal.IsOnline);
+
+pipeline.Ingest(new DeviceSignal("device-17", false), source: "provider-a");
+pipeline.Ingest(new DeviceSignal("device-17", true), source: "provider-a");
+
+public sealed record DeviceSignal(string DeviceId, bool IsOnline);</code></pre>
+        </article>
+      </div>
+
+      <article class="wide-code">
+        <h3>Compare two sources</h3>
+        <pre><code>var result = pipeline.History
+    .Compare("Provider QA")
+    .Target("provider-a", selector =&gt; selector.Source("provider-a"))
+    .Against("provider-b", selector =&gt; selector.Source("provider-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(comparators =&gt; comparators
+        .Overlap()
+        .Residual()
+        .Missing()
+        .Coverage())
+    .Run();
+
+foreach (var row in result.ResidualRows)
+{
+    Console.WriteLine($"{row.WindowName} {row.Key} target-only {row.Range.Start}..{row.Range.End}");
+}</code></pre>
+      </article>
+    </section>
+
+    <section class="section visualiser" id="visualiser">
+      <div class="section-heading">
+        <p class="section-kicker">Debug visualiser</p>
+        <h2>Open a comparison as a browser-readable timeline.</h2>
+        <p>
+          Kyft can export a self-contained HTML debug document for a comparison
+          result. It is useful when a row looks surprising and you need to see
+          the source windows, aligned segments, overlaps, gaps, and finality in
+          one place.
+        </p>
+      </div>
+
+      <div class="visualiser-layout">
+        <div class="visualiser-copy">
+          <h3>What the example shows</h3>
+          <p>
+            The embedded artifact compares two providers reporting a
+            `DeviceOffline` state. Provider A starts earlier, provider B
+            recovers sooner, and provider A has an ongoing live window clipped
+            to the evaluation horizon.
+          </p>
+          <ul>
+            <li>Which windows were selected for each side</li>
+            <li>Where the two sources overlapped</li>
+            <li>Where one source had target-only or comparison-only coverage</li>
+            <li>Which rows are final and which depend on a live horizon</li>
+          </ul>
+          <a class="text-link" href="examples/provider-comparison.html">Open the full debug example</a>
+        </div>
+        <div class="visualiser-frame">
+          <iframe
+            title="Kyft provider comparison debug HTML example"
+            src="examples/provider-comparison.html"
+            loading="lazy"></iframe>
+        </div>
+      </div>
+
+      <div class="debug-code">
+        <pre><code>var result = pipeline.History
+    .Compare("Provider QA")
+    .Target("provider-a", selector =&gt; selector.Source("provider-a"))
+    .Against("provider-b", selector =&gt; selector.Source("provider-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(comparators =&gt; comparators.Overlap().Residual().Missing())
+    .RunLive(TemporalPoint.ForPosition(25));
+
+result.ExportDebugHtml("artifacts/provider-qa.html");</code></pre>
+      </div>
+    </section>
+
+    <section class="section comparisons" id="why-not">
+      <div class="section-heading">
+        <p class="section-kicker">Why not just X?</p>
+        <h2>Kyft is focused on recorded temporal state, not replacing your platform.</h2>
+      </div>
+      <div class="comparison-list">
+        <article>
+          <h3>Storing timestamps in a database</h3>
+          <p>A database can persist windows, but it will not give you staged comparison plans, source selectors, normalization, live finality, diagnostics, or deterministic exports by itself.</p>
+        </article>
+        <article>
+          <h3>Latest-state tracking</h3>
+          <p>Latest-state tables answer what is true now. Kyft answers when it was true, who saw it, and whether another source missed it.</p>
+        </article>
+        <article>
+          <h3>Generic event processing</h3>
+          <p>Stream processors route and aggregate events. Kyft stays smaller: it records state windows and compares their temporal evidence inside C# code.</p>
+        </article>
+        <article>
+          <h3>Metrics dashboards</h3>
+          <p>Dashboards compress time into counters, rates, and charts. Kyft keeps the individual windows and emits rows you can audit.</p>
+        </article>
+        <article>
+          <h3>Event sourcing</h3>
+          <p>Event sourcing preserves facts and rebuilds state. Kyft analyzes the windows produced after those facts have been interpreted.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section final-cta">
+      <div>
+        <p class="section-kicker">Repository</p>
+        <h2>Use Kyft when temporal evidence matters.</h2>
+        <p>
+          Start with the README, run the samples, then use the comparison guide
+          when you need overlap, residual, missing, live, or known-at analysis.
+        </p>
+      </div>
+      <div class="footer-actions">
+        <a class="button primary" href="https://github.com/Scottlr/kyft">GitHub repository</a>
+        <a class="button secondary" href="comparison-guide.md">Comparison guide</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Kyft</span>
+    <a href="https://github.com/Scottlr/kyft">github.com/Scottlr/kyft</a>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
