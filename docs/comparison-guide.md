@@ -123,6 +123,32 @@ Summaries are deliberately small: record count, final/provisional count,
 measured processing-position length, and measured event-time duration. Kyft does
 not impose a reporting schema on top of those groups.
 
+## Late Annotations
+
+Use annotations when explanatory metadata arrives after a window has already
+opened. Annotation is append-only and external to the recorded window: it does
+not mutate the source record, split the range, or change comparison output.
+
+```csharp
+var openWindow = pipeline.Intervals.Query() // Start a direct history query.
+    .Window("DeviceOffline") // Restrict the query to one window family.
+    .Lane("provider-a") // Restrict the query to one lane.
+    .LatestWindow(); // Select the latest matching source window.
+
+var annotation = pipeline.Intervals.Annotate( // Attach metadata to the window start identity.
+    openWindow!, // Use the source window being explained.
+    "reason", // Name the annotation.
+    "maintenance", // Store the explanatory value.
+    TemporalPoint.ForPosition(105)); // Record when the annotation became known.
+
+var annotations = pipeline.Intervals.AnnotationsFor(openWindow!); // Read annotations back in append order.
+```
+
+The annotation target excludes the window end. If metadata is attached while a
+window is open, the same annotation remains associated after that window closes.
+Repeated annotations with the same name append revisions instead of overwriting
+earlier metadata.
+
 ## Known-At Safety
 
 Known-at filtering answers "what records were available at this processing

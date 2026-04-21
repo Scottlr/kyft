@@ -168,6 +168,12 @@ var byLifecycle = snapshot.Query() // Reuse the same horizon snapshot.
     .Window("DeviceOffline") // Keep the summary scoped to one window family.
     .Windows() // Materialize final and provisional records.
     .SummarizeBySegment("lifecycle"); // Group counts and measured length by lifecycle.
+
+var annotation = pipeline.Intervals.Annotate( // Attach metadata discovered after the window opened.
+    latest!, // Annotate the latest matching source window.
+    "reason", // Name the annotation.
+    "maintenance", // Store the explanatory value.
+    TemporalPoint.ForPosition(105)); // Record when the annotation became known.
 ```
 
 ## What Makes Kyft Different?

@@ -15,12 +15,14 @@ public sealed class WindowIntervalHistory
     private readonly bool enabled;
     private readonly Dictionary<WindowRecordingKey, OpenWindow> openIntervals;
     private readonly List<ClosedWindow> closedIntervals;
+    private readonly List<WindowAnnotation> annotations;
 
     internal WindowIntervalHistory(bool enabled)
     {
         this.enabled = enabled;
         this.openIntervals = [];
         this.closedIntervals = [];
+        this.annotations = [];
     }
 
     /// <summary>
@@ -75,6 +77,11 @@ public sealed class WindowIntervalHistory
     }
 
     /// <summary>
+    /// Gets annotations attached to recorded windows.
+    /// </summary>
+    public IReadOnlyList<WindowAnnotation> Annotations => this.annotations.ToArray();
+
+    /// <summary>
     /// Starts a staged comparison over this recorded window history.
     /// </summary>
     /// <param name="name">A human-readable name for the comparison.</param>
@@ -115,6 +122,102 @@ public sealed class WindowIntervalHistory
     public WindowHistorySnapshot SnapshotAt(TemporalPoint horizon)
     {
         return WindowHistorySnapshot.Create(this, horizon);
+    }
+
+    /// <summary>
+    /// Attaches external metadata to a recorded window.
+    /// </summary>
+    /// <remarks>
+    /// Annotation is append-only. It does not mutate, split, or revise the
+    /// source window. The annotation target uses the window start identity so
+    /// metadata attached while a window is open remains associated after the
+    /// window closes.
+    /// </remarks>
+    /// <param name="window">The window to annotate.</param>
+    /// <param name="name">The annotation name.</param>
+    /// <param name="value">The annotation value.</param>
+    /// <param name="knownAt">When the annotation became known, if supplied.</param>
+    /// <returns>The appended annotation.</returns>
+    public WindowAnnotation Annotate(
+        WindowRecord window,
+        string name,
+        object? value,
+        TemporalPoint? knownAt = null)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        return Annotate(WindowAnnotationTarget.From(window), name, value, knownAt);
+    }
+
+    /// <summary>
+    /// Attaches external metadata to a window annotation target.
+    /// </summary>
+    /// <param name="target">The stable window start identity to annotate.</param>
+    /// <param name="name">The annotation name.</param>
+    /// <param name="value">The annotation value.</param>
+    /// <param name="knownAt">When the annotation became known, if supplied.</param>
+    /// <returns>The appended annotation.</returns>
+    public WindowAnnotation Annotate(
+        WindowAnnotationTarget target,
+        string name,
+        object? value,
+        TemporalPoint? knownAt = null)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        if (knownAt is { Axis: TemporalAxis.Unknown })
+        {
+            throw new ArgumentException("Annotation known-at point must use a known temporal axis.", nameof(knownAt));
+        }
+
+        var revision = 1;
+        for (var i = 0; i < this.annotations.Count; i++)
+        {
+            var annotation = this.annotations[i];
+            if (annotation.Target == target
+                && string.Equals(annotation.Name, name, StringComparison.Ordinal))
+            {
+                revision++;
+            }
+        }
+
+        var appended = new WindowAnnotation(target, name, value, knownAt, revision);
+        this.annotations.Add(appended);
+        return appended;
+    }
+
+    /// <summary>
+    /// Gets annotations attached to a recorded window.
+    /// </summary>
+    /// <param name="window">The recorded window.</param>
+    /// <returns>Matching annotations in append order.</returns>
+    public IReadOnlyList<WindowAnnotation> AnnotationsFor(WindowRecord window)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        return AnnotationsFor(WindowAnnotationTarget.From(window));
+    }
+
+    /// <summary>
+    /// Gets annotations attached to a window annotation target.
+    /// </summary>
+    /// <param name="target">The stable window start identity.</param>
+    /// <returns>Matching annotations in append order.</returns>
+    public IReadOnlyList<WindowAnnotation> AnnotationsFor(WindowAnnotationTarget target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+
+        var matches = new List<WindowAnnotation>();
+        for (var i = 0; i < this.annotations.Count; i++)
+        {
+            if (this.annotations[i].Target == target)
+            {
+                matches.Add(this.annotations[i]);
+            }
+        }
+
+        return matches.ToArray();
     }
 
     /// <summary>
