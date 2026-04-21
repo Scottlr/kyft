@@ -267,6 +267,56 @@ li,
   margin: 20px 0 18px;
 }
 
+.quick-timeline {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.quick-row {
+  display: grid;
+  grid-template-columns: 100px minmax(220px, 1fr) 150px;
+  gap: 14px;
+  align-items: center;
+}
+
+.quick-row span:first-child,
+.quick-row span:last-child {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.quick-track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.quick-window {
+  position: absolute;
+  top: 0;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.quick-window.target {
+  background: var(--blue);
+}
+
+.quick-window.compare,
+.quick-window.overlap {
+  background: var(--green);
+}
+
+.quick-window.residual {
+  background: var(--amber);
+}
+
 .state-row {
   position: relative;
   display: grid;
@@ -436,6 +486,11 @@ li,
 
 .wide-example {
   margin-top: 14px;
+}
+
+.expected-output {
+  display: grid;
+  gap: 14px;
 }
 
 pre {
@@ -702,6 +757,7 @@ pre code {
   .hero-grid,
   .diagram-grid,
   .card-grid.four,
+  .quick-row,
   .two-col,
   .code-strip,
   .code-grid,
@@ -716,6 +772,10 @@ pre code {
   .api-tree {
     position: static;
     max-height: none;
+  }
+
+  .quick-row {
+    grid-template-columns: 1fr;
   }
 }
 
