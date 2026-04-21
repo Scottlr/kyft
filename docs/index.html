@@ -15,6 +15,7 @@
       <a href="#use-cases">Use cases</a>
       <a href="#examples">Examples</a>
       <a href="#visualiser">Visualiser</a>
+      <a href="api.html">API</a>
       <a href="https://github.com/Scottlr/kyft">GitHub</a>
     </nav>
   </header>
@@ -240,6 +241,24 @@ foreach (var row in result.ResidualRows)
           <a class="text-link" href="examples/provider-comparison.html">Open the full debug example</a>
         </div>
       </div>
+      <div class="example-links" aria-label="Debug HTML examples">
+        <a href="examples/provider-comparison.html">
+          <strong>Provider comparison</strong>
+          <span>Two lanes with overlap, residual, missing, and live finality.</span>
+        </a>
+        <a href="examples/multi-lane-overlap.html">
+          <strong>Multi-lane overlap</strong>
+          <span>Four sensor gateways with staggered overlapping windows.</span>
+        </a>
+        <a href="examples/cohort-quorum.html">
+          <strong>Cohort quorum</strong>
+          <span>Primary lane compared against an at-least-two replica cohort.</span>
+        </a>
+        <a href="examples/segmented-live.html">
+          <strong>Segmented live windows</strong>
+          <span>Phase and period segments with open windows at a live horizon.</span>
+        </a>
+      </div>
       <div class="visualiser-frame">
         <iframe
           title="Kyft provider comparison debug HTML example"
@@ -301,6 +320,7 @@ result.ExportDebugHtml("artifacts/provider-qa.html");</code></pre>
       <div class="footer-actions">
         <a class="button primary" href="https://github.com/Scottlr/kyft">GitHub repository</a>
         <a class="button secondary" href="comparison-guide.md">Comparison guide</a>
+        <a class="button secondary" href="api.html">API reference</a>
       </div>
     </section>
   </main>

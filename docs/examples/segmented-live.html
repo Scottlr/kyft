@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Segmented live pipeline backlog - Kyft debug</title>
+  <style>
+:root {
+  color-scheme: light;
+  --bg: #f7f7f4;
+  --panel: #ffffff;
+  --ink: #17201b;
+  --muted: #5b645f;
+  --line: #d8ded9;
+  --soft: #eef2ef;
+  --target: #2563eb;
+  --against: #059669;
+  --overlap: #0f766e;
+  --residual: #c2410c;
+  --missing: #b91c1c;
+  --gap: #6b7280;
+  --warning: #b45309;
+  --error: #b91c1c;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+main {
+  width: min(1220px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+
+.hero,
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 34px rgba(23, 32, 27, 0.08);
+}
+
+.hero {
+  padding: 28px;
+  border-top: 4px solid var(--overlap);
+}
+
+.eyebrow {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  margin-top: 8px;
+  font-size: 40px;
+  line-height: 1.02;
+}
+
+h2 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 15px;
+}
+
+.lead {
+  max-width: 760px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.badge.valid { border-color: #86efac; background: #ecfdf3; color: #14532d; }
+.badge.invalid { border-color: #fecaca; background: #fef2f2; color: #7f1d1d; }
+.badge.live { border-color: #fed7aa; background: #fff7ed; color: #7c2d12; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.card {
+  min-height: 86px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.card .value {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.card .label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.panel {
+  margin-top: 18px;
+  padding: 22px;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.section-note {
+  max-width: 680px;
+  color: var(--muted);
+}
+
+.timeline {
+  display: grid;
+  gap: 12px;
+}
+
+.lane {
+  display: grid;
+  grid-template-columns: minmax(180px, 250px) minmax(280px, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.lane-title {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-weight: 720;
+}
+
+.lane-meta {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.track {
+  position: relative;
+  min-height: 34px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(23, 32, 27, 0.05) 1px, transparent 1px) 0 0 / 12.5% 100%,
+    #f9faf9;
+}
+
+.bar {
+  position: absolute;
+  top: 6px;
+  height: 20px;
+  min-width: 3px;
+  border-radius: 6px;
+  opacity: 0.94;
+}
+
+.bar.target { background: var(--target); }
+.bar.against { background: var(--against); }
+.bar.overlap { background: var(--overlap); }
+.bar.residual { background: var(--residual); }
+.bar.missing { background: var(--missing); }
+.bar.gap { background: var(--gap); }
+.bar.open { outline: 2px dashed rgba(23, 32, 27, 0.46); outline-offset: 2px; }
+
+.boundary-marker {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--warning);
+  box-shadow: 0 0 0 2px rgba(255, 247, 237, 0.92);
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.band-lane {
+  display: grid;
+  grid-template-columns: minmax(180px, 250px) minmax(280px, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.band-title {
+  overflow-wrap: anywhere;
+  font-weight: 720;
+}
+
+.band-track {
+  position: relative;
+  min-height: 36px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f9faf9;
+}
+
+.band-segment {
+  position: absolute;
+  top: 5px;
+  height: 24px;
+  min-width: 4px;
+  overflow: hidden;
+  padding: 2px 8px;
+  border: 1px solid rgba(23, 32, 27, 0.18);
+  border-radius: 6px;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.band-segment.c0 { background: #dbeafe; }
+.band-segment.c1 { background: #dcfce7; }
+.band-segment.c2 { background: #fef3c7; }
+.band-segment.c3 { background: #fce7f3; }
+.band-segment.c4 { background: #ccfbf1; }
+.band-segment.c5 { background: #e5e7eb; }
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+th,
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+tr:last-child td { border-bottom: 0; }
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
+.empty {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: #fbfcfb;
+}
+
+.severity-error { color: var(--error); font-weight: 720; }
+.severity-warning { color: var(--warning); font-weight: 720; }
+
+@media (max-width: 820px) {
+  main { width: min(100% - 20px, 1220px); padding-top: 16px; }
+  .hero, .panel { padding: 18px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lane, .band-lane { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .grid { grid-template-columns: 1fr; }
+  h1 { font-size: 30px; }
+}
+  </style>
+</head>
+<body>
+<main>
+<section class="hero">
+  <div class="eyebrow">Kyft comparison debug</div>
+  <h1>Segmented live pipeline backlog</h1>
+  <p class="lead">Inspect which windows were active, where sources overlapped or diverged, and whether live rows are final or provisional.</p>
+  <div class="badges">
+    <span class="badge valid">Valid result</span>
+    <span class="badge live">Live horizon pos 24</span>
+    <span class="badge">processing position</span>
+  </div>
+</section>
+<section class="grid" aria-label="Comparison summary">
+  <div class="card">
+    <div class="label">Selected windows</div><div class="value">5</div>
+  </div>
+  <div class="card">
+    <div class="label">Normalized windows</div><div class="value">5</div>
+  </div>
+  <div class="card">
+    <div class="label">Aligned segments</div><div class="value">7</div>
+  </div>
+  <div class="card">
+    <div class="label">Result rows</div><div class="value">11</div>
+  </div>
+  <div class="card">
+    <div class="label">Diagnostics</div><div class="value">0</div>
+  </div>
+  <div class="card">
+    <div class="label">Provisional rows</div><div class="value">1</div>
+  </div>
+  <div class="card">
+    <div class="label">Comparators</div><div class="value">5</div>
+  </div>
+  <div class="card">
+    <div class="label">Excluded windows</div><div class="value">0</div>
+  </div>
+</section>
+<section class="panel">
+  <div class="section-head">
+    <div>
+      <h2>Window Timeline</h2>
+      <p class="section-note">Each lane shows normalized windows after selector, scope, known-at, and open-window policy have been applied.</p>
+    </div>
+  </div>
+  <div class="timeline">
+    <div class="lane">
+      <div class="lane-title">Target / ingest<span class="lane-meta">StageBacklog</span></div>
+      <div class="track">
+        <div class="bar target" style="left:0%;width:9.524%" title="StageBacklog / key job-42 / source ingest / phase=Warmup, period=P1 / tags priority=normal / boundary SegmentChanged: phase Warmup -&gt; Active, period P1 -&gt; P2 / [pos 3, pos 5) Closed / id a4c7d43e40fc"></div>
+        <div class="boundary-marker" style="left:9.524%" title="SegmentChanged: phase Warmup -&gt; Active, period P1 -&gt; P2"></div>
+        <div class="bar target" style="left:9.524%;width:14.286%" title="StageBacklog / key job-42 / source ingest / phase=Active, period=P2 / tags priority=urgent / boundary ActivePredicateEnded / [pos 5, pos 8) Closed / id 948b1d62055b"></div>
+        <div class="boundary-marker" style="left:23.81%" title="ActivePredicateEnded"></div>
+      </div>
+    </div>
+    <div class="lane">
+      <div class="lane-title">Against / worker<span class="lane-meta">StageBacklog</span></div>
+      <div class="track">
+        <div class="bar against" style="left:4.762%;width:9.524%" title="StageBacklog / key job-42 / source worker / phase=Warmup, period=P1 / tags priority=normal / boundary ActivePredicateEnded / [pos 4, pos 6) Closed / id c3b96e002ef2"></div>
+        <div class="boundary-marker" style="left:14.286%" title="ActivePredicateEnded"></div>
+        <div class="bar against" style="left:19.048%;width:9.524%" title="StageBacklog / key job-42 / source worker / phase=Active, period=P2 / tags priority=urgent / boundary SegmentChanged: period P2 -&gt; P3 / [pos 7, pos 9) Closed / id f4186e365192"></div>
+        <div class="boundary-marker" style="left:28.571%" title="SegmentChanged: period P2 -&gt; P3"></div>
+        <div class="bar against open" style="left:28.571%;width:71.429%" title="StageBacklog / key job-42 / source worker / phase=Active, period=P3 / tags priority=urgent / boundary  / [pos 9, pos 24) OpenAtHorizon / id cb531fe0746c"></div>
+      </div>
+    </div>
+  </div>
+  <div class="axis">
+    <span>pos 3</span><span>pos 24</span>
+  </div>
+  <div class="legend">
+    <span class="legend-item"><span class="swatch" style="background:var(--target)"></span>Target window</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--against)"></span>Comparison window</span>
+  </div>
+  <div class="table-wrap" style="margin-top:18px">
+    <table>
+      <thead>
+        <tr><th>Side</th><th>Selector</th><th>Window</th><th>Key</th><th>Range</th><th>Segments</th><th>Tags</th><th>Boundary</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Target</td><td>ingest</td><td>StageBacklog</td><td>job-42</td><td class="mono">[pos 3, pos 5) Closed</td><td>phase=Warmup, period=P1</td><td>priority=normal</td><td>SegmentChanged: phase Warmup -&gt; Active, period P1 -&gt; P2</td>
+        </tr>
+        <tr>
+          <td>Target</td><td>ingest</td><td>StageBacklog</td><td>job-42</td><td class="mono">[pos 5, pos 8) Closed</td><td>phase=Active, period=P2</td><td>priority=urgent</td><td>ActivePredicateEnded</td>
+        </tr>
+        <tr>
+          <td>Against</td><td>worker</td><td>StageBacklog</td><td>job-42</td><td class="mono">[pos 4, pos 6) Closed</td><td>phase=Warmup, period=P1</td><td>priority=normal</td><td>ActivePredicateEnded</td>
+        </tr>
+        <tr>
+          <td>Against</td><td>worker</td><td>StageBacklog</td><td>job-42</td><td class="mono">[pos 7, pos 9) Closed</td><td>phase=Active, period=P2</td><td>priority=urgent</td><td>SegmentChanged: period P2 -&gt; P3</td>
+        </tr>
+        <tr>
+          <td>Against</td><td>worker</td><td>StageBacklog</td><td>job-42</td><td class="mono">[pos 9, pos 24) OpenAtHorizon</td><td>phase=Active, period=P3</td><td>priority=urgent</td><td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="panel">
+  <div class="section-head">
+    <div>
+      <h2>Segment Context Bands</h2>
+      <p class="section-note">Bands show the segment values attached to aligned windows, making phase, period, and other boundary changes visible before inspecting individual rows.</p>
+    </div>
+  </div>
+  <div class="timeline">
+    <div class="band-lane">
+      <div class="band-title">phase<span class="lane-meta">StageBacklog / key job-42</span></div>
+      <div class="band-track">
+        <div class="band-segment c1" style="left:0%;width:4.762%" title="phase=Warmup / StageBacklog / key job-42 / [pos 3, pos 4) Closed">Warmup</div>
+        <div class="band-segment c1" style="left:4.762%;width:4.762%" title="phase=Warmup / StageBacklog / key job-42 / [pos 4, pos 5) Closed">Warmup</div>
+        <div class="band-segment c1" style="left:9.524%;width:9.524%" title="phase=Active / StageBacklog / key job-42 / [pos 5, pos 7) Closed">Active</div>
+        <div class="band-segment c1" style="left:9.524%;width:4.762%" title="phase=Warmup / StageBacklog / key job-42 / [pos 5, pos 6) Closed">Warmup</div>
+        <div class="band-segment c1" style="left:19.048%;width:4.762%" title="phase=Active / StageBacklog / key job-42 / [pos 7, pos 8) Closed">Active</div>
+        <div class="band-segment c1" style="left:23.81%;width:4.762%" title="phase=Active / StageBacklog / key job-42 / [pos 8, pos 9) Closed">Active</div>
+        <div class="band-segment c1" style="left:28.571%;width:71.429%" title="phase=Active / StageBacklog / key job-42 / [pos 9, pos 24) Closed">Active</div>
+      </div>
+    </div>
+    <div class="band-lane">
+      <div class="band-title">period<span class="lane-meta">StageBacklog / key job-42 / parent phase</span></div>
+      <div class="band-track">
+        <div class="band-segment c4" style="left:0%;width:4.762%" title="period=P1 / StageBacklog / key job-42 / parent phase / [pos 3, pos 4) Closed">P1</div>
+        <div class="band-segment c4" style="left:4.762%;width:4.762%" title="period=P1 / StageBacklog / key job-42 / parent phase / [pos 4, pos 5) Closed">P1</div>
+        <div class="band-segment c5" style="left:9.524%;width:9.524%" title="period=P2 / StageBacklog / key job-42 / parent phase / [pos 5, pos 7) Closed">P2</div>
+        <div class="band-segment c4" style="left:9.524%;width:4.762%" title="period=P1 / StageBacklog / key job-42 / parent phase / [pos 5, pos 6) Closed">P1</div>
+        <div class="band-segment c5" style="left:19.048%;width:4.762%" title="period=P2 / StageBacklog / key job-42 / parent phase / [pos 7, pos 8) Closed">P2</div>
+        <div class="band-segment c5" style="left:23.81%;width:4.762%" title="period=P2 / StageBacklog / key job-42 / parent phase / [pos 8, pos 9) Closed">P2</div>
+        <div class="band-segment c0" style="left:28.571%;width:71.429%" title="period=P3 / StageBacklog / key job-42 / parent phase / [pos 9, pos 24) Closed">P3</div>
+      </div>
+    </div>
+  </div>
+  <div class="axis">
+    <span>pos 3</span><span>pos 24</span>
+  </div>
+</section>
+<section class="panel">
+  <div class="section-head">
+    <div>
+      <h2>Aligned Segments</h2>
+      <p class="section-note">Segments are the comparison-ready temporal pieces. Their colour shows whether target and comparison windows were both active, target-only, comparison-only, or empty.</p>
+    </div>
+  </div>
+  <div class="timeline">
+    <div class="lane">
+      <div class="lane-title">StageBacklog<span class="lane-meta">key job-42 / phase=Active, period=P2</span></div>
+      <div class="track">
+        <div class="bar residual" style="left:9.524%;width:9.524%" title="target only / StageBacklog / key job-42 / phase=Active, period=P2 / [pos 5, pos 7) Closed"></div>
+        <div class="bar overlap" style="left:19.048%;width:4.762%" title="overlap / StageBacklog / key job-42 / phase=Active, period=P2 / [pos 7, pos 8) Closed"></div>
+        <div class="bar missing" style="left:23.81%;width:4.762%" title="comparison only / StageBacklog / key job-42 / phase=Active, period=P2 / [pos 8, pos 9) Closed"></div>
+      </div>
+    </div>
+    <div class="lane">
+      <div class="lane-title">StageBacklog<span class="lane-meta">key job-42 / phase=Active, period=P3</span></div>
+      <div class="track">
+        <div class="bar missing" style="left:28.571%;width:71.429%" title="comparison only / StageBacklog / key job-42 / phase=Active, period=P3 / [pos 9, pos 24) Closed"></div>
+      </div>
+    </div>
+    <div class="lane">
+      <div class="lane-title">StageBacklog<span class="lane-meta">key job-42 / phase=Warmup, period=P1</span></div>
+      <div class="track">
+        <div class="bar residual" style="left:0%;width:4.762%" title="target only / StageBacklog / key job-42 / phase=Warmup, period=P1 / [pos 3, pos 4) Closed"></div>
+        <div class="bar overlap" style="left:4.762%;width:4.762%" title="overlap / StageBacklog / key job-42 / phase=Warmup, period=P1 / [pos 4, pos 5) Closed"></div>
+        <div class="bar missing" style="left:9.524%;width:4.762%" title="comparison only / StageBacklog / key job-42 / phase=Warmup, period=P1 / [pos 5, pos 6) Closed"></div>
+      </div>
+    </div>
+  </div>
+  <div class="axis">
+    <span>pos 3</span><span>pos 24</span>
+  </div>
+  <div class="legend">
+    <span class="legend-item"><span class="swatch" style="background:var(--target)"></span>Target window</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--against)"></span>Comparison window</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--overlap)"></span>Overlap</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--residual)"></span>Target only</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--missing)"></span>Comparison only</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--gap)"></span>Gap</span>
+  </div>
+  <div class="table-wrap" style="margin-top:18px">
+    <table>
+      <thead>
+        <tr><th>Kind</th><th>Window</th><th>Key</th><th>Segments</th><th>Range</th><th>Target IDs</th><th>Against IDs</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>target only</td><td>StageBacklog</td><td>job-42</td><td>phase=Active, period=P2</td><td class="mono">[pos 5, pos 7) Closed</td><td class="mono">948b1d62055b</td><td class="mono">-</td>
+        </tr>
+        <tr>
+          <td>overlap</td><td>StageBacklog</td><td>job-42</td><td>phase=Active, period=P2</td><td class="mono">[pos 7, pos 8) Closed</td><td class="mono">948b1d62055b</td><td class="mono">f4186e365192</td>
+        </tr>
+        <tr>
+          <td>comparison only</td><td>StageBacklog</td><td>job-42</td><td>phase=Active, period=P2</td><td class="mono">[pos 8, pos 9) Closed</td><td class="mono">-</td><td class="mono">f4186e365192</td>
+        </tr>
+        <tr>
+          <td>comparison only</td><td>StageBacklog</td><td>job-42</td><td>phase=Active, period=P3</td><td class="mono">[pos 9, pos 24) Closed</td><td class="mono">-</td><td class="mono">cb531fe0746c</td>
+        </tr>
+        <tr>
+          <td>target only</td><td>StageBacklog</td><td>job-42</td><td>phase=Warmup, period=P1</td><td class="mono">[pos 3, pos 4) Closed</td><td class="mono">a4c7d43e40fc</td><td class="mono">-</td>
+        </tr>
+        <tr>
+          <td>overlap</td><td>StageBacklog</td><td>job-42</td><td>phase=Warmup, period=P1</td><td class="mono">[pos 4, pos 5) Closed</td><td class="mono">a4c7d43e40fc</td><td class="mono">c3b96e002ef2</td>
+        </tr>
+        <tr>
+          <td>comparison only</td><td>StageBacklog</td><td>job-42</td><td>phase=Warmup, period=P1</td><td class="mono">[pos 5, pos 6) Closed</td><td class="mono">-</td><td class="mono">c3b96e002ef2</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="panel">
+  <div class="section-head">
+    <div>
+      <h2>Diagnostics</h2>
+      <p class="section-note">Diagnostics explain validation and execution concerns that affect whether the result can be trusted.</p>
+    </div>
+  </div>
+  <div class="empty">No diagnostics were emitted.</div>
+</section>
+<section class="panel">
+  <div class="section-head">
+    <div>
+      <h2>Metadata</h2>
+      <p class="section-note">Compact extension metadata explains derived artifacts such as cohort activity evidence.</p>
+    </div>
+  </div>
+  <div class="empty">No extension metadata was emitted.</div>
+</section>
+<section class="panel">
+  <div class="section-head">
+    <div>
+      <h2>Rows And Finality</h2>
+      <p class="section-note">Comparator row counts show which analytical questions emitted evidence. Finality rows explain which live results may change after open windows close.</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Row family</th><th>Count</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>overlap</td><td>2</td>
+        </tr>
+        <tr>
+          <td>residual</td><td>2</td>
+        </tr>
+        <tr>
+          <td>missing</td><td>3</td>
+        </tr>
+        <tr>
+          <td>coverage</td><td>4</td>
+        </tr>
+        <tr>
+          <td>gap</td><td>0</td>
+        </tr>
+        <tr>
+          <td>symmetric-difference</td><td>0</td>
+        </tr>
+        <tr>
+          <td>containment</td><td>0</td>
+        </tr>
+        <tr>
+          <td>lead-lag</td><td>0</td>
+        </tr>
+        <tr>
+          <td>as-of</td><td>0</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-wrap" style="margin-top:18px">
+    <table>
+      <thead><tr><th>Row</th><th>Finality</th><th>Reason</th><th>Version</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono">overlap:overlap[0]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">overlap:overlap[1]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">residual:residual[0]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">residual:residual[1]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">missing:missing[0]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">missing:missing[1]</td><td>Provisional</td><td>Depends on at least one open window clipped to the evaluation horizon.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">missing:missing[2]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">coverage:coverage[0]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">coverage:coverage[1]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">coverage:coverage[2]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+        <tr>
+          <td class="mono">coverage:coverage[3]</td><td>Final</td><td>All contributing windows were closed when the row was produced.</td><td>1</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</main>
+</body>
+</html>
