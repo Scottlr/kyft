@@ -1,6 +1,6 @@
 # Fixture Schema
 
-Kyft CLI fixtures are compact JSON files for portable comparison examples and
+Spanfold CLI fixtures are compact JSON files for portable comparison examples and
 agent-readable regression cases.
 
 ## Shape
@@ -9,7 +9,7 @@ JSON examples are left uncommented because JSON fixtures must remain valid JSON.
 
 ```json
 {
-  "schema": "kyft.contract-fixture",
+  "schema": "spanfold.contract-fixture",
   "schemaVersion": 1,
   "name": "basic-overlap",
   "windows": [
@@ -76,15 +76,15 @@ Use `null` for `endPosition` when a window is still open:
 }
 ```
 
-Historical runs keep Kyft's normal safety behavior. Live fixture runs should add
+Historical runs keep Spanfold's normal safety behavior. Live fixture runs should add
 `liveHorizonPosition` to the plan.
 
 ## Commands
 
 ```bash
-dotnet run --project src/Kyft.Cli/Kyft.Cli.csproj -- validate-plan fixture.json # Validate the fixture plan.
-dotnet run --project src/Kyft.Cli/Kyft.Cli.csproj -- compare fixture.json --format json # Execute and export JSON.
-dotnet run --project src/Kyft.Cli/Kyft.Cli.csproj -- explain fixture.json # Execute and export Markdown.
+dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- validate-plan fixture.json # Validate the fixture plan.
+dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- compare fixture.json --format json # Execute and export JSON.
+dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- explain fixture.json # Execute and export Markdown.
 ```
 
 The CLI validates required fixture properties before execution and returns JSON

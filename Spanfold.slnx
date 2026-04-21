@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Spanfold/Spanfold.csproj" />
+    <Project Path="src/Spanfold.Cli/Spanfold.Cli.csproj" />
+    <Project Path="src/Spanfold.Testing/Spanfold.Testing.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Spanfold.Tests/Spanfold.Tests.csproj" />
+  </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Spanfold.Benchmarks/Spanfold.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Spanfold.DistributedQuorum/Spanfold.DistributedQuorum.csproj" />
+    <Project Path="samples/Spanfold.IndustrialTelemetry/Spanfold.IndustrialTelemetry.csproj" />
+    <Project Path="samples/Spanfold.LogisticsColdChain/Spanfold.LogisticsColdChain.csproj" />
+    <Project Path="samples/Spanfold.OperationsExample/Spanfold.OperationsExample.csproj" />
+    <Project Path="samples/Spanfold.SecurityAccessAudit/Spanfold.SecurityAccessAudit.csproj" />
+    <Project Path="samples/Spanfold.SimpleDeviceMonitor/Spanfold.SimpleDeviceMonitor.csproj" />
+    <Project Path="samples/Spanfold.SpaceMissionResearch/Spanfold.SpaceMissionResearch.csproj" />
+  </Folder>
+</Solution>

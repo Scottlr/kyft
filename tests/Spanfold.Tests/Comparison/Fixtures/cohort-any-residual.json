@@ -1,0 +1,53 @@
+{
+  "schema": "spanfold.contract-fixture",
+  "schemaVersion": 1,
+  "name": "cohort-any-residual",
+  "windows": [
+    {
+      "windowName": "DeviceOffline",
+      "key": "device-1",
+      "source": "provider-a",
+      "startPosition": 1,
+      "endPosition": 11
+    },
+    {
+      "windowName": "DeviceOffline",
+      "key": "device-1",
+      "source": "provider-b",
+      "startPosition": 1,
+      "endPosition": 6
+    },
+    {
+      "windowName": "DeviceOffline",
+      "key": "device-1",
+      "source": "provider-c",
+      "startPosition": 6,
+      "endPosition": 11
+    }
+  ],
+  "plan": {
+    "name": "Cohort Fixture QA",
+    "targetSource": "provider-a",
+    "againstCohort": {
+      "name": "cohort",
+      "sources": [ "provider-b", "provider-c" ],
+      "activity": "any"
+    },
+    "scopeWindow": "DeviceOffline",
+    "comparators": [ "residual" ],
+    "strict": false
+  },
+  "expected": {
+    "isValid": true,
+    "diagnostics": [],
+    "summaries": [
+      {
+        "comparatorName": "residual",
+        "rowCount": 0
+      }
+    ],
+    "rows": {
+      "residual": []
+    }
+  }
+}

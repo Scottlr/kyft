@@ -1,6 +1,6 @@
-# Kyft Design Notes
+# Spanfold Design Notes
 
-Kyft models windows as state transitions rather than as time buckets.
+Spanfold models windows as state transitions rather than as time buckets.
 
 A source window opens when the configured `isActive` selector changes from false
 to true for a key. It closes when that selector changes back to false.
@@ -11,7 +11,7 @@ the necessary state tracking.
 
 The builder surface is intentionally narrow:
 
-- `Kyft.For<TEvent>()`
+- `Spanfold.For<TEvent>()`
 - `Window(...)`
 - `RollUp(...)`
 - `Build()`

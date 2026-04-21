@@ -1,6 +1,6 @@
 # Performance Notes
 
-Kyft keeps ingestion, comparison, and export costs separate.
+Spanfold keeps ingestion, comparison, and export costs separate.
 
 ## Hot Paths
 
@@ -32,14 +32,14 @@ The benchmark project covers:
 Run the suite with:
 
 ```bash
-dotnet run -c Release --project benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj # Run the full benchmark suite.
+dotnet run -c Release --project benchmarks/Spanfold.Benchmarks/Spanfold.Benchmarks.csproj # Run the full benchmark suite.
 ```
 
 For focused work, filter by class or method:
 
 ```bash
-dotnet run -c Release --project benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj -- --filter "*ComparisonBenchmarks.RunLiveResidual*" # Run one benchmark target.
-dotnet run -c Release --project benchmarks/Kyft.Benchmarks/Kyft.Benchmarks.csproj -- --filter "*SegmentCohortBenchmarks*" # Run segment/cohort benchmarks.
+dotnet run -c Release --project benchmarks/Spanfold.Benchmarks/Spanfold.Benchmarks.csproj -- --filter "*ComparisonBenchmarks.RunLiveResidual*" # Run one benchmark target.
+dotnet run -c Release --project benchmarks/Spanfold.Benchmarks/Spanfold.Benchmarks.csproj -- --filter "*SegmentCohortBenchmarks*" # Run segment/cohort benchmarks.
 ```
 
 ## Current Optimization Work

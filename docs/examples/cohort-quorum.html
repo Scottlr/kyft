@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Replica quorum comparison - Kyft debug</title>
+  <title>Replica quorum comparison - Spanfold debug</title>
   <style>
 :root {
   color-scheme: light;
@@ -391,7 +391,7 @@ tr:last-child td { border-bottom: 0; }
 <body>
 <main>
 <section class="hero">
-  <div class="eyebrow">Kyft comparison debug</div>
+  <div class="eyebrow">Spanfold comparison debug</div>
   <h1>Replica quorum comparison</h1>
   <p class="lead">Inspect which windows were active, where sources overlapped or diverged, and whether live rows are final or provisional.</p>
   <div class="badges">
@@ -436,7 +436,7 @@ tr:last-child td { border-bottom: 0; }
     <label><input type="checkbox" aria-label="Widen timeline"> Widen timeline</label>
     <span>Scroll horizontally to inspect dense or long-running lane histories.</span>
   </div>
-  <div class="timeline-shell" data-kyft-timeline>
+  <div class="timeline-shell" data-spanfold-timeline>
     <div class="timeline-canvas">
       <div class="timeline">
     <div class="lane">
@@ -500,7 +500,7 @@ tr:last-child td { border-bottom: 0; }
     <label><input type="checkbox" aria-label="Widen timeline"> Widen timeline</label>
     <span>Scroll horizontally to inspect dense or long-running lane histories.</span>
   </div>
-  <div class="timeline-shell" data-kyft-timeline>
+  <div class="timeline-shell" data-spanfold-timeline>
     <div class="timeline-canvas">
       <div class="timeline">
     <div class="lane">
@@ -581,25 +581,25 @@ tr:last-child td { border-bottom: 0; }
       <thead><tr><th>Extension</th><th>Key</th><th>Value</th></tr></thead>
       <tbody>
         <tr>
-          <td>kyft.cohort</td><td class="mono">segment[0]</td><td>rule=at-least; required=2; activeCount=0; isActive=false; activeSources=</td>
+          <td>spanfold.cohort</td><td class="mono">segment[0]</td><td>rule=at-least; required=2; activeCount=0; isActive=false; activeSources=</td>
         </tr>
         <tr>
-          <td>kyft.cohort</td><td class="mono">segment[1]</td><td>rule=at-least; required=2; activeCount=1; isActive=false; activeSources=replica-b</td>
+          <td>spanfold.cohort</td><td class="mono">segment[1]</td><td>rule=at-least; required=2; activeCount=1; isActive=false; activeSources=replica-b</td>
         </tr>
         <tr>
-          <td>kyft.cohort</td><td class="mono">segment[2]</td><td>rule=at-least; required=2; activeCount=2; isActive=true; activeSources=replica-b,replica-c</td>
+          <td>spanfold.cohort</td><td class="mono">segment[2]</td><td>rule=at-least; required=2; activeCount=2; isActive=true; activeSources=replica-b,replica-c</td>
         </tr>
         <tr>
-          <td>kyft.cohort</td><td class="mono">segment[3]</td><td>rule=at-least; required=2; activeCount=1; isActive=false; activeSources=replica-c</td>
+          <td>spanfold.cohort</td><td class="mono">segment[3]</td><td>rule=at-least; required=2; activeCount=1; isActive=false; activeSources=replica-c</td>
         </tr>
         <tr>
-          <td>kyft.cohort</td><td class="mono">segment[4]</td><td>rule=at-least; required=2; activeCount=2; isActive=true; activeSources=replica-c,replica-d</td>
+          <td>spanfold.cohort</td><td class="mono">segment[4]</td><td>rule=at-least; required=2; activeCount=2; isActive=true; activeSources=replica-c,replica-d</td>
         </tr>
         <tr>
-          <td>kyft.cohort</td><td class="mono">segment[5]</td><td>rule=at-least; required=2; activeCount=2; isActive=true; activeSources=replica-c,replica-d</td>
+          <td>spanfold.cohort</td><td class="mono">segment[5]</td><td>rule=at-least; required=2; activeCount=2; isActive=true; activeSources=replica-c,replica-d</td>
         </tr>
         <tr>
-          <td>kyft.cohort</td><td class="mono">segment[6]</td><td>rule=at-least; required=2; activeCount=1; isActive=false; activeSources=replica-d</td>
+          <td>spanfold.cohort</td><td class="mono">segment[6]</td><td>rule=at-least; required=2; activeCount=1; isActive=false; activeSources=replica-d</td>
         </tr>
       </tbody>
     </table>

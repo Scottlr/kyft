@@ -1,6 +1,6 @@
 # Live Finality And Changelog
 
-Kyft separates historical comparison from live comparison.
+Spanfold separates historical comparison from live comparison.
 
 Historical comparison uses `Run()` and rejects open windows by default. Live
 comparison uses `RunLive(horizon)` and clips open windows to an explicit

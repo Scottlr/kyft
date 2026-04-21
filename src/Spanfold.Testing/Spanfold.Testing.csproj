@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <PackageId>Spanfold.Testing</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Spanfold contributors</Authors>
+    <Description>Testing helpers for Spanfold comparison results, snapshots, fixtures, and virtual horizons.</Description>
+    <PackageProjectUrl>https://github.com/Scottlr/spanfold</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Scottlr/spanfold</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Copyright>Copyright (c) 2026 Spanfold contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>events;windows;analytics;testing</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Initial preview testing helpers for Spanfold comparison fixtures, assertions, snapshots, and virtual live horizons.</PackageReleaseNotes>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarningsAsErrors>$(WarningsAsErrors);CS1591</WarningsAsErrors>
+    <IsPackable>true</IsPackable>
+    <IsTestProject>false</IsTestProject>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Spanfold/Spanfold.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>

@@ -1,6 +1,6 @@
-# Kyft
+# Spanfold
 
-Kyft is a C# library for recording temporal state windows and comparing them
+Spanfold is a C# library for recording temporal state windows and comparing them
 across sources, providers, or pipeline stages.
 
 It is for systems where the important question is not only "what is the latest
@@ -12,7 +12,7 @@ value?", but:
 - where did sources overlap, diverge, lag, or leave gaps?
 - what was knowable at a specific point in time?
 
-Kyft turns event predicates into recorded windows, then gives you a staged
+Spanfold turns event predicates into recorded windows, then gives you a staged
 comparison API for auditing those windows.
 
 ## Concrete Use Cases
@@ -26,7 +26,7 @@ comparison API for auditing those windows.
 
 ## What Category Is This?
 
-Kyft sits between event processing and analytics.
+Spanfold sits between event processing and analytics.
 
 It is not a general stream processor, metrics library, or database abstraction.
 It records the periods where a state was active, then compares those periods as
@@ -43,11 +43,11 @@ The core flow is:
 ## Install
 
 ```bash
-dotnet add package Kyft # Add the core state-window recording and comparison package.
-dotnet add package Kyft.Testing # Add optional helpers for fixtures, snapshots, and assertions.
+dotnet add package Spanfold # Add the core state-window recording and comparison package.
+dotnet add package Spanfold.Testing # Add optional helpers for fixtures, snapshots, and assertions.
 ```
 
-`Kyft.Testing` is optional. It is useful in consumer test suites when you want
+`Spanfold.Testing` is optional. It is useful in consumer test suites when you want
 small comparison fixtures without running a full pipeline.
 
 ## First Example: Record Windows
@@ -56,9 +56,9 @@ Define the event shape, the key that owns state, and the predicate that says
 when the window is active.
 
 ```csharp
-using Kyft; // Import Kyft's pipeline and comparison APIs.
+using Spanfold; // Import Spanfold's pipeline and comparison APIs.
 
-var pipeline = Kyft // Start a Kyft pipeline definition.
+var pipeline = Spanfold.Spanfold // Start a Spanfold pipeline definition.
     .For<DeviceSignal>() // Configure the event type that will be ingested.
     .RecordWindows() // Store opened and closed windows for comparison.
     .TrackWindow( // Define one state-driven window.
@@ -185,9 +185,9 @@ var knownAnnotations = pipeline.History.AnnotationsKnownAt( // Read point-in-tim
     TemporalPoint.ForPosition(110)); // Include annotations known by position 110.
 ```
 
-## What Makes Kyft Different?
+## What Makes Spanfold Different?
 
-Kyft's main primitive is not an event, metric, or table row. It is a recorded
+Spanfold's main primitive is not an event, metric, or table row. It is a recorded
 state window with comparison semantics.
 
 That gives you:
@@ -205,21 +205,21 @@ That gives you:
 
 ### Event Sourcing
 
-Event sourcing is good for storing durable facts and rebuilding state. Kyft is
+Event sourcing is good for storing durable facts and rebuilding state. Spanfold is
 for analyzing the periods where state was active after those facts have been
 interpreted.
 
-Use event sourcing to preserve the facts. Use Kyft when you need to compare
+Use event sourcing to preserve the facts. Use Spanfold when you need to compare
 "provider A thought this device was offline from 10 to 20" against "provider B
 thought it was offline from 12 to 18".
 
 ### Stream Processors
 
 Stream processors are good for online computation, routing, enrichment, and
-continuous aggregation. Kyft is smaller and more focused: it records state
+continuous aggregation. Spanfold is smaller and more focused: it records state
 windows and compares them.
 
-Use a stream processor to run a distributed pipeline. Use Kyft when your C#
+Use a stream processor to run a distributed pipeline. Use Spanfold when your C#
 code needs an inspectable temporal comparison artifact.
 
 ### Observability And Metrics Tools
@@ -227,17 +227,17 @@ code needs an inspectable temporal comparison artifact.
 Metrics tools are good for dashboards, counters, histograms, and alerts. They
 usually compress time into aggregates.
 
-Kyft keeps the individual windows and emits comparison rows. That matters when
+Spanfold keeps the individual windows and emits comparison rows. That matters when
 you need to answer "which exact window was missed?" rather than "what was the
 average error rate?"
 
 ### Storing Windows Directly In A Database
 
-A database can store windows, but it will not give you Kyft's comparison
+A database can store windows, but it will not give you Spanfold's comparison
 model by itself: staged plans, source selectors, normalization, live finality,
 known-at filtering, diagnostics, and deterministic exports.
 
-Use the database for persistence. Use Kyft to define and execute the temporal
+Use the database for persistence. Use Spanfold to define and execute the temporal
 comparison logic.
 
 ## Comparator Families
@@ -281,7 +281,7 @@ The same plan converges with batch execution when all source windows close.
 
 ## Lane Liveness And Silence
 
-Use `LaneLivenessTracker` when sparse reporting should become normal Kyft
+Use `LaneLivenessTracker` when sparse reporting should become normal Spanfold
 windows. The tracker emits state-change events from explicit observations and
 horizon checks; it does not run timers or own distributed heartbeat monitoring.
 
@@ -293,7 +293,7 @@ var liveness = LaneLivenessTracker.ForLanes( // Create deterministic liveness st
     "provider-a", // Track provider A.
     "provider-b"); // Track provider B.
 
-var silencePipeline = Kyft // Build a normal Kyft pipeline for liveness events.
+var silencePipeline = Spanfold.Spanfold // Build a normal Spanfold pipeline for liveness events.
     .For<LaneLivenessSignal>() // Consume liveness state-change events.
     .RecordWindows() // Record silence windows.
     .WithEventTime(signal => signal.OccurredAt) // Use the actual silence/recovery time.
@@ -303,7 +303,7 @@ var silencePipeline = Kyft // Build a normal Kyft pipeline for liveness events.
 
 foreach (var signal in liveness.Observe("provider-a", startedAt)) // Record a provider A observation.
 {
-    silencePipeline.Ingest(signal, source: "liveness"); // Feed state changes into Kyft.
+    silencePipeline.Ingest(signal, source: "liveness"); // Feed state changes into Spanfold.
 }
 
 foreach (var signal in liveness.Check(startedAt.AddSeconds(45))) // Evaluate silence at a horizon.
@@ -319,7 +319,7 @@ active. This records the analytical shape during ingestion instead of slicing
 windows later.
 
 ```csharp
-var pipeline = Kyft // Start a Kyft pipeline definition.
+var pipeline = Spanfold.Spanfold // Start a Spanfold pipeline definition.
     .For<DeviceStateChanged>() // Configure the event type that will be ingested.
     .RecordWindows() // Store open and closed windows for comparison.
     .Window("DeviceOffline", window => window // Define one device-state window.
@@ -348,7 +348,7 @@ public sealed record DeviceStateChanged( // Define the event shape.
     string FleetId); // Descriptive metadata.
 ```
 
-If `Lifecycle` changes while `IsOffline` is still true, Kyft closes the old
+If `Lifecycle` changes while `IsOffline` is still true, Spanfold closes the old
 window and opens the new one at the same position. Ranges stay half-open, so
 there is no gap or overlap.
 
@@ -395,7 +395,7 @@ var evidence = unmatched.CohortEvidence(); // Parse cohort evidence into typed r
 var inactive = evidence.Where(row => !row.IsActive); // Inspect segments the cohort did not cover.
 ```
 
-Kyft emits compact cohort evidence metadata for each aligned segment, including
+Spanfold emits compact cohort evidence metadata for each aligned segment, including
 the rule, required active count, actual active count, and whether the cohort was
 active. `CohortEvidence()` turns that metadata into typed records for code, and
 JSON, Markdown, and debug HTML exports include the same evidence for humans.
@@ -423,10 +423,10 @@ Known-at is availability time. It is separate from event time.
 
 ## Testing And Fixtures
 
-Use `Kyft.Testing` when a test needs a compact comparison history.
+Use `Spanfold.Testing` when a test needs a compact comparison history.
 
 ```csharp
-using Kyft.Testing; // Import fixture and assertion helpers.
+using Spanfold.Testing; // Import fixture and assertion helpers.
 
 var history = new WindowHistoryFixtureBuilder() // Create a compact recorded history.
     .AddClosedWindow( // Add provider A's segmented window.
@@ -448,17 +448,17 @@ var result = history.Compare("Fixture QA") // Create a fixture comparison.
     .Using(comparators => comparators.Overlap()) // Emit agreement rows.
     .Run(); // Execute the comparison.
 
-KyftAssert.IsValid(result); // Fail the test if Kyft produced error diagnostics.
+SpanfoldAssert.IsValid(result); // Fail the test if Spanfold produced error diagnostics.
 ```
 
 ## Operations Example
 
-The sample in `samples/Kyft.OperationsExample` compares service degradation
+The sample in `samples/Spanfold.OperationsExample` compares service degradation
 windows across monitoring providers. It demonstrates provider residuals,
 coverage, lead/lag, live open windows, and Markdown export.
 
 ```bash
-dotnet run --project samples/Kyft.OperationsExample/Kyft.OperationsExample.csproj # Run the operations monitoring sample.
+dotnet run --project samples/Spanfold.OperationsExample/Spanfold.OperationsExample.csproj # Run the operations monitoring sample.
 ```
 
 More samples are available in [samples/README.md](samples/README.md), ranging

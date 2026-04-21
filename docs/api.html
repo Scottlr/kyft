@@ -3,42 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Kyft API reference with classes, methods, comparison builders, exports, temporal types, and testing helpers.">
-  <title>Kyft API reference</title>
+  <meta name="description" content="Spanfold API reference with classes, methods, comparison builders, exports, temporal types, and testing helpers.">
+  <title>Spanfold API reference</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="index.html" aria-label="Kyft home">Kyft</a>
+    <a class="brand" href="index.html" aria-label="Spanfold home">Spanfold</a>
     <nav class="nav" aria-label="Primary navigation">
       <a href="index.html">Overview</a>
       <a href="use-cases.html">Use cases</a>
       <a href="visualiser.html">Visualiser</a>
       <a href="api.html">API</a>
-      <a href="https://github.com/Scottlr/kyft">GitHub</a>
+      <a href="https://github.com/Scottlr/spanfold">GitHub</a>
     </nav>
   </header>
 
   <main>
     <section class="api-hero">
       <p class="eyebrow">API reference</p>
-      <h1>Kyft API reference.</h1>
+      <h1>Spanfold API reference.</h1>
       <p>
         Static reference for the public package surface. The NuGet package also
         ships XML documentation generated from the public comments; this page is
         the GitHub Pages view for the APIs engineers use most often.
       </p>
-      <pre><code>dotnet add package Kyft
-dotnet add package Kyft.Testing</code></pre>
+      <pre><code>dotnet add package Spanfold
+dotnet add package Spanfold.Testing</code></pre>
     </section>
 
     <section class="api-reference-layout">
       <aside class="api-tree" aria-label="API member tree">
         <div class="api-tree-title">Namespaces</div>
         <details open>
-          <summary>Kyft</summary>
-          <a class="type-link" href="#Kyft">Kyft</a>
-          <a class="member-link" href="#Kyft">For&lt;TEvent&gt;()</a>
+          <summary>Spanfold</summary>
+          <a class="type-link" href="#Spanfold">Spanfold</a>
+          <a class="member-link" href="#Spanfold">For&lt;TEvent&gt;()</a>
           <a class="type-link" href="#EventPipelineBuilder">EventPipelineBuilder&lt;TEvent&gt;</a>
           <a class="member-link" href="#EventPipelineBuilder">Window(...)</a>
           <a class="member-link" href="#EventPipelineBuilder">TrackWindow(...)</a>
@@ -54,7 +54,7 @@ dotnet add package Kyft.Testing</code></pre>
           <a class="member-link" href="#EventPipeline">IngestMany(...)</a>
         </details>
         <details open>
-          <summary>Kyft.Windows</summary>
+          <summary>Spanfold.Windows</summary>
           <a class="type-link" href="#WindowDefinitionBuilder">WindowDefinitionBuilder&lt;TEvent&gt;</a>
           <a class="member-link" href="#WindowDefinitionBuilder">Named(...)</a>
           <a class="member-link" href="#WindowDefinitionBuilder">Key(...)</a>
@@ -74,7 +74,7 @@ dotnet add package Kyft.Testing</code></pre>
           <a class="member-link" href="#WindowRecord">Id</a>
         </details>
         <details open>
-          <summary>Kyft.Recording</summary>
+          <summary>Spanfold.Recording</summary>
           <a class="type-link" href="#WindowHistory">WindowHistory</a>
           <a class="member-link" href="#WindowHistory">Query()</a>
           <a class="member-link" href="#WindowHistory">SnapshotAt(...)</a>
@@ -93,7 +93,7 @@ dotnet add package Kyft.Testing</code></pre>
           <a class="member-link" href="#WindowAnnotation">ObservedAt</a>
         </details>
         <details open>
-          <summary>Kyft.Comparison</summary>
+          <summary>Spanfold.Comparison</summary>
           <a class="type-link" href="#WindowComparisonBuilder">WindowComparisonBuilder</a>
           <a class="member-link" href="#WindowComparisonBuilder">Target(...)</a>
           <a class="member-link" href="#WindowComparisonBuilder">Against(...)</a>
@@ -140,25 +140,25 @@ dotnet add package Kyft.Testing</code></pre>
           <a class="member-link" href="#LaneLivenessTracker">Check(...)</a>
         </details>
         <details>
-          <summary>Kyft.Testing</summary>
+          <summary>Spanfold.Testing</summary>
           <a class="type-link" href="#WindowHistoryFixtureBuilder">WindowHistoryFixtureBuilder</a>
           <a class="member-link" href="#WindowHistoryFixtureBuilder">Closed(...)</a>
           <a class="member-link" href="#WindowHistoryFixtureBuilder">Open(...)</a>
           <a class="member-link" href="#WindowHistoryFixtureBuilder">Build()</a>
-          <a class="type-link" href="#KyftAssert">KyftAssert</a>
-          <a class="member-link" href="#KyftAssert">IsValid(...)</a>
-          <a class="member-link" href="#KyftAssert">HasRowCount(...)</a>
-          <a class="type-link" href="#KyftSnapshot">KyftSnapshot</a>
-          <a class="member-link" href="#KyftSnapshot">Normalize(...)</a>
-          <a class="member-link" href="#KyftSnapshot">AssertEqual(...)</a>
+          <a class="type-link" href="#SpanfoldAssert">SpanfoldAssert</a>
+          <a class="member-link" href="#SpanfoldAssert">IsValid(...)</a>
+          <a class="member-link" href="#SpanfoldAssert">HasRowCount(...)</a>
+          <a class="type-link" href="#SpanfoldSnapshot">SpanfoldSnapshot</a>
+          <a class="member-link" href="#SpanfoldSnapshot">Normalize(...)</a>
+          <a class="member-link" href="#SpanfoldSnapshot">AssertEqual(...)</a>
         </details>
       </aside>
 
       <div class="api-reference-content">
-        <section class="api-member" id="Kyft">
+        <section class="api-member" id="Spanfold">
           <p class="member-kind">static class</p>
-          <h2>Kyft</h2>
-          <p>Entry point for configuring a Kyft event pipeline.</p>
+          <h2>Spanfold</h2>
+          <p>Entry point for configuring a Spanfold event pipeline.</p>
           <table class="member-table">
             <tr><th>Member</th><th>Purpose</th></tr>
             <tr><td><code>For&lt;TEvent&gt;()</code></td><td>Creates an `EventPipelineBuilder&lt;TEvent&gt;` for the event type.</td></tr>
@@ -461,7 +461,7 @@ dotnet add package Kyft.Testing</code></pre>
         </section>
 
         <section class="api-member" id="WindowHistoryFixtureBuilder">
-          <p class="member-kind">Kyft.Testing sealed class</p>
+          <p class="member-kind">Spanfold.Testing sealed class</p>
           <h2>WindowHistoryFixtureBuilder</h2>
           <p>Builds compact recorded histories for comparator and contract tests.</p>
           <table class="member-table">
@@ -472,9 +472,9 @@ dotnet add package Kyft.Testing</code></pre>
           </table>
         </section>
 
-        <section class="api-member" id="KyftAssert">
-          <p class="member-kind">Kyft.Testing static class</p>
-          <h2>KyftAssert</h2>
+        <section class="api-member" id="SpanfoldAssert">
+          <p class="member-kind">Spanfold.Testing static class</p>
+          <h2>SpanfoldAssert</h2>
           <p>Framework-neutral assertions for comparison artifacts.</p>
           <table class="member-table">
             <tr><th>Member</th><th>Purpose</th></tr>
@@ -485,9 +485,9 @@ dotnet add package Kyft.Testing</code></pre>
           </table>
         </section>
 
-        <section class="api-member" id="KyftSnapshot">
-          <p class="member-kind">Kyft.Testing static class</p>
-          <h2>KyftSnapshot</h2>
+        <section class="api-member" id="SpanfoldSnapshot">
+          <p class="member-kind">Spanfold.Testing static class</p>
+          <h2>SpanfoldSnapshot</h2>
           <p>Snapshot helpers for deterministic JSON and Markdown artifacts.</p>
           <table class="member-table">
             <tr><th>Member</th><th>Purpose</th></tr>
@@ -500,8 +500,8 @@ dotnet add package Kyft.Testing</code></pre>
   </main>
 
   <footer class="site-footer">
-    <span>Kyft</span>
-    <a href="https://github.com/Scottlr/kyft">github.com/Scottlr/kyft</a>
+    <span>Spanfold</span>
+    <a href="https://github.com/Scottlr/spanfold">github.com/Scottlr/spanfold</a>
   </footer>
 </body>
 </html>

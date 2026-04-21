@@ -85,7 +85,7 @@ Each `GapRow` contains:
 
 Gap is not the same as residual. Residual means the target was active without
 comparison coverage. Gap means neither side was active between observed
-segments. Kyft does not invent boundary gaps before the first observed segment
+segments. Spanfold does not invent boundary gaps before the first observed segment
 or after the last observed segment unless a later query-scope policy makes those
 boundaries explicit.
 

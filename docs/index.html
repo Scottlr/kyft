@@ -3,34 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Kyft is a C# library for recording temporal state windows and comparing them across sources, providers, or pipeline stages.">
-  <title>Kyft - temporal state-window comparison for C#</title>
+  <meta name="description" content="Spanfold is a C# library for recording temporal state windows and comparing them across sources, providers, or pipeline stages.">
+  <title>Spanfold - temporal state-window comparison for C#</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="index.html" aria-label="Kyft home">Kyft</a>
+    <a class="brand" href="index.html" aria-label="Spanfold home">Spanfold</a>
     <nav class="nav" aria-label="Primary navigation">
       <a href="index.html">Overview</a>
       <a href="use-cases.html">Use cases</a>
       <a href="visualiser.html">Visualiser</a>
       <a href="api.html">API</a>
-      <a href="https://github.com/Scottlr/kyft">GitHub</a>
+      <a href="https://github.com/Scottlr/spanfold">GitHub</a>
     </nav>
   </header>
 
   <main>
     <section class="page-hero hero-grid">
       <div>
-        <p class="eyebrow">Kyft</p>
+        <p class="eyebrow">Spanfold</p>
         <h1>Temporal state-window recording and comparison for C#.</h1>
         <p class="lead">
-          Kyft records when keyed state was active, then compares those windows
+          Spanfold records when keyed state was active, then compares those windows
           across sources, providers, or pipeline stages. It is for questions
           where the latest value is not enough.
         </p>
         <div class="actions">
-          <a class="button primary" href="https://github.com/Scottlr/kyft">GitHub repository</a>
+          <a class="button primary" href="https://github.com/Scottlr/spanfold">GitHub repository</a>
           <a class="button secondary" href="#install">Get started</a>
         </div>
       </div>
@@ -62,10 +62,10 @@
     <section class="doc-section">
       <div class="section-heading">
         <p class="eyebrow">What it does</p>
-        <h2>Kyft turns predicates into recorded temporal evidence.</h2>
+        <h2>Spanfold turns predicates into recorded temporal evidence.</h2>
         <p>
           A temporal window is a period where a predicate stayed true for a key.
-          Kyft records those periods as open and closed windows, including the
+          Spanfold records those periods as open and closed windows, including the
           source lane and context needed to inspect them later.
         </p>
       </div>
@@ -114,7 +114,7 @@
             </div>
           </div>
           <p>
-            Kyft compares histories and emits rows for overlap, residual,
+            Spanfold compares histories and emits rows for overlap, residual,
             missing, coverage, gap, containment, lead/lag, and as-of analysis.
           </p>
         </article>
@@ -156,7 +156,7 @@
           point.
         </p>
         <p>
-          Kyft keeps the temporal record as first-class data inside C# code. It
+          Spanfold keeps the temporal record as first-class data inside C# code. It
           does not replace your event pipeline, database, or dashboard; it gives
           the application a focused model for recorded state windows and
           source-aware comparison.
@@ -258,15 +258,15 @@
       <div class="code-grid">
         <article>
           <h3>Install</h3>
-          <pre><code>dotnet add package Kyft
-dotnet add package Kyft.Testing</code></pre>
-          <p>`Kyft.Testing` is optional. It provides fixtures, snapshots, and assertions for consumer tests.</p>
+          <pre><code>dotnet add package Spanfold
+dotnet add package Spanfold.Testing</code></pre>
+          <p>`Spanfold.Testing` is optional. It provides fixtures, snapshots, and assertions for consumer tests.</p>
         </article>
         <article>
           <h3>Record windows</h3>
-          <pre><code>using Kyft;
+          <pre><code>using Spanfold;
 
-var pipeline = Kyft
+var pipeline = Spanfold.Spanfold
     .For&lt;DeviceSignal&gt;()
     .RecordWindows()
     .TrackWindow(
@@ -302,7 +302,7 @@ result.ExportDebugHtml("artifacts/provider-qa.html");</code></pre>
     <section class="doc-section">
       <div class="section-heading">
         <p class="eyebrow">Why not just X?</p>
-        <h2>Kyft is a narrow temporal evidence layer, not a platform replacement.</h2>
+        <h2>Spanfold is a narrow temporal evidence layer, not a platform replacement.</h2>
       </div>
       <div class="comparison-list">
         <article>
@@ -311,27 +311,27 @@ result.ExportDebugHtml("artifacts/provider-qa.html");</code></pre>
         </article>
         <article>
           <h3>Latest-state tracking</h3>
-          <p>Latest-state tables answer what is true now. Kyft answers when it was true, who saw it, and whether another lane missed it.</p>
+          <p>Latest-state tables answer what is true now. Spanfold answers when it was true, who saw it, and whether another lane missed it.</p>
         </article>
         <article>
           <h3>Generic event processing</h3>
-          <p>Stream processors route and aggregate events. Kyft stays smaller: it records interpreted state windows and compares their temporal evidence.</p>
+          <p>Stream processors route and aggregate events. Spanfold stays smaller: it records interpreted state windows and compares their temporal evidence.</p>
         </article>
         <article>
           <h3>Metrics dashboards</h3>
-          <p>Dashboards compress time into counters, rates, and charts. Kyft keeps individual windows and emits rows that can be audited.</p>
+          <p>Dashboards compress time into counters, rates, and charts. Spanfold keeps individual windows and emits rows that can be audited.</p>
         </article>
         <article>
           <h3>Event sourcing</h3>
-          <p>Event sourcing preserves facts and rebuilds state. Kyft analyzes the windows produced after those facts have been interpreted.</p>
+          <p>Event sourcing preserves facts and rebuilds state. Spanfold analyzes the windows produced after those facts have been interpreted.</p>
         </article>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <span>Kyft</span>
-    <a href="https://github.com/Scottlr/kyft">github.com/Scottlr/kyft</a>
+    <span>Spanfold</span>
+    <a href="https://github.com/Scottlr/spanfold">github.com/Scottlr/spanfold</a>
   </footer>
 </body>
 </html>

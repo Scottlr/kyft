@@ -1,6 +1,6 @@
 # Comparison Guide
 
-Kyft comparisons answer staged questions over recorded windows:
+Spanfold comparisons answer staged questions over recorded windows:
 
 - target: the source or stage to treat as the baseline
 - against: one or more sources or stages to compare with the target
@@ -44,7 +44,7 @@ var result = pipeline.History // Start from recorded windows.
     .Run(); // Execute the comparison.
 ```
 
-Scope and normalization must use the same temporal axis. Kyft rejects mixed-axis
+Scope and normalization must use the same temporal axis. Spanfold rejects mixed-axis
 plans because processing positions and timestamps cannot be compared without an
 explicit mapping.
 
@@ -90,7 +90,7 @@ var windows = pipeline.History.Query() // Start a read-only query over recorded 
     .ClosedWindows(); // Return matching closed source windows.
 ```
 
-`Lane(...)` is a readability alias for `Source(...)`. Kyft stores the identity
+`Lane(...)` is a readability alias for `Source(...)`. Spanfold stores the identity
 in `WindowRecord.Source`, but lane is often the clearer term when the same key
 is observed by several feeds, analyzers, or pipeline stages.
 
@@ -125,7 +125,7 @@ marked provisional and clipped to that horizon. The underlying history is not
 mutated.
 
 Summaries are deliberately small: record count, final/provisional count,
-measured processing-position length, and measured event-time duration. Kyft does
+measured processing-position length, and measured event-time duration. Spanfold does
 not impose a reporting schema on top of those groups.
 
 ## Late Annotations
@@ -184,7 +184,7 @@ backtests and decision audits do not silently leak future information.
 
 ## Live Snapshots
 
-Use `RunLive(horizon)` when the last window may still be open. Kyft clips open
+Use `RunLive(horizon)` when the last window may still be open. Spanfold clips open
 windows to the supplied evaluation horizon and marks rows that depend on those
 windows as provisional. Closed-window rows remain final, and the same comparison
 converges with batch execution once all windows close.
@@ -217,7 +217,7 @@ var liveness = LaneLivenessTracker.ForLanes( // Create deterministic liveness st
     "provider-a", // Track provider A.
     "provider-b"); // Track provider B.
 
-var silencePipeline = Kyft // Build a normal Kyft pipeline for liveness events.
+var silencePipeline = Spanfold.Spanfold // Build a normal Spanfold pipeline for liveness events.
     .For<LaneLivenessSignal>() // Consume liveness state-change events.
     .RecordWindows() // Record silence windows.
     .WithEventTime(signal => signal.OccurredAt) // Use the actual silence/recovery time.
@@ -227,7 +227,7 @@ var silencePipeline = Kyft // Build a normal Kyft pipeline for liveness events.
 
 foreach (var signal in liveness.Observe("provider-a", startedAt)) // Record a provider A observation.
 {
-    silencePipeline.Ingest(signal, source: "liveness"); // Feed state changes into Kyft.
+    silencePipeline.Ingest(signal, source: "liveness"); // Feed state changes into Spanfold.
 }
 
 foreach (var signal in liveness.Check(startedAt.AddSeconds(45))) // Evaluate silence at a horizon.
@@ -238,11 +238,11 @@ foreach (var signal in liveness.Check(startedAt.AddSeconds(45))) // Evaluate sil
 
 The tracker emits only liveness state changes, not every heartbeat. A lane that
 never reports can still become silent after the configured threshold. A later
-observation emits recovery and closes the silence window. Kyft can then compare,
+observation emits recovery and closes the silence window. Spanfold can then compare,
 query, snapshot, summarize, or export those windows like any other recorded
 state.
 
-Kyft deliberately does not own scheduling for this feature. That belongs in the
+Spanfold deliberately does not own scheduling for this feature. That belongs in the
 host application, job runner, actor, or stream processor that already owns lane
 health checks.
 
@@ -269,7 +269,7 @@ comparator rows.
 ## Extension Metadata
 
 Domain packages can describe their own selectors, comparator declarations, and
-metadata keys with `ComparisonExtensionBuilder`. Core Kyft stays domain-neutral;
+metadata keys with `ComparisonExtensionBuilder`. Core Spanfold stays domain-neutral;
 extension descriptors document how a package attaches to plans, while result
 `ExtensionMetadata` keeps compact domain metadata serializable and explainable.
 
@@ -358,11 +358,11 @@ not silently drop an expected provider.
 ## Runtime Boundary Segments
 
 Segments are analytical boundary dimensions. When a segment value changes while
-the active predicate remains true, Kyft closes the current window and opens a
+the active predicate remains true, Spanfold closes the current window and opens a
 new one at the same processing position or event timestamp.
 
 ```csharp
-var pipeline = Kyft // Start a Kyft pipeline definition.
+var pipeline = Spanfold.Spanfold // Start a Spanfold pipeline definition.
     .For<DeviceStateChanged>() // Configure the event type.
     .RecordWindows() // Store windows for comparison.
     .Window("DeviceOffline", window => window // Define the source window.
@@ -454,7 +454,7 @@ Available cohort activity rules:
 - `CohortActivity.AtMost(n)` requires no more than `n` active members.
 - `CohortActivity.Exactly(n)` requires exactly `n` active members.
 
-Kyft stores cohort evidence in result extension metadata. The evidence includes
+Spanfold stores cohort evidence in result extension metadata. The evidence includes
 the rule, required active count, actual active count, active member sources, and
 whether the cohort lane was active. `CohortEvidence()` turns that metadata into
 typed records for code, while `ExportJson()`, `ExportMarkdown()`, and
