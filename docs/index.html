@@ -23,7 +23,7 @@
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-content">
         <p class="eyebrow">C# temporal analysis package</p>
-        <h1 id="hero-title">State changes are easy. State over time is the hard part.</h1>
+        <h1 id="hero-title">Temporal window tracking for C# systems.</h1>
         <p class="hero-lead">
           Kyft records temporal state windows and compares them across sources,
           providers, or pipeline stages, so you can see who observed a state,
@@ -40,6 +40,16 @@
           <li>Live horizons and point-in-time reads</li>
         </ul>
       </div>
+      <aside class="hero-reference" aria-label="API quick reference">
+        <p class="reference-title">Core flow</p>
+        <pre><code>var result = pipeline.History
+    .Compare("Provider QA")
+    .Target("provider-a", s =&gt; s.Source("provider-a"))
+    .Against("provider-b", s =&gt; s.Source("provider-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(c =&gt; c.Overlap().Residual().Missing())
+    .Run();</code></pre>
+      </aside>
     </section>
 
     <section class="section intro-grid" id="what">
@@ -229,12 +239,12 @@ foreach (var row in result.ResidualRows)
           </ul>
           <a class="text-link" href="examples/provider-comparison.html">Open the full debug example</a>
         </div>
-        <div class="visualiser-frame">
-          <iframe
-            title="Kyft provider comparison debug HTML example"
-            src="examples/provider-comparison.html"
-            loading="lazy"></iframe>
-        </div>
+      </div>
+      <div class="visualiser-frame">
+        <iframe
+          title="Kyft provider comparison debug HTML example"
+          src="examples/provider-comparison.html"
+          loading="lazy"></iframe>
       </div>
 
       <div class="debug-code">
@@ -299,7 +309,5 @@ result.ExportDebugHtml("artifacts/provider-qa.html");</code></pre>
     <span>Kyft</span>
     <a href="https://github.com/Scottlr/kyft">github.com/Scottlr/kyft</a>
   </footer>
-
-  <script src="script.js"></script>
 </body>
 </html>
