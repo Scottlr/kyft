@@ -134,6 +134,37 @@ The debug HTML file is useful when you need to see why a comparison produced a
 row: which source window was active, where the overlap started, where a gap
 appeared, and whether live rows are still provisional.
 
+## Query Recorded Windows Directly
+
+Use direct history queries when you need to inspect one lane or key without
+building a comparison plan.
+
+```csharp
+var windows = pipeline.Intervals.Query() // Start a read-only query over recorded windows.
+    .Window("DeviceOffline") // Restrict the query to one window family.
+    .Key("device-1") // Restrict the query to one logical key.
+    .Lane("provider-a") // Restrict the query to one lane, stored as Source.
+    .Segment("lifecycle", "Incident") // Require an analytical segment value.
+    .Tag("fleet", "critical") // Require descriptive metadata.
+    .ClosedWindows(); // Materialize matching closed windows.
+
+var latest = pipeline.Intervals.Query() // Start another recorded-history query.
+    .Window("DeviceOffline") // Query one window family.
+    .Lane("provider-a") // Query one lane.
+    .LatestWindow(); // Return the latest matching open or closed window.
+```
+
+For a live read model without cross-source comparison, create a snapshot at an
+explicit horizon:
+
+```csharp
+var snapshot = pipeline.Intervals.SnapshotAt(TemporalPoint.ForPosition(100)); // Evaluate history at position 100.
+var open = snapshot.Query() // Query the horizon snapshot.
+    .Window("DeviceOffline") // Inspect one window family.
+    .Lane("provider-a") // Inspect one lane.
+    .OpenWindows(); // Return records active at the horizon.
+```
+
 ## What Makes Kyft Different?
 
 Kyft's main primitive is not an event, metric, or table row. It is a recorded

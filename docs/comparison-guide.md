@@ -72,6 +72,48 @@ var prepared = pipeline.Intervals // Start from recorded windows.
 The resulting range records that its end came from the horizon policy, not from
 a closed source window.
 
+## Direct History Queries
+
+Use direct history queries when the question is about recorded state history,
+not cross-source comparison. This is useful for single-lane analyzers,
+debugging, and tests that need to inspect windows by key, lane, partition,
+segment, or tag.
+
+```csharp
+var windows = pipeline.Intervals.Query() // Start a read-only query over recorded history.
+    .Window("DeviceOffline") // Restrict the query to one window family.
+    .Key("device-1") // Restrict the query to one logical key.
+    .Lane("provider-a") // Restrict the query to one lane, stored as Source.
+    .Partition("partition-1") // Restrict the query to one runtime partition.
+    .Segment("lifecycle", "Incident") // Require an analytical segment value.
+    .Tag("fleet", "critical") // Require descriptive metadata.
+    .ClosedWindows(); // Return matching closed source windows.
+```
+
+`Lane(...)` is a readability alias for `Source(...)`. Kyft stores the identity
+in `WindowRecord.Source`, but lane is often the clearer term when the same key
+is observed by several feeds, analyzers, or pipeline stages.
+
+For a current-state read model, evaluate history at an explicit horizon:
+
+```csharp
+var snapshot = pipeline.Intervals.SnapshotAt(TemporalPoint.ForPosition(100)); // Evaluate recorded history at position 100.
+var open = snapshot.Query() // Start a read-only query over the horizon snapshot.
+    .Window("DeviceOffline") // Restrict the query to one window family.
+    .Lane("provider-a") // Restrict the query to one lane.
+    .OpenWindows(); // Return records active at the horizon.
+
+foreach (var record in open) // Inspect each active snapshot record.
+{
+    Console.WriteLine($"{record.Window.Key}: {record.Range.Start} to {record.Range.End}"); // Print the clipped horizon range.
+}
+```
+
+Snapshot records preserve the source window and add the range that was visible
+at the horizon. A record whose source window had not ended by the horizon is
+marked provisional and clipped to that horizon. The underlying history is not
+mutated.
+
 ## Known-At Safety
 
 Known-at filtering answers "what records were available at this processing

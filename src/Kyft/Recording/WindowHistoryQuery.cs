@@ -14,6 +14,7 @@ namespace Kyft;
 public sealed class WindowHistoryQuery
 {
     private readonly WindowIntervalHistory history;
+    private readonly IReadOnlyList<WindowRecord>? windows;
     private readonly List<ValueFilter> segmentFilters = [];
     private readonly List<ValueFilter> tagFilters = [];
     private string? windowName;
@@ -27,6 +28,12 @@ public sealed class WindowHistoryQuery
     internal WindowHistoryQuery(WindowIntervalHistory history)
     {
         this.history = history;
+    }
+
+    internal WindowHistoryQuery(IEnumerable<WindowRecord> windows)
+    {
+        this.history = null!;
+        this.windows = windows as WindowRecord[] ?? windows.ToArray();
     }
 
     /// <summary>
@@ -132,7 +139,7 @@ public sealed class WindowHistoryQuery
     /// <returns>Matching windows in deterministic order.</returns>
     public IReadOnlyList<WindowRecord> Windows()
     {
-        var windows = this.history.Windows;
+        var windows = this.windows ?? this.history.Windows;
         var matches = new List<WindowRecord>(windows.Count);
 
         for (var i = 0; i < windows.Count; i++)
@@ -274,46 +281,48 @@ public sealed class WindowHistoryQuery
     private static void Sort<TWindow>(List<TWindow> windows)
         where TWindow : WindowRecord
     {
-        windows.Sort(static (left, right) =>
+        windows.Sort(CompareWindows);
+    }
+
+    internal static int CompareWindows(WindowRecord left, WindowRecord right)
+    {
+        var comparison = string.Compare(left.WindowName, right.WindowName, StringComparison.Ordinal);
+        if (comparison != 0)
         {
-            var comparison = string.Compare(left.WindowName, right.WindowName, StringComparison.Ordinal);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
+            return comparison;
+        }
 
-            comparison = string.Compare(StableObjectValue(left.Key), StableObjectValue(right.Key), StringComparison.Ordinal);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
+        comparison = string.Compare(StableObjectValue(left.Key), StableObjectValue(right.Key), StringComparison.Ordinal);
+        if (comparison != 0)
+        {
+            return comparison;
+        }
 
-            comparison = string.Compare(StableObjectValue(left.Source), StableObjectValue(right.Source), StringComparison.Ordinal);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
+        comparison = string.Compare(StableObjectValue(left.Source), StableObjectValue(right.Source), StringComparison.Ordinal);
+        if (comparison != 0)
+        {
+            return comparison;
+        }
 
-            comparison = string.Compare(StableObjectValue(left.Partition), StableObjectValue(right.Partition), StringComparison.Ordinal);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
+        comparison = string.Compare(StableObjectValue(left.Partition), StableObjectValue(right.Partition), StringComparison.Ordinal);
+        if (comparison != 0)
+        {
+            return comparison;
+        }
 
-            comparison = left.StartPosition.CompareTo(right.StartPosition);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
+        comparison = left.StartPosition.CompareTo(right.StartPosition);
+        if (comparison != 0)
+        {
+            return comparison;
+        }
 
-            comparison = (left.EndPosition ?? long.MaxValue).CompareTo(right.EndPosition ?? long.MaxValue);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
+        comparison = (left.EndPosition ?? long.MaxValue).CompareTo(right.EndPosition ?? long.MaxValue);
+        if (comparison != 0)
+        {
+            return comparison;
+        }
 
-            return string.Compare(left.Id.Value, right.Id.Value, StringComparison.Ordinal);
-        });
+        return string.Compare(left.Id.Value, right.Id.Value, StringComparison.Ordinal);
     }
 
     private static string StableObjectValue(object? value)

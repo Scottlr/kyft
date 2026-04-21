@@ -103,6 +103,21 @@ public sealed class WindowIntervalHistory
     }
 
     /// <summary>
+    /// Evaluates recorded windows at an explicit horizon.
+    /// </summary>
+    /// <remarks>
+    /// Windows active at the horizon are clipped to the horizon and marked
+    /// provisional in the returned snapshot. The underlying history is not
+    /// mutated.
+    /// </remarks>
+    /// <param name="horizon">The horizon used to evaluate the history.</param>
+    /// <returns>A read-only snapshot of the recorded history at the horizon.</returns>
+    public WindowHistorySnapshot SnapshotAt(TemporalPoint horizon)
+    {
+        return WindowHistorySnapshot.Create(this, horizon);
+    }
+
+    /// <summary>
     /// Gets recorded windows for a configured window name.
     /// </summary>
     /// <param name="windowName">The configured window name.</param>
