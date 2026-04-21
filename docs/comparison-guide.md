@@ -190,6 +190,50 @@ var result = pipeline.Intervals // Start from current recorded history.
 The result carries `EvaluationHorizon` and row finality metadata so consumers can
 separate current-state insight from final historical evidence.
 
+## Lane Liveness And Silence
+
+Use `LaneLivenessTracker` when sparse reporting, heartbeat loss, or insufficient
+signal should be represented as ordinary recorded windows. The tracker is
+deterministic and explicit: consumers call `Observe(...)` when a lane reports
+and `Check(...)` at a horizon where silence should be evaluated.
+
+```csharp
+var startedAt = DateTimeOffset.UtcNow; // Choose when liveness tracking starts.
+var liveness = LaneLivenessTracker.ForLanes( // Create deterministic liveness state.
+    startedAt, // Set the start timestamp.
+    TimeSpan.FromSeconds(30), // Mark a lane silent after 30 seconds without reports.
+    "provider-a", // Track provider A.
+    "provider-b"); // Track provider B.
+
+var silencePipeline = Kyft // Build a normal Kyft pipeline for liveness events.
+    .For<LaneLivenessSignal>() // Consume liveness state-change events.
+    .RecordIntervals() // Record silence windows.
+    .WithEventTime(signal => signal.OccurredAt) // Use the actual silence/recovery time.
+    .TrackWindow("LaneSilent", window => window // Record one silence window family.
+        .Key(signal => signal.Lane) // Track each lane independently.
+        .ActiveWhen(signal => signal.IsSilent)); // Open while the lane is silent.
+
+foreach (var signal in liveness.Observe("provider-a", startedAt)) // Record a provider A observation.
+{
+    silencePipeline.Ingest(signal, source: "liveness"); // Feed state changes into Kyft.
+}
+
+foreach (var signal in liveness.Check(startedAt.AddSeconds(45))) // Evaluate silence at a horizon.
+{
+    silencePipeline.Ingest(signal, source: "liveness"); // Open silence windows for expired lanes.
+}
+```
+
+The tracker emits only liveness state changes, not every heartbeat. A lane that
+never reports can still become silent after the configured threshold. A later
+observation emits recovery and closes the silence window. Kyft can then compare,
+query, snapshot, summarize, or export those windows like any other recorded
+state.
+
+Kyft deliberately does not own scheduling for this feature. That belongs in the
+host application, job runner, actor, or stream processor that already owns lane
+health checks.
+
 ## Live Revisions
 
 Use `ComparisonChangelog.Create(previous.RowFinalities, current.RowFinalities)`

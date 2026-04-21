@@ -270,6 +270,39 @@ live.ExportDebugHtml("artifacts/live-provider-qa.html"); // Capture the current 
 
 The same plan converges with batch execution when all source windows close.
 
+## Lane Liveness And Silence
+
+Use `LaneLivenessTracker` when sparse reporting should become normal Kyft
+windows. The tracker emits state-change events from explicit observations and
+horizon checks; it does not run timers or own distributed heartbeat monitoring.
+
+```csharp
+var startedAt = DateTimeOffset.UtcNow; // Choose when liveness tracking starts.
+var liveness = LaneLivenessTracker.ForLanes( // Create deterministic liveness state.
+    startedAt, // Set the start timestamp.
+    TimeSpan.FromSeconds(30), // Mark a lane silent after 30 seconds without reports.
+    "provider-a", // Track provider A.
+    "provider-b"); // Track provider B.
+
+var silencePipeline = Kyft // Build a normal Kyft pipeline for liveness events.
+    .For<LaneLivenessSignal>() // Consume liveness state-change events.
+    .RecordIntervals() // Record silence windows.
+    .WithEventTime(signal => signal.OccurredAt) // Use the actual silence/recovery time.
+    .TrackWindow("LaneSilent", window => window // Record one silence window family.
+        .Key(signal => signal.Lane) // Track each lane independently.
+        .ActiveWhen(signal => signal.IsSilent)); // Open while the lane is silent.
+
+foreach (var signal in liveness.Observe("provider-a", startedAt)) // Record a provider A observation.
+{
+    silencePipeline.Ingest(signal, source: "liveness"); // Feed state changes into Kyft.
+}
+
+foreach (var signal in liveness.Check(startedAt.AddSeconds(45))) // Evaluate silence at a horizon.
+{
+    silencePipeline.Ingest(signal, source: "liveness"); // Open silence windows for expired lanes.
+}
+```
+
 ## Boundary Segments
 
 Use segments when a value should split an active window while the state remains
