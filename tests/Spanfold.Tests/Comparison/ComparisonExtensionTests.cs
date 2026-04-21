@@ -9,13 +9,13 @@ public sealed class ComparisonExtensionTests
     [Fact]
     public void ExperimentalExtensionCanRegisterComparatorAndSelector()
     {
-        var descriptor = ExperimentalOddsExtension.Describe();
+        var descriptor = ExperimentalQualityExtension.Describe();
 
-        Assert.Equal("experimental-odds", descriptor.Id);
+        Assert.Equal("experimental-quality", descriptor.Id);
         Assert.Contains(descriptor.Comparators, comparator =>
-            comparator.Declaration == "odds:edge");
+            comparator.Declaration == "quality:drift");
         Assert.Contains(descriptor.Selectors, selector =>
-            selector.Name == "market");
+            selector.Name == "region");
     }
 
     [Fact]
@@ -26,8 +26,8 @@ public sealed class ComparisonExtensionTests
             .Select(static type => type.FullName ?? string.Empty)
             .ToArray();
 
-        Assert.DoesNotContain(coreTypeNames, name => name.Contains("Odds", StringComparison.Ordinal));
-        Assert.DoesNotContain(coreTypeNames, name => name.Contains("Bookmaker", StringComparison.Ordinal));
+        Assert.DoesNotContain(coreTypeNames, name => name.Contains("ConsumerSpecific", StringComparison.Ordinal));
+        Assert.DoesNotContain(coreTypeNames, name => name.Contains("DomainSpecific", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -45,25 +45,25 @@ public sealed class ComparisonExtensionTests
             [],
             extensionMetadata:
             [
-                new ComparisonExtensionMetadata("experimental-odds", "edgeThreshold", "0.025")
+                new ComparisonExtensionMetadata("experimental-quality", "driftThreshold", "0.025")
             ]);
 
         using var document = JsonDocument.Parse(result.ExportJson());
         var metadata = Assert.Single(document.RootElement.GetProperty("extensionMetadata").EnumerateArray());
 
-        Assert.Equal("experimental-odds", metadata.GetProperty("extensionId").GetString());
-        Assert.Equal("edgeThreshold", metadata.GetProperty("key").GetString());
-        Assert.Contains("extensionMetadata[0]: experimental-odds.edgeThreshold=0.025", result.Explain());
+        Assert.Equal("experimental-quality", metadata.GetProperty("extensionId").GetString());
+        Assert.Equal("driftThreshold", metadata.GetProperty("key").GetString());
+        Assert.Contains("extensionMetadata[0]: experimental-quality.driftThreshold=0.025", result.Explain());
     }
 
-    private static class ExperimentalOddsExtension
+    private static class ExperimentalQualityExtension
     {
         internal static ComparisonExtensionDescriptor Describe()
         {
-            return new ComparisonExtensionBuilder("experimental-odds", "Experimental Odds")
-                .AddSelector("market", "Selects a market-scoped window.")
-                .AddComparator("odds:edge", "Compares expected edge windows.")
-                .AddMetadataKey("edgeThreshold")
+            return new ComparisonExtensionBuilder("experimental-quality", "Experimental Quality")
+                .AddSelector("region", "Selects a region-scoped window.")
+                .AddComparator("quality:drift", "Compares quality drift windows.")
+                .AddMetadataKey("driftThreshold")
                 .Build();
         }
     }

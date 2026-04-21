@@ -61,10 +61,10 @@ public sealed class FluentComparisonBuilderTests
             .Target("provider-a", s => s.Source("provider-a"))
             .Against("provider-b", s => s.Source("provider-b"))
             .Within(s => s.Window("DeviceOffline"))
-            .Using(c => c.Overlap().Declaration("odds:edge"))
+            .Using(c => c.Overlap().Declaration("quality:drift"))
             .Build();
 
-        Assert.Equal(["overlap", "odds:edge"], plan.Comparators);
+        Assert.Equal(["overlap", "quality:drift"], plan.Comparators);
     }
 
     [Fact]

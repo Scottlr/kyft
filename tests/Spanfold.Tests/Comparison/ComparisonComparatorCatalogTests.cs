@@ -23,7 +23,7 @@ public sealed class ComparisonComparatorCatalogTests
     [Theory]
     [InlineData("lead-lag:Start:Unknown:5")]
     [InlineData("asof:Previous:ProcessingPosition:-1")]
-    [InlineData("odds:edge")]
+    [InlineData("quality:drift")]
     public void UnknownDeclarationsAreNotClaimedByCoreCatalog(string declaration)
     {
         Assert.False(ComparisonComparatorCatalog.IsKnownDeclaration(declaration));
