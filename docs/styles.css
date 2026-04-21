@@ -1,18 +1,19 @@
 :root {
   color-scheme: light;
-  --bg: #f8faf9;
-  --surface: #ffffff;
-  --surface-2: #f1f5f3;
-  --ink: #17211d;
-  --muted: #5d6b65;
-  --line: #d7dfdb;
-  --line-strong: #aab8b2;
-  --green: #0f766e;
-  --blue: #2563eb;
-  --amber: #b45309;
-  --red: #b91c1c;
-  --code-bg: #111816;
-  --code-ink: #edf7f2;
+  --bg: #f2efe7;
+  --surface: #fbfaf6;
+  --surface-2: #ebe6dc;
+  --ink: #161614;
+  --muted: #706a5f;
+  --line: #dcd5c8;
+  --line-strong: #c5bbaa;
+  --green: #53765b;
+  --blue: #526f9f;
+  --amber: #9a7418;
+  --red: #a45d50;
+  --overlap: #5f8062;
+  --code-bg: #171613;
+  --code-ink: #f4f1e8;
 }
 
 * {
@@ -47,7 +48,7 @@ a {
   gap: 24px;
   padding: 14px max(22px, calc((100vw - 1120px) / 2));
   border-bottom: 1px solid var(--line);
-  background: rgba(248, 250, 249, 0.96);
+  background: rgba(242, 239, 231, 0.96);
 }
 
 .brand {
@@ -205,8 +206,8 @@ li,
 }
 
 .button.primary {
-  border-color: var(--green);
-  background: var(--green);
+  border-color: var(--ink);
+  background: var(--ink);
   color: #ffffff;
 }
 
@@ -373,7 +374,7 @@ li,
 }
 
 .window.overlap {
-  background: #178f7d;
+  background: var(--overlap);
 }
 
 .window.missing,
@@ -383,7 +384,7 @@ li,
 
 .window.dashed {
   border: 2px dashed var(--blue);
-  background: rgba(37, 99, 235, 0.15);
+  background: rgba(82, 111, 159, 0.16);
 }
 
 .point {
@@ -534,7 +535,7 @@ pre code {
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfcfb;
+  background: var(--surface);
 }
 
 .mini-graph .label {
@@ -576,11 +577,11 @@ pre code {
 }
 
 .mini-graph .phase {
-  background: #9ca3af;
+  background: var(--line-strong);
 }
 
 .mini-graph .phase.alt {
-  background: #64748b;
+  background: var(--muted);
 }
 
 .comparison-list {
@@ -608,7 +609,7 @@ pre code {
   height: clamp(880px, 92vh, 1100px);
   min-height: 880px;
   border: 0;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .site-footer {
