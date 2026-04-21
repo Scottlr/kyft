@@ -461,6 +461,11 @@ coverage, lead/lag, live open windows, and Markdown export.
 dotnet run --project samples/Kyft.OperationsExample/Kyft.OperationsExample.csproj # Run the operations monitoring sample.
 ```
 
+More samples are available in [samples/README.md](samples/README.md), ranging
+from simple device monitoring to logistics, security audit, industrial
+telemetry, distributed quorum analysis, and research-grade spacecraft thermal
+analysis.
+
 ## More Detail
 
 - [Comparison guide](docs/comparison-guide.md)
