@@ -15,3 +15,7 @@ dotnet run --project samples/Kyft.OperationsExample/Kyft.OperationsExample.cspro
 
 Each sample keeps its event model local to the project. The examples are meant
 to show Kyft patterns rather than prescribe a domain schema.
+
+The programs print small text diagrams before running the analysis. Those
+diagrams explain the temporal setup visually, while the C# stays close to how a
+consumer would write real pipeline code.

@@ -1,93 +1,110 @@
-using Kyft; // Import Kyft's window and liveness APIs.
+using Kyft;
 
-var start = DateTimeOffset.Parse("2026-04-21T08:00:00Z"); // Use a deterministic clock.
-var processPipeline = Kyft.Kyft // Start a process telemetry pipeline.
-    .For<PumpTelemetry>() // Consume pump telemetry.
-    .RecordIntervals() // Record abnormal-state windows.
-    .WithEventTime(update => update.Timestamp) // Attach event time.
-    .Window("PumpCavitationRisk", window => window // Define a process-risk window.
-        .Key(update => update.PumpId) // Track each pump independently.
-        .ActiveWhen(update => update.VibrationMmPerSecond > 8.0 && update.IntakePressureBar < 1.8) // Open when vibration and pressure imply cavitation risk.
-        .Segment("operatingMode", segment => segment.Value(update => update.OperatingMode)) // Split by operating mode.
-        .Tag("line", update => update.LineId)) // Attach line metadata.
-    .Build(); // Build the process pipeline.
+var start = DateTimeOffset.Parse("2026-04-21T08:00:00Z");
 
-var livenessPipeline = Kyft.Kyft // Start a liveness pipeline.
-    .For<LaneLivenessSignal>() // Consume liveness state changes.
-    .RecordIntervals() // Record silence windows.
-    .WithEventTime(signal => signal.OccurredAt) // Use the actual silence/recovery time.
-    .TrackWindow("SensorSilent", window => window // Define a sensor silence window.
-        .Key(signal => signal.Lane) // Track each sensor lane independently.
-        .ActiveWhen(signal => signal.IsSilent)); // Open while the lane is silent.
+var processPipeline = Kyft.Kyft
+    .For<PumpTelemetry>()
+    .RecordIntervals()
+    .WithEventTime(update => update.Timestamp)
+    .Window("PumpCavitationRisk", window => window
+        .Key(update => update.PumpId)
+        .ActiveWhen(update => update.VibrationMmPerSecond > 8.0 && update.IntakePressureBar < 1.8)
+        .Segment("operatingMode", segment => segment.Value(update => update.OperatingMode))
+        .Tag("line", update => update.LineId))
+    .Build();
 
-var liveness = LaneLivenessTracker.ForLanes( // Create deterministic lane liveness state.
-    start, // Start tracking at the process start.
-    TimeSpan.FromSeconds(45), // Treat 45 seconds without reports as silence.
-    "sensor-a", // Track sensor A.
-    "sensor-b"); // Track sensor B.
+var livenessPipeline = Kyft.Kyft
+    .For<LaneLivenessSignal>()
+    .RecordIntervals()
+    .WithEventTime(signal => signal.OccurredAt)
+    .TrackWindow("SensorSilent", window => window
+        .Key(signal => signal.Lane)
+        .ActiveWhen(signal => signal.IsSilent));
 
-Observe("sensor-a", 0); // Sensor A reports initially.
-Observe("sensor-b", 0); // Sensor B reports initially.
-IngestPump("sensor-a", 0, 4.2, 2.5, "steady"); // Sensor A reports normal pump conditions.
-IngestPump("sensor-b", 0, 4.5, 2.4, "steady"); // Sensor B agrees.
-IngestPump("sensor-a", 1, 9.5, 1.5, "ramp-up"); // Sensor A sees cavitation risk.
-CheckLiveness(2); // Horizon check may open silence windows for stale sensors.
-Observe("sensor-b", 3); // Sensor B recovers from silence.
-IngestPump("sensor-b", 3, 9.1, 1.4, "ramp-up"); // Sensor B now observes the same risk.
-IngestPump("sensor-a", 4, 5.0, 2.3, "steady"); // Sensor A sees recovery.
-IngestPump("sensor-b", 5, 4.9, 2.4, "steady"); // Sensor B sees recovery.
+var liveness = LaneLivenessTracker.ForLanes(
+    start,
+    TimeSpan.FromSeconds(45),
+    "sensor-a",
+    "sensor-b");
 
-var riskComparison = processPipeline.Intervals // Start a process-risk comparison.
-    .Compare("Pump risk sensor agreement") // Name the comparison.
-    .Target("sensor-a", selector => selector.Source("sensor-a")) // Treat sensor A as target.
-    .Against("sensor-b", selector => selector.Source("sensor-b")) // Compare sensor B.
-    .Within(_ => ComparisonScope.Window("PumpCavitationRisk", TemporalAxis.Timestamp)) // Scope to cavitation risk windows on event time.
-    .Normalize(normalization => normalization.OnEventTime()) // Measure the comparison on event time.
-    .Using(comparators => comparators.Overlap().Residual().LeadLag(LeadLagTransition.Start, TemporalAxis.Timestamp, TimeSpan.FromMinutes(3).Ticks)) // Compare agreement and detection lag.
-    .Run(); // Execute the comparison.
+PrintScenario();
 
-var silence = livenessPipeline.Intervals.Query() // Start a liveness history query.
-    .Window("SensorSilent") // Read sensor silence windows.
-    .ClosedWindows(); // Materialize closed silence windows.
+// Process-risk windows and silence windows are independent histories. They can
+// be queried separately or compared later as normal recorded Kyft windows.
+Observe("sensor-a", 0);
+Observe("sensor-b", 0);
+IngestPump("sensor-a", 0, 4.2, 2.5, "steady");
+IngestPump("sensor-b", 0, 4.5, 2.4, "steady");
+IngestPump("sensor-a", 1, 9.5, 1.5, "ramp-up");
+CheckLiveness(2);
+Observe("sensor-b", 3);
+IngestPump("sensor-b", 3, 9.1, 1.4, "ramp-up");
+IngestPump("sensor-a", 4, 5.0, 2.3, "steady");
+IngestPump("sensor-b", 5, 4.9, 2.4, "steady");
 
-Console.WriteLine("Industrial telemetry"); // Print the sample title.
-Console.WriteLine("risk overlap rows: " + riskComparison.OverlapRows.Count); // Show process-risk agreement.
-Console.WriteLine("risk lead/lag rows: " + riskComparison.LeadLagRows.Count); // Show detection timing rows.
-Console.WriteLine("closed silence windows: " + silence.Count); // Show sensor liveness gaps.
+var riskComparison = processPipeline.Intervals
+    .Compare("Pump risk sensor agreement")
+    .Target("sensor-a", selector => selector.Source("sensor-a"))
+    .Against("sensor-b", selector => selector.Source("sensor-b"))
+    .Within(_ => ComparisonScope.Window("PumpCavitationRisk", TemporalAxis.Timestamp))
+    .Normalize(normalization => normalization.OnEventTime())
+    .Using(comparators => comparators.Overlap().Residual().LeadLag(LeadLagTransition.Start, TemporalAxis.Timestamp, TimeSpan.FromMinutes(3).Ticks))
+    .Run();
 
-void Observe(string lane, int minute) // Record a sensor heartbeat.
+var silence = livenessPipeline.Intervals.Query()
+    .Window("SensorSilent")
+    .ClosedWindows();
+
+Console.WriteLine("Industrial telemetry");
+Console.WriteLine("risk overlap rows: " + riskComparison.OverlapRows.Count);
+Console.WriteLine("risk lead/lag rows: " + riskComparison.LeadLagRows.Count);
+Console.WriteLine("closed silence windows: " + silence.Count);
+
+void PrintScenario()
 {
-    foreach (var signal in liveness.Observe(lane, start.AddMinutes(minute))) // Emit liveness state changes.
+    Console.WriteLine(
+        """
+        Scenario
+        --------
+        process risk:
+          sensor-a: cavitation risk 01..04
+          sensor-b: cavitation risk 03..05
+
+        liveness:
+          sensor-b goes silent after 00:45 and recovers at 03:00
+
+        This separates "bad process state" from "no signal".
+
+        """);
+}
+
+void Observe(string lane, int minute)
+{
+    foreach (var signal in liveness.Observe(lane, start.AddMinutes(minute)))
     {
-        livenessPipeline.Ingest(signal, source: "liveness"); // Ingest state changes into the liveness pipeline.
+        livenessPipeline.Ingest(signal, source: "liveness");
     }
 }
 
-void CheckLiveness(int minute) // Evaluate liveness at a horizon.
+void CheckLiveness(int minute)
 {
-    foreach (var signal in liveness.Check(start.AddMinutes(minute))) // Emit silence state changes.
+    foreach (var signal in liveness.Check(start.AddMinutes(minute)))
     {
-        livenessPipeline.Ingest(signal, source: "liveness"); // Ingest silence transitions.
+        livenessPipeline.Ingest(signal, source: "liveness");
     }
 }
 
-void IngestPump(string source, int minute, double vibration, double pressure, string mode) // Record process telemetry.
+void IngestPump(string source, int minute, double vibration, double pressure, string mode)
 {
-    processPipeline.Ingest( // Send one pump update through Kyft.
-        new PumpTelemetry( // Create the telemetry event.
-            "line-3", // Attach line context.
-            "pump-4", // Track one pump.
-            mode, // Carry operating mode.
-            vibration, // Carry vibration magnitude.
-            pressure, // Carry intake pressure.
-            start.AddMinutes(minute)), // Use deterministic event time.
-        source: source); // Store the sensor as the source lane.
+    processPipeline.Ingest(
+        new PumpTelemetry("line-3", "pump-4", mode, vibration, pressure, start.AddMinutes(minute)),
+        source: source);
 }
 
-public sealed record PumpTelemetry( // Define process telemetry.
-    string LineId, // Identifies the production line.
-    string PumpId, // Identifies the pump.
-    string OperatingMode, // Splits risk windows by mode.
-    double VibrationMmPerSecond, // Contributes to the active predicate.
-    double IntakePressureBar, // Contributes to the active predicate.
-    DateTimeOffset Timestamp); // Provides event-time bounds.
+public sealed record PumpTelemetry(
+    string LineId,
+    string PumpId,
+    string OperatingMode,
+    double VibrationMmPerSecond,
+    double IntakePressureBar,
+    DateTimeOffset Timestamp);

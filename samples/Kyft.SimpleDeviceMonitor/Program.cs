@@ -1,60 +1,79 @@
-using Kyft; // Import Kyft's pipeline, query, and comparison APIs.
+using Kyft;
 
-var start = DateTimeOffset.Parse("2026-04-21T09:00:00Z"); // Use a fixed clock so output is deterministic.
-var pipeline = Kyft.Kyft // Start a Kyft pipeline definition.
-    .For<DeviceSignal>() // Consume device health signals.
-    .RecordIntervals() // Record opened and closed windows.
-    .WithEventTime(signal => signal.Timestamp) // Attach event time to recorded windows.
-    .TrackWindow( // Define one state-driven window.
-        "DeviceOffline", // Name the recorded state.
-        key: signal => signal.DeviceId, // Track each device independently.
-        isActive: signal => !signal.IsOnline); // Keep the window open while the device is offline.
+var start = DateTimeOffset.Parse("2026-04-21T09:00:00Z");
 
-Ingest("agent-a", 0, true); // Agent A starts healthy.
-Ingest("agent-b", 0, true); // Agent B starts healthy.
-Ingest("agent-a", 5, false); // Agent A sees the outage first.
-Ingest("agent-b", 7, false); // Agent B sees the same outage later.
-Ingest("agent-b", 12, true); // Agent B sees recovery first.
-Ingest("agent-a", 15, true); // Agent A sees recovery later.
-Ingest("agent-a", 20, false); // Agent A opens a second outage.
+var pipeline = Kyft.Kyft
+    .For<DeviceSignal>()
+    .RecordIntervals()
+    .WithEventTime(signal => signal.Timestamp)
+    .TrackWindow(
+        "DeviceOffline",
+        key: signal => signal.DeviceId,
+        isActive: signal => !signal.IsOnline);
 
-var closed = pipeline.Intervals.Query() // Start a direct history query.
-    .Window("DeviceOffline") // Read only device-offline windows.
-    .Lane("agent-a") // Read one source lane.
-    .ClosedWindows(); // Materialize closed windows for that lane.
+PrintScenario();
 
-var live = pipeline.Intervals.Query() // Start another direct history query.
-    .Window("DeviceOffline") // Read only device-offline windows.
-    .Lane("agent-a") // Read one source lane.
-    .OpenWindowsAt(TemporalPoint.ForPosition(8)); // Ask what was open at position 8.
+// Two independent lanes observe the same device. Kyft records each lane's
+// offline windows, then compares where the lanes agree or diverge.
+Ingest("agent-a", 0, true);
+Ingest("agent-b", 0, true);
+Ingest("agent-a", 5, false);
+Ingest("agent-b", 7, false);
+Ingest("agent-b", 12, true);
+Ingest("agent-a", 15, true);
+Ingest("agent-a", 20, false);
 
-var comparison = pipeline.Intervals // Start a source-aware comparison.
-    .Compare("Simple monitor comparison") // Name the comparison.
-    .Target("agent-a", selector => selector.Source("agent-a")) // Treat agent A as the target.
-    .Against("agent-b", selector => selector.Source("agent-b")) // Compare agent B against it.
-    .Within(scope => scope.Window("DeviceOffline")) // Scope the comparison to offline windows.
-    .Using(comparators => comparators.Overlap().Residual().Missing().Coverage()) // Emit agreement, disagreement, and coverage rows.
-    .RunLive(TemporalPoint.ForPosition(25)); // Clip the open second outage to a live horizon.
+var closed = pipeline.Intervals.Query()
+    .Window("DeviceOffline")
+    .Lane("agent-a")
+    .ClosedWindows();
 
-Console.WriteLine("Simple device monitor"); // Print the sample title.
-Console.WriteLine("agent-a closed windows: " + closed.Count); // Show direct history output.
-Console.WriteLine("agent-a windows open at position 8: " + live.Count); // Show horizon query output.
-Console.WriteLine("overlap rows: " + comparison.OverlapRows.Count); // Show agreement row count.
-Console.WriteLine("agent-a-only rows: " + comparison.ResidualRows.Count); // Show target-only row count.
-Console.WriteLine("agent-b-only rows: " + comparison.MissingRows.Count); // Show comparison-only row count.
-Console.WriteLine("provisional rows: " + comparison.ProvisionalRowFinalities().Count); // Show live rows that may change.
+var openAtEight = pipeline.Intervals.Query()
+    .Window("DeviceOffline")
+    .Lane("agent-a")
+    .OpenWindowsAt(TemporalPoint.ForPosition(8));
 
-void Ingest(string agent, int minute, bool isOnline) // Keep sample event creation compact.
+var comparison = pipeline.Intervals
+    .Compare("Simple monitor comparison")
+    .Target("agent-a", selector => selector.Source("agent-a"))
+    .Against("agent-b", selector => selector.Source("agent-b"))
+    .Within(scope => scope.Window("DeviceOffline"))
+    .Using(comparators => comparators.Overlap().Residual().Missing().Coverage())
+    .RunLive(TemporalPoint.ForPosition(25));
+
+Console.WriteLine("Simple device monitor");
+Console.WriteLine("agent-a closed windows: " + closed.Count);
+Console.WriteLine("agent-a windows open at position 8: " + openAtEight.Count);
+Console.WriteLine("overlap rows: " + comparison.OverlapRows.Count);
+Console.WriteLine("agent-a-only rows: " + comparison.ResidualRows.Count);
+Console.WriteLine("agent-b-only rows: " + comparison.MissingRows.Count);
+Console.WriteLine("provisional rows: " + comparison.ProvisionalRowFinalities().Count);
+
+void PrintScenario()
 {
-    pipeline.Ingest( // Send one signal into Kyft.
-        new DeviceSignal( // Create the event payload.
-            "device-17", // Track one logical device.
-            isOnline, // Carry the online state.
-            start.AddMinutes(minute)), // Use deterministic event time.
-        source: agent); // Store the reporting agent as the lane/source.
+    Console.WriteLine(
+        """
+        Scenario
+        --------
+        agent-a: healthy | offline 05..15 | offline 20..live
+        agent-b: healthy |   offline 07..12
+
+        Questions:
+        - what did agent-a record?
+        - what was open at a historical horizon?
+        - where did agent-a and agent-b overlap or diverge?
+
+        """);
 }
 
-public sealed record DeviceSignal( // Define the event type consumed by the sample.
-    string DeviceId, // Identifies the monitored device.
-    bool IsOnline, // Drives the offline window predicate.
-    DateTimeOffset Timestamp); // Provides event-time bounds.
+void Ingest(string agent, int minute, bool isOnline)
+{
+    pipeline.Ingest(
+        new DeviceSignal("device-17", isOnline, start.AddMinutes(minute)),
+        source: agent);
+}
+
+public sealed record DeviceSignal(
+    string DeviceId,
+    bool IsOnline,
+    DateTimeOffset Timestamp);
