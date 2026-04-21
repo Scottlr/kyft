@@ -103,6 +103,11 @@ var open = snapshot.Query() // Start a read-only query over the horizon snapshot
     .Lane("provider-a") // Restrict the query to one lane.
     .OpenWindows(); // Return records active at the horizon.
 
+var openQuickCheck = pipeline.Intervals.Query() // Start from the recorded history.
+    .Window("DeviceOffline") // Restrict the query to one window family.
+    .Lane("provider-a") // Restrict the query to one lane.
+    .OpenWindowsAt(TemporalPoint.ForPosition(100)); // Return records active at position 100.
+
 foreach (var record in open) // Inspect each active snapshot record.
 {
     Console.WriteLine($"{record.Window.Key}: {record.Range.Start} to {record.Range.End}"); // Print the clipped horizon range.

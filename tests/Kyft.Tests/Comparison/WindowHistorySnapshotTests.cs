@@ -90,6 +90,47 @@ public sealed class WindowHistorySnapshotTests
     }
 
     [Fact]
+    public void HistoryQueryCanMaterializeOpenWindowsAtHorizon()
+    {
+        var pipeline = CreatePipeline();
+
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
+        pipeline.Ingest(new DeviceSignal("device-2", IsOnline: false, "Normal", "standard"), "lane-b", "partition-2");
+
+        var record = Assert.Single(pipeline.Intervals.Query()
+            .Window("DeviceOffline")
+            .Key("device-1")
+            .Lane("lane-a")
+            .Partition("partition-1")
+            .Segment("lifecycle", "Incident")
+            .Tag("fleet", "critical")
+            .OpenWindowsAt(TemporalPoint.ForPosition(3)));
+
+        Assert.Equal("device-1", record.Window.Key);
+        Assert.Equal(TemporalRangeEndStatus.OpenAtHorizon, record.Range.EndStatus);
+        Assert.Equal(3, record.Range.End!.Value.Position);
+    }
+
+    [Fact]
+    public void HistoryQueryCanMaterializeLatestWindowAtHorizon()
+    {
+        var pipeline = CreatePipeline();
+
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Incident", "critical"), "lane-a", "partition-1");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
+
+        var record = pipeline.Intervals.Query()
+            .Window("DeviceOffline")
+            .Lane("lane-a")
+            .LatestWindowAt(TemporalPoint.ForPosition(3));
+
+        Assert.NotNull(record);
+        Assert.Equal(3, record.Range.Start.Position);
+        Assert.Equal(ComparisonFinality.Provisional, record.Finality);
+    }
+
+    [Fact]
     public void SnapshotRejectsUnknownHorizonAxis()
     {
         var pipeline = CreatePipeline();

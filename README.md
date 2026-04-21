@@ -164,6 +164,11 @@ var open = snapshot.Query() // Query the horizon snapshot.
     .Lane("provider-a") // Inspect one lane.
     .OpenWindows(); // Return records active at the horizon.
 
+var openQuickCheck = pipeline.Intervals.Query() // Start from the recorded history.
+    .Window("DeviceOffline") // Restrict the query to one window family.
+    .Lane("provider-a") // Restrict the query to one lane.
+    .OpenWindowsAt(TemporalPoint.ForPosition(100)); // Return records active at position 100.
+
 var byLifecycle = snapshot.Query() // Reuse the same horizon snapshot.
     .Window("DeviceOffline") // Keep the summary scoped to one window family.
     .Windows() // Materialize final and provisional records.

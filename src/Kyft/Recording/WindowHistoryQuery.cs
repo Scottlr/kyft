@@ -206,6 +206,46 @@ public sealed class WindowHistoryQuery
         return matches.Count == 0 ? null : matches[^1];
     }
 
+    /// <summary>
+    /// Materializes matching snapshot records at an explicit horizon.
+    /// </summary>
+    /// <param name="horizon">The horizon used to evaluate recorded history.</param>
+    /// <returns>Matching snapshot records in deterministic order.</returns>
+    public IReadOnlyList<WindowSnapshotRecord> WindowsAt(TemporalPoint horizon)
+    {
+        return CreateSnapshotQuery(horizon).Windows();
+    }
+
+    /// <summary>
+    /// Materializes matching records whose source windows were no longer active at an explicit horizon.
+    /// </summary>
+    /// <param name="horizon">The horizon used to evaluate recorded history.</param>
+    /// <returns>Matching final snapshot records in deterministic order.</returns>
+    public IReadOnlyList<WindowSnapshotRecord> ClosedWindowsAt(TemporalPoint horizon)
+    {
+        return CreateSnapshotQuery(horizon).ClosedWindows();
+    }
+
+    /// <summary>
+    /// Materializes matching records whose source windows were active at an explicit horizon.
+    /// </summary>
+    /// <param name="horizon">The horizon used to evaluate recorded history.</param>
+    /// <returns>Matching provisional snapshot records in deterministic order.</returns>
+    public IReadOnlyList<WindowSnapshotRecord> OpenWindowsAt(TemporalPoint horizon)
+    {
+        return CreateSnapshotQuery(horizon).OpenWindows();
+    }
+
+    /// <summary>
+    /// Gets the latest matching snapshot record at an explicit horizon.
+    /// </summary>
+    /// <param name="horizon">The horizon used to evaluate recorded history.</param>
+    /// <returns>The latest matching snapshot record, or null when no record matches.</returns>
+    public WindowSnapshotRecord? LatestWindowAt(TemporalPoint horizon)
+    {
+        return CreateSnapshotQuery(horizon).LatestWindow();
+    }
+
     private bool Matches(WindowRecord window)
     {
         if (this.windowName is not null
@@ -246,6 +286,48 @@ public sealed class WindowHistoryQuery
         }
 
         return true;
+    }
+
+    private WindowSnapshotQuery CreateSnapshotQuery(TemporalPoint horizon)
+    {
+        if (this.windows is not null)
+        {
+            throw new InvalidOperationException("Horizon queries require a live WindowIntervalHistory.");
+        }
+
+        var query = this.history.SnapshotAt(horizon).Query();
+
+        if (this.windowName is not null)
+        {
+            query.Window(this.windowName);
+        }
+
+        if (this.hasKey)
+        {
+            query.Key(this.key!);
+        }
+
+        if (this.hasSource)
+        {
+            query.Source(this.source!);
+        }
+
+        if (this.hasPartition)
+        {
+            query.Partition(this.partition!);
+        }
+
+        for (var i = 0; i < this.segmentFilters.Count; i++)
+        {
+            query.Segment(this.segmentFilters[i].Name, this.segmentFilters[i].Value);
+        }
+
+        for (var i = 0; i < this.tagFilters.Count; i++)
+        {
+            query.Tag(this.tagFilters[i].Name, this.tagFilters[i].Value);
+        }
+
+        return query;
     }
 
     private static bool HasSegment(WindowRecord window, ValueFilter filter)
