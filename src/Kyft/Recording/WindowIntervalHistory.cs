@@ -200,6 +200,25 @@ public sealed class WindowIntervalHistory
     }
 
     /// <summary>
+    /// Gets annotations for a recorded window that were known at or before a horizon.
+    /// </summary>
+    /// <remarks>
+    /// Annotations without a comparable known-at point are excluded from this
+    /// point-in-time-safe view.
+    /// </remarks>
+    /// <param name="window">The recorded window.</param>
+    /// <param name="horizon">The known-at horizon.</param>
+    /// <returns>Matching annotations in append order.</returns>
+    public IReadOnlyList<WindowAnnotation> AnnotationsKnownAt(
+        WindowRecord window,
+        TemporalPoint horizon)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        return AnnotationsKnownAt(WindowAnnotationTarget.From(window), horizon);
+    }
+
+    /// <summary>
     /// Gets annotations attached to a window annotation target.
     /// </summary>
     /// <param name="target">The stable window start identity.</param>
@@ -218,6 +237,49 @@ public sealed class WindowIntervalHistory
         }
 
         return matches.ToArray();
+    }
+
+    /// <summary>
+    /// Gets annotations for a window target that were known at or before a horizon.
+    /// </summary>
+    /// <remarks>
+    /// Annotations without a comparable known-at point are excluded from this
+    /// point-in-time-safe view.
+    /// </remarks>
+    /// <param name="target">The stable window start identity.</param>
+    /// <param name="horizon">The known-at horizon.</param>
+    /// <returns>Matching annotations in append order.</returns>
+    public IReadOnlyList<WindowAnnotation> AnnotationsKnownAt(
+        WindowAnnotationTarget target,
+        TemporalPoint horizon)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+
+        if (horizon.Axis == TemporalAxis.Unknown)
+        {
+            throw new ArgumentException("Annotation known-at horizon must use a known temporal axis.", nameof(horizon));
+        }
+
+        var matches = new List<WindowAnnotation>();
+        for (var i = 0; i < this.annotations.Count; i++)
+        {
+            var annotation = this.annotations[i];
+            if (annotation.Target == target && IsKnownAtOrBefore(annotation, horizon))
+            {
+                matches.Add(annotation);
+            }
+        }
+
+        return matches.ToArray();
+    }
+
+    private static bool IsKnownAtOrBefore(
+        WindowAnnotation annotation,
+        TemporalPoint horizon)
+    {
+        return annotation.KnownAt is { } knownAt
+            && knownAt.Axis == horizon.Axis
+            && knownAt.CompareTo(horizon) <= 0;
     }
 
     /// <summary>

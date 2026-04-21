@@ -179,6 +179,10 @@ var annotation = pipeline.Intervals.Annotate( // Attach metadata discovered afte
     "reason", // Name the annotation.
     "maintenance", // Store the explanatory value.
     TemporalPoint.ForPosition(105)); // Record when the annotation became known.
+
+var knownAnnotations = pipeline.Intervals.AnnotationsKnownAt( // Read point-in-time-safe annotations.
+    latest!, // Use the same source window.
+    TemporalPoint.ForPosition(110)); // Include annotations known by position 110.
 ```
 
 ## What Makes Kyft Different?

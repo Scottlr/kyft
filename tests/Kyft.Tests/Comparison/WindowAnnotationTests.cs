@@ -59,6 +59,29 @@ public sealed class WindowAnnotationTests
     }
 
     [Fact]
+    public void AnnotationsKnownAtExcludesFutureAndUnknownAvailability()
+    {
+        var pipeline = CreatePipeline();
+
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), "lane-a");
+
+        var open = Assert.Single(pipeline.Intervals.Query()
+            .Window("DeviceOffline")
+            .Lane("lane-a")
+            .OpenWindows());
+
+        var known = pipeline.Intervals.Annotate(open, "reason", "maintenance", TemporalPoint.ForPosition(5));
+        pipeline.Intervals.Annotate(open, "owner", "team-a");
+        pipeline.Intervals.Annotate(open, "classification", "future", TemporalPoint.ForPosition(8));
+        pipeline.Intervals.Annotate(open, "timestamp-note", "different-axis", TemporalPoint.ForTimestamp(DateTimeOffset.Parse("2026-04-21T10:00:00Z")));
+
+        var annotations = pipeline.Intervals.AnnotationsKnownAt(open, TemporalPoint.ForPosition(6));
+
+        var annotation = Assert.Single(annotations);
+        Assert.Equal(known, annotation);
+    }
+
+    [Fact]
     public void AnnotationRejectsUnknownKnownAtAxis()
     {
         var pipeline = CreatePipeline();
@@ -71,6 +94,21 @@ public sealed class WindowAnnotationTests
             .OpenWindows());
 
         Assert.Throws<ArgumentException>(() => pipeline.Intervals.Annotate(open, "reason", "unknown", default(TemporalPoint)));
+    }
+
+    [Fact]
+    public void AnnotationsKnownAtRejectsUnknownHorizonAxis()
+    {
+        var pipeline = CreatePipeline();
+
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), "lane-a");
+
+        var open = Assert.Single(pipeline.Intervals.Query()
+            .Window("DeviceOffline")
+            .Lane("lane-a")
+            .OpenWindows());
+
+        Assert.Throws<ArgumentException>(() => pipeline.Intervals.AnnotationsKnownAt(open, default));
     }
 
     private static EventPipeline<DeviceSignal> CreatePipeline()

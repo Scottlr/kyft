@@ -147,12 +147,19 @@ var annotation = pipeline.Intervals.Annotate( // Attach metadata to the window s
     TemporalPoint.ForPosition(105)); // Record when the annotation became known.
 
 var annotations = pipeline.Intervals.AnnotationsFor(openWindow!); // Read annotations back in append order.
+var knownAnnotations = pipeline.Intervals.AnnotationsKnownAt( // Read point-in-time-safe annotations.
+    openWindow!, // Use the same source window.
+    TemporalPoint.ForPosition(110)); // Include annotations known by position 110.
 ```
 
 The annotation target excludes the window end. If metadata is attached while a
 window is open, the same annotation remains associated after that window closes.
 Repeated annotations with the same name append revisions instead of overwriting
 earlier metadata.
+
+`AnnotationsKnownAt(...)` excludes annotations without a comparable known-at
+point. That keeps audit reads from accidentally using explanatory metadata that
+was not available at the decision horizon.
 
 ## Known-At Safety
 
