@@ -107,12 +107,21 @@ foreach (var record in open) // Inspect each active snapshot record.
 {
     Console.WriteLine($"{record.Window.Key}: {record.Range.Start} to {record.Range.End}"); // Print the clipped horizon range.
 }
+
+var byLifecycle = snapshot.Query() // Reuse the same horizon snapshot.
+    .Window("DeviceOffline") // Keep the summary scoped to one window family.
+    .Windows() // Materialize final and provisional records.
+    .SummarizeBySegment("lifecycle"); // Group counts and measured length by lifecycle.
 ```
 
 Snapshot records preserve the source window and add the range that was visible
 at the horizon. A record whose source window had not ended by the horizon is
 marked provisional and clipped to that horizon. The underlying history is not
 mutated.
+
+Summaries are deliberately small: record count, final/provisional count,
+measured processing-position length, and measured event-time duration. Kyft does
+not impose a reporting schema on top of those groups.
 
 ## Known-At Safety
 

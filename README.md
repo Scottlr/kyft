@@ -163,6 +163,11 @@ var open = snapshot.Query() // Query the horizon snapshot.
     .Window("DeviceOffline") // Inspect one window family.
     .Lane("provider-a") // Inspect one lane.
     .OpenWindows(); // Return records active at the horizon.
+
+var byLifecycle = snapshot.Query() // Reuse the same horizon snapshot.
+    .Window("DeviceOffline") // Keep the summary scoped to one window family.
+    .Windows() // Materialize final and provisional records.
+    .SummarizeBySegment("lifecycle"); // Group counts and measured length by lifecycle.
 ```
 
 ## What Makes Kyft Different?
