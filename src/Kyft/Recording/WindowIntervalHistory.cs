@@ -90,6 +90,19 @@ public sealed class WindowIntervalHistory
     }
 
     /// <summary>
+    /// Starts a read-only query over recorded windows.
+    /// </summary>
+    /// <remarks>
+    /// Use this API for direct state-history inspection when no cross-source
+    /// comparator rows are needed.
+    /// </remarks>
+    /// <returns>A window history query builder.</returns>
+    public WindowHistoryQuery Query()
+    {
+        return new WindowHistoryQuery(this);
+    }
+
+    /// <summary>
     /// Gets recorded windows for a configured window name.
     /// </summary>
     /// <param name="windowName">The configured window name.</param>

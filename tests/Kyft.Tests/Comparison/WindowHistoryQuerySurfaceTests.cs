@@ -50,5 +50,84 @@ public sealed class WindowHistoryQuerySurfaceTests
         Assert.Empty(history.FindResiduals("provider-a"));
     }
 
-    private sealed record DeviceSignal(string DeviceId, bool IsOnline);
+    [Fact]
+    public void QueryCanFilterClosedWindowsByWindowKeyLanePartitionSegmentAndTag()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Incident", "critical"), "lane-a", "partition-1");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Normal", "standard"), "lane-b", "partition-1");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Normal", "standard"), "lane-b", "partition-1");
+
+        var windows = pipeline.Intervals.Query()
+            .Window("DeviceOffline")
+            .Key("device-1")
+            .Lane("lane-a")
+            .Partition("partition-1")
+            .Segment("lifecycle", "Incident")
+            .Tag("fleet", "critical")
+            .ClosedWindows();
+
+        var window = Assert.Single(windows);
+        Assert.Equal("lane-a", window.Source);
+        Assert.Equal("partition-1", window.Partition);
+        Assert.Equal("Incident", Assert.Single(window.Segments).Value);
+        Assert.Equal("critical", Assert.Single(window.Tags).Value);
+    }
+
+    [Fact]
+    public void QueryCanReturnOpenWindowsAndLatestWindow()
+    {
+        var pipeline = CreateSegmentedPipeline();
+
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Incident", "critical"), "lane-a", "partition-1");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
+
+        var open = pipeline.Intervals.Query()
+            .Window("DeviceOffline")
+            .Source("lane-a")
+            .OpenWindows();
+        var latest = pipeline.Intervals.Query()
+            .Window("DeviceOffline")
+            .Lane("lane-a")
+            .LatestWindow();
+
+        var openWindow = Assert.Single(open);
+        Assert.Equal(openWindow, latest);
+        Assert.False(latest!.IsClosed);
+        Assert.Equal(3, latest.StartPosition);
+    }
+
+    [Fact]
+    public void QueryReturnsEmptyLatestWindowWhenNothingMatches()
+    {
+        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+
+        var latest = history.Query()
+            .Window("DeviceOffline")
+            .Lane("missing")
+            .LatestWindow();
+
+        Assert.Null(latest);
+    }
+
+    private static EventPipeline<DeviceSignal> CreateSegmentedPipeline()
+    {
+        return Kyft
+            .For<DeviceSignal>()
+            .RecordIntervals()
+            .TrackWindow("DeviceOffline", window => window
+                .Key(signal => signal.DeviceId)
+                .ActiveWhen(signal => !signal.IsOnline)
+                .Segment("lifecycle", segment => segment.Value(signal => signal.Lifecycle))
+                .Tag("fleet", signal => signal.Fleet));
+    }
+
+    private sealed record DeviceSignal(
+        string DeviceId,
+        bool IsOnline,
+        string Lifecycle = "",
+        string Fleet = "");
 }
