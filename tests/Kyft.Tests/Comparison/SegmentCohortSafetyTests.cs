@@ -9,7 +9,7 @@ public sealed class SegmentCohortSafetyTests
     {
         var pipeline = Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("SelectionPriced", window => window
                 .Key(update => update.SelectionId)
                 .ActiveWhen(update => update.HasPrice)
@@ -18,14 +18,14 @@ public sealed class SegmentCohortSafetyTests
         pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: true, "Pregame"), source: "source-a");
         pipeline.Ingest(new PriceUpdate("selection-1", HasPrice: true, "InPlay"), source: "source-a");
 
-        var pregame = pipeline.Intervals
+        var pregame = pipeline.History
             .Compare("Pregame finality")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
             .Within(scope => scope.Window("SelectionPriced").Segment("phase", "Pregame"))
             .Using(comparators => comparators.Residual())
             .Run();
-        var live = pipeline.Intervals
+        var live = pipeline.History
             .Compare("In-play finality")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
@@ -46,7 +46,7 @@ public sealed class SegmentCohortSafetyTests
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
         AddClosedWindow(pipeline, source: "source-c", start: 6, end: 11);
 
-        var knownAtFive = pipeline.Intervals
+        var knownAtFive = pipeline.History
             .Compare("Known-at cohort")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort.Sources("source-b", "source-c"))
@@ -68,7 +68,7 @@ public sealed class SegmentCohortSafetyTests
         AddClosedWindow(pipeline, source: "source-a", start: 1, end: 5, period: "FirstPeriod");
         AddClosedWindow(pipeline, source: "source-a", start: 6, end: 10, period: "SecondPeriod");
 
-        var prepared = pipeline.Intervals
+        var prepared = pipeline.History
             .Compare("Known-at segmented audit")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
@@ -97,7 +97,7 @@ public sealed class SegmentCohortSafetyTests
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
         AddClosedWindow(pipeline, source: "source-c", start: 1, end: 11);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Known-at cohort threshold")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -122,7 +122,7 @@ public sealed class SegmentCohortSafetyTests
         AddClosedWindow(pipeline, source: "source-b", start: 8, end: 11);
         AddClosedWindow(pipeline, source: "source-c", start: 12, end: 20);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Known-at cohort as-of")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort.Sources("source-b", "source-c"))
@@ -186,7 +186,7 @@ public sealed class SegmentCohortSafetyTests
     {
         return Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("SelectionPriced", update => update.SelectionId, update => update.HasPrice);
     }
 
@@ -214,15 +214,15 @@ public sealed class SegmentCohortSafetyTests
             Kind = WindowTransitionKind.Closed
         };
 
-        pipeline.Intervals.Record([open], start, eventTime: null);
-        pipeline.Intervals.Record([close], end, eventTime: null);
+        pipeline.History.Record([open], start, eventTime: null);
+        pipeline.History.Record([close], end, eventTime: null);
     }
 
     private static ComparisonResult RunAtLeastCohortResidual(
         EventPipeline<PriceUpdate> pipeline,
         bool live)
     {
-        var builder = pipeline.Intervals
+        var builder = pipeline.History
             .Compare("Threshold cohort residual")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort

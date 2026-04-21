@@ -43,7 +43,7 @@ public sealed class SourceAwareIngestionTests
     {
         var pipeline = Kyft
             .For<PriceTick>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow(
                 "SelectionSuspension",
                 key: tick => tick.SelectionId,
@@ -54,7 +54,7 @@ public sealed class SourceAwareIngestionTests
         pipeline.Ingest(new PriceTick("selection-1", 1.01m), source: "provider-b");
         pipeline.Ingest(new PriceTick("selection-1", 1.01m), source: "provider-a");
 
-        var result = pipeline.Intervals.Compare("Provider QA")
+        var result = pipeline.History.Compare("Provider QA")
             .Target("provider-a", selector => selector.Source("provider-a"))
             .Against("provider-b", selector => selector.Source("provider-b"))
             .Within(scope => scope.Window("SelectionSuspension"))

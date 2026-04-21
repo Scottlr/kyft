@@ -10,25 +10,25 @@ namespace Kyft;
 /// APIs return materialized snapshots so callers can inspect the current
 /// recorded state without mutating the active runtime.
 /// </remarks>
-public sealed class WindowIntervalHistory
+public sealed class WindowHistory
 {
     private readonly bool enabled;
-    private readonly Dictionary<WindowRecordingKey, OpenWindow> openIntervals;
-    private readonly List<ClosedWindow> closedIntervals;
+    private readonly Dictionary<WindowRecordingKey, OpenWindow> openWindows;
+    private readonly List<ClosedWindow> closedWindows;
     private readonly List<WindowAnnotation> annotations;
 
-    internal WindowIntervalHistory(bool enabled)
+    internal WindowHistory(bool enabled)
     {
         this.enabled = enabled;
-        this.openIntervals = [];
-        this.closedIntervals = [];
+        this.openWindows = [];
+        this.closedWindows = [];
         this.annotations = [];
     }
 
     /// <summary>
     /// Gets closed windows recorded by the pipeline.
     /// </summary>
-    public IReadOnlyList<ClosedWindow> ClosedWindows => this.closedIntervals.ToArray();
+    public IReadOnlyList<ClosedWindow> ClosedWindows => this.closedWindows.ToArray();
 
     /// <summary>
     /// Gets all recorded windows, including closed windows and currently open windows.
@@ -37,18 +37,18 @@ public sealed class WindowIntervalHistory
     {
         get
         {
-            var windows = new WindowRecord[this.closedIntervals.Count + this.openIntervals.Count];
+            var windows = new WindowRecord[this.closedWindows.Count + this.openWindows.Count];
             var index = 0;
 
-            foreach (var interval in this.closedIntervals)
+            foreach (var window in this.closedWindows)
             {
-                windows[index] = interval;
+                windows[index] = window;
                 index++;
             }
 
-            foreach (var interval in this.openIntervals.Values)
+            foreach (var window in this.openWindows.Values)
             {
-                windows[index] = interval;
+                windows[index] = window;
                 index++;
             }
 
@@ -63,16 +63,16 @@ public sealed class WindowIntervalHistory
     {
         get
         {
-            var intervals = new OpenWindow[this.openIntervals.Count];
+            var windows = new OpenWindow[this.openWindows.Count];
             var index = 0;
 
-            foreach (var interval in this.openIntervals.Values)
+            foreach (var window in this.openWindows.Values)
             {
-                intervals[index] = interval;
+                windows[index] = window;
                 index++;
             }
 
-            return intervals;
+            return windows;
         }
     }
 
@@ -474,24 +474,24 @@ public sealed class WindowIntervalHistory
     /// <summary>
     /// Finds overlapping closed windows within the same window scope.
     /// </summary>
-    /// <returns>The overlapping interval pairs.</returns>
-    public IReadOnlyList<WindowIntervalOverlap> FindOverlaps()
+    /// <returns>The overlapping window pairs.</returns>
+    public IReadOnlyList<WindowOverlap> FindOverlaps()
     {
-        var overlaps = new List<WindowIntervalOverlap>();
+        var overlaps = new List<WindowOverlap>();
 
-        for (var i = 0; i < this.closedIntervals.Count; i++)
+        for (var i = 0; i < this.closedWindows.Count; i++)
         {
-            var first = this.closedIntervals[i];
+            var first = this.closedWindows[i];
 
-            for (var j = i + 1; j < this.closedIntervals.Count; j++)
+            for (var j = i + 1; j < this.closedWindows.Count; j++)
             {
-                var second = this.closedIntervals[j];
+                var second = this.closedWindows[j];
                 if (!IsSameScope(first, second) || !Overlaps(first, second))
                 {
                     continue;
                 }
 
-                overlaps.Add(new WindowIntervalOverlap(first, second));
+                overlaps.Add(new WindowOverlap(first, second));
             }
         }
 
@@ -509,7 +509,7 @@ public sealed class WindowIntervalHistory
 
         var residuals = new List<WindowResidualSegment>();
 
-        foreach (var target in this.closedIntervals)
+        foreach (var target in this.closedWindows)
         {
             if (!EqualityComparer<object?>.Default.Equals(target.Source, targetSource))
             {
@@ -521,7 +521,7 @@ public sealed class WindowIntervalHistory
                 new(target.StartPosition, ClosedEndPosition(target))
             };
 
-            foreach (var comparison in this.closedIntervals)
+            foreach (var comparison in this.closedWindows)
             {
                 if (ReferenceEquals(target, comparison)
                     || EqualityComparer<object?>.Default.Equals(comparison.Source, targetSource)
@@ -575,7 +575,7 @@ public sealed class WindowIntervalHistory
 
             if (emission.Kind == WindowTransitionKind.Opened)
             {
-                this.openIntervals[key] = new OpenWindow(
+                this.openWindows[key] = new OpenWindow(
                     emission.WindowName,
                     emission.Key,
                     processingPosition,
@@ -587,12 +587,12 @@ public sealed class WindowIntervalHistory
                 continue;
             }
 
-            if (!this.openIntervals.Remove(key, out var open))
+            if (!this.openWindows.Remove(key, out var open))
             {
                 continue;
             }
 
-            this.closedIntervals.Add(new ClosedWindow(
+            this.closedWindows.Add(new ClosedWindow(
                 open.WindowName,
                 open.Key,
                 open.StartPosition,
@@ -915,9 +915,9 @@ public sealed class WindowIntervalHistory
         }
     }
 
-    private static long ClosedEndPosition(ClosedWindow interval)
+    private static long ClosedEndPosition(ClosedWindow window)
     {
-        return interval.EndPosition
+        return window.EndPosition
             ?? throw new InvalidOperationException("Closed windows must have an end position.");
     }
 

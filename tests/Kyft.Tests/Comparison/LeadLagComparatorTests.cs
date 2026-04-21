@@ -96,10 +96,10 @@ public sealed class LeadLagComparatorTests
     {
         var pipeline = Kyft
             .For<NormalizedInput>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", input => input.Key, static _ => true);
 
-        var plan = pipeline.Intervals
+        var plan = pipeline.History
             .Compare("Latency QA")
             .Target("target", selector => selector.Source("target"))
             .Against("comparison", selector => selector.Source("comparison"))

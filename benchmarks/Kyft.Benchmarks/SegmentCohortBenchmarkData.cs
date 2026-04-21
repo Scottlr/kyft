@@ -6,7 +6,7 @@ namespace Kyft.Benchmarks;
 public sealed class SegmentCohortBenchmarkData
 {
     private SegmentCohortBenchmarkData(
-        WindowIntervalHistory history,
+        WindowHistory history,
         IReadOnlyList<SegmentCohortBenchmarkEvent> events,
         int deviceCount,
         int sourceCount)
@@ -17,7 +17,7 @@ public sealed class SegmentCohortBenchmarkData
         SourceCount = sourceCount;
     }
 
-    public WindowIntervalHistory History { get; }
+    public WindowHistory History { get; }
 
     public IReadOnlyList<SegmentCohortBenchmarkEvent> Events { get; }
 
@@ -38,7 +38,7 @@ public sealed class SegmentCohortBenchmarkData
         }
 
         return new SegmentCohortBenchmarkData(
-            pipeline.Intervals,
+            pipeline.History,
             events,
             deviceCount: 128,
             sourceCount: 4);
@@ -48,7 +48,7 @@ public sealed class SegmentCohortBenchmarkData
     {
         return global::Kyft.Kyft
             .For<BenchmarkSegmentSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window("DeviceOffline", window => window
                 .Key(signal => signal.DeviceId)
                 .ActiveWhen(signal => !signal.IsOnline)

@@ -78,10 +78,10 @@ public sealed class ContainmentComparatorTests
     {
         var pipeline = Kyft
             .For<NormalizedInput>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", input => input.Key, static _ => true);
 
-        var plan = pipeline.Intervals
+        var plan = pipeline.History
             .Compare("Containment QA")
             .Target("target", selector => selector.Source("target"))
             .Against("container", selector => selector.Source("container"))

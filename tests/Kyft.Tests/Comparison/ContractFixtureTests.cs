@@ -129,16 +129,16 @@ public sealed class ContractFixtureTests
         return InvokeRuntime(Prepare(history, plan));
     }
 
-    private static WindowIntervalHistory CreateHistory(JsonElement windows)
+    private static WindowHistory CreateHistory(JsonElement windows)
     {
-        var constructor = typeof(WindowIntervalHistory).GetConstructor(
+        var constructor = typeof(WindowHistory).GetConstructor(
             BindingFlags.Instance | BindingFlags.NonPublic,
             binder: null,
             [typeof(bool)],
             modifiers: null)!;
-        var history = (WindowIntervalHistory)constructor.Invoke([true]);
-        var field = typeof(WindowIntervalHistory).GetField(
-            "closedIntervals",
+        var history = (WindowHistory)constructor.Invoke([true]);
+        var field = typeof(WindowHistory).GetField(
+            "closedWindows",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
         var closed = (List<ClosedWindow>)field.GetValue(history)!;
 
@@ -299,7 +299,7 @@ public sealed class ContractFixtureTests
         };
     }
 
-    private static PreparedComparison Prepare(WindowIntervalHistory history, ComparisonPlan plan)
+    private static PreparedComparison Prepare(WindowHistory history, ComparisonPlan plan)
     {
         var method = typeof(WindowComparisonBuilder)
             .Assembly

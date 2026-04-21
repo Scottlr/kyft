@@ -46,8 +46,8 @@ public sealed class VirtualClockLiveTests
 
         var result = clock.Check(horizon => RunResidual(pipeline, horizon));
 
-        Assert.Single(pipeline.Intervals.OpenWindows);
-        Assert.Empty(pipeline.Intervals.ClosedWindows);
+        Assert.Single(pipeline.History.OpenWindows);
+        Assert.Empty(pipeline.History.ClosedWindows);
         Assert.Single(result.ResidualRows);
         Assert.Equal(ComparisonFinality.Provisional, Assert.Single(result.RowFinalities).Finality);
     }
@@ -62,7 +62,7 @@ public sealed class VirtualClockLiveTests
 
     private static ComparisonResult RunResidual(EventPipeline<DeviceSignal> pipeline, TemporalPoint horizon)
     {
-        return pipeline.Intervals.Compare("Virtual live QA")
+        return pipeline.History.Compare("Virtual live QA")
             .Target("provider-a", selector => selector.Source("provider-a"))
             .Against("provider-b", selector => selector.Source("provider-b"))
             .Within(scope => scope.Window("DeviceOffline"))
@@ -74,7 +74,7 @@ public sealed class VirtualClockLiveTests
     {
         return Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
     }
 

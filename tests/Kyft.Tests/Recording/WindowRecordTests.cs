@@ -7,13 +7,13 @@ public sealed class WindowRecordTests
     [Fact]
     public void ClosedWindowsStemFromWindowRecord()
     {
-        var interval = new ClosedWindow(
+        var closed = new ClosedWindow(
             "DeviceOffline",
             "device-1",
             StartPosition: 1,
             EndPosition: 2);
 
-        var window = Assert.IsAssignableFrom<WindowRecord>(interval);
+        var window = Assert.IsAssignableFrom<WindowRecord>(closed);
         Assert.True(window.IsClosed);
         Assert.Equal(2, window.EndPosition);
     }
@@ -21,12 +21,12 @@ public sealed class WindowRecordTests
     [Fact]
     public void OpenWindowsStemFromWindowRecord()
     {
-        var interval = new OpenWindow(
+        var open = new OpenWindow(
             "DeviceOffline",
             "device-1",
             StartPosition: 1);
 
-        var window = Assert.IsAssignableFrom<WindowRecord>(interval);
+        var window = Assert.IsAssignableFrom<WindowRecord>(open);
         Assert.False(window.IsClosed);
         Assert.Null(window.EndPosition);
     }
@@ -36,7 +36,7 @@ public sealed class WindowRecordTests
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow(
                 "DeviceOffline",
                 signal => signal.DeviceId,
@@ -47,7 +47,7 @@ public sealed class WindowRecordTests
         pipeline.Ingest(new DeviceSignal("device-2", IsOnline: false));
 
         Assert.Collection(
-            pipeline.Intervals.Windows,
+            pipeline.History.Windows,
             closed => Assert.True(closed.IsClosed),
             open => Assert.False(open.IsClosed));
     }

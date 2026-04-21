@@ -95,10 +95,10 @@ public sealed class AsOfComparatorTests
     {
         var pipeline = Kyft
             .For<NormalizedInput>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("Quote", input => input.Key, static _ => true);
 
-        var plan = pipeline.Intervals
+        var plan = pipeline.History
             .Compare("Quote at trade")
             .Target("trade", selector => selector.Source("trade"))
             .Against("quote", selector => selector.Source("quote"))

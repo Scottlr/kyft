@@ -20,7 +20,7 @@ public sealed class ComparisonNormalizationPolicyTests
     [Fact]
     public void BuilderCanSelectEventTimeAndMissingTimestampPolicy()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         var plan = history.Compare("Event Time QA")
             .Target("provider-a", s => s.Source("provider-a"))
@@ -38,7 +38,7 @@ public sealed class ComparisonNormalizationPolicyTests
     public void BuilderCanClipOpenWindowsToHorizon()
     {
         var horizon = TemporalPoint.ForPosition(100);
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         var plan = history.Compare("Live QA")
             .Target("provider-a", s => s.Source("provider-a"))
@@ -56,7 +56,7 @@ public sealed class ComparisonNormalizationPolicyTests
     [Fact]
     public void BuilderCanSetCoalescingAndDuplicatePolicy()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         var plan = history.Compare("Provider QA")
             .Target("provider-a", s => s.Source("provider-a"))

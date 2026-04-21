@@ -4,7 +4,7 @@ var start = DateTimeOffset.Parse("2026-04-21T06:00:00Z");
 
 var pipeline = Kyft.Kyft
     .For<ShipmentTelemetry>()
-    .RecordIntervals()
+    .RecordWindows()
     .WithEventTime(update => update.Timestamp)
     .Window("TemperatureExcursion", window => window
         .Key(update => update.ShipmentId)
@@ -26,13 +26,13 @@ Ingest("sensor-gateway", 50, "road", "carrier-a", 6.0);
 Ingest("carrier-feed", 60, "road", "carrier-a", 5.8);
 Ingest("sensor-gateway", 80, "handoff", "carrier-b", 1.4);
 
-var snapshot = pipeline.Intervals.SnapshotAt(TemporalPoint.ForPosition(8));
+var snapshot = pipeline.History.SnapshotAt(TemporalPoint.ForPosition(8));
 var byLeg = snapshot.Query()
     .Window("TemperatureExcursion")
     .Windows()
     .SummarizeBySegment("leg");
 
-var comparison = pipeline.Intervals
+var comparison = pipeline.History
     .Compare("Cold-chain telemetry agreement")
     .Target("sensor-gateway", selector => selector.Source("sensor-gateway"))
     .Against("carrier-feed", selector => selector.Source("carrier-feed"))

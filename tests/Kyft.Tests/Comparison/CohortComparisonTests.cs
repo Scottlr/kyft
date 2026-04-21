@@ -13,7 +13,7 @@ public sealed class CohortComparisonTests
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
         AddClosedWindow(pipeline, source: "source-c", start: 6, end: 11);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs cohort")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -35,7 +35,7 @@ public sealed class CohortComparisonTests
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6, tradingState: "Suspended");
         AddClosedWindow(pipeline, source: "source-c", start: 6, end: 11, tradingState: "Open");
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A suspended vs cohort")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort.Sources("source-b", "source-c"))
@@ -57,7 +57,7 @@ public sealed class CohortComparisonTests
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
         AddClosedWindow(pipeline, source: "source-c", start: 6, end: 11);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs full cohort")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -80,7 +80,7 @@ public sealed class CohortComparisonTests
         AddClosedWindow(pipeline, source: "source-c", start: 1, end: 6);
         AddClosedWindow(pipeline, source: "source-d", start: 6, end: 11);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs threshold cohort")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -102,7 +102,7 @@ public sealed class CohortComparisonTests
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 11);
         AddClosedWindow(pipeline, source: "source-c", start: 1, end: 6);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs at-most cohort")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -124,7 +124,7 @@ public sealed class CohortComparisonTests
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 11);
         AddClosedWindow(pipeline, source: "source-c", start: 1, end: 6);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs exact cohort")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -145,7 +145,7 @@ public sealed class CohortComparisonTests
         AddClosedWindow(pipeline, source: "source-a", start: 1, end: 11);
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs none cohort")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -163,7 +163,7 @@ public sealed class CohortComparisonTests
     {
         var pipeline = CreatePipeline();
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs none cohort")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -183,7 +183,7 @@ public sealed class CohortComparisonTests
         var pipeline = CreatePipeline();
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            pipeline.Intervals
+            pipeline.History
                 .Compare("Invalid cohort")
                 .Target("source-a", selector => selector.Source("source-a"))
                 .AgainstCohort("cohort", cohort => cohort
@@ -202,7 +202,7 @@ public sealed class CohortComparisonTests
         var pipeline = CreatePipeline();
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            pipeline.Intervals
+            pipeline.History
                 .Compare("Invalid cohort")
                 .Target("source-a", selector => selector.Source("source-a"))
                 .AgainstCohort("cohort", cohort => cohort)
@@ -225,7 +225,7 @@ public sealed class CohortComparisonTests
     {
         var pipeline = CreatePipeline();
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs threshold cohort")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -247,7 +247,7 @@ public sealed class CohortComparisonTests
         AddClosedWindow(pipeline, source: "source-a", start: 1, end: 11);
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs cohort evidence")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -271,7 +271,7 @@ public sealed class CohortComparisonTests
         AddClosedWindow(pipeline, source: "source-a", start: 1, end: 11);
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs typed cohort evidence")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -299,7 +299,7 @@ public sealed class CohortComparisonTests
         AddClosedWindow(pipeline, source: "source-a", start: 1, end: 11);
         AddClosedWindow(pipeline, source: "source-b", start: 1, end: 6);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source A vs cohort evidence")
             .Target("source-a", selector => selector.Source("source-a"))
             .AgainstCohort("cohort", cohort => cohort
@@ -319,7 +319,7 @@ public sealed class CohortComparisonTests
     {
         return Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("SelectionPriced", update => update.SelectionId, update => update.HasPrice);
     }
 
@@ -348,8 +348,8 @@ public sealed class CohortComparisonTests
             Kind = WindowTransitionKind.Closed
         };
 
-        pipeline.Intervals.Record([open], start, eventTime: null);
-        pipeline.Intervals.Record([close], end, eventTime: null);
+        pipeline.History.Record([open], start, eventTime: null);
+        pipeline.History.Record([close], end, eventTime: null);
     }
 
     private sealed record PriceUpdate(string SelectionId, bool HasPrice);

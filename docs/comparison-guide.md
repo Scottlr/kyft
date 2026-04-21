@@ -11,7 +11,7 @@ Kyft comparisons answer staged questions over recorded windows:
 The API keeps these stages visible:
 
 ```csharp
-var result = pipeline.Intervals // Start from the recorded window history.
+var result = pipeline.History // Start from the recorded window history.
     .Compare("Provider QA") // Name the comparison for exports and diagnostics.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select the baseline source.
     .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
@@ -34,7 +34,7 @@ ingestion and are deterministic for a replay of the same event order.
 Event-time comparisons require timestamps:
 
 ```csharp
-var result = pipeline.Intervals // Start from recorded windows.
+var result = pipeline.History // Start from recorded windows.
     .Compare("Event-time QA") // Name the event-time comparison.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select provider A as target.
     .Against("provider-b", selector => selector.Source("provider-b")) // Select provider B as comparison.
@@ -59,7 +59,7 @@ silently treating an ongoing window as final.
 For live or horizon-based analysis, choose an explicit end:
 
 ```csharp
-var prepared = pipeline.Intervals // Start from recorded windows.
+var prepared = pipeline.History // Start from recorded windows.
     .Compare("Live QA") // Name the live preparation.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select the baseline source.
     .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
@@ -80,7 +80,7 @@ debugging, and tests that need to inspect windows by key, lane, partition,
 segment, or tag.
 
 ```csharp
-var windows = pipeline.Intervals.Query() // Start a read-only query over recorded history.
+var windows = pipeline.History.Query() // Start a read-only query over recorded history.
     .Window("DeviceOffline") // Restrict the query to one window family.
     .Key("device-1") // Restrict the query to one logical key.
     .Lane("provider-a") // Restrict the query to one lane, stored as Source.
@@ -97,13 +97,13 @@ is observed by several feeds, analyzers, or pipeline stages.
 For a current-state read model, evaluate history at an explicit horizon:
 
 ```csharp
-var snapshot = pipeline.Intervals.SnapshotAt(TemporalPoint.ForPosition(100)); // Evaluate recorded history at position 100.
+var snapshot = pipeline.History.SnapshotAt(TemporalPoint.ForPosition(100)); // Evaluate recorded history at position 100.
 var open = snapshot.Query() // Start a read-only query over the horizon snapshot.
     .Window("DeviceOffline") // Restrict the query to one window family.
     .Lane("provider-a") // Restrict the query to one lane.
     .OpenWindows(); // Return records active at the horizon.
 
-var openQuickCheck = pipeline.Intervals.Query() // Start from the recorded history.
+var openQuickCheck = pipeline.History.Query() // Start from the recorded history.
     .Window("DeviceOffline") // Restrict the query to one window family.
     .Lane("provider-a") // Restrict the query to one lane.
     .OpenWindowsAt(TemporalPoint.ForPosition(100)); // Return records active at position 100.
@@ -135,19 +135,19 @@ opened. Annotation is append-only and external to the recorded window: it does
 not mutate the source record, split the range, or change comparison output.
 
 ```csharp
-var openWindow = pipeline.Intervals.Query() // Start a direct history query.
+var openWindow = pipeline.History.Query() // Start a direct history query.
     .Window("DeviceOffline") // Restrict the query to one window family.
     .Lane("provider-a") // Restrict the query to one lane.
     .LatestWindow(); // Select the latest matching source window.
 
-var annotation = pipeline.Intervals.Annotate( // Attach metadata to the window start identity.
+var annotation = pipeline.History.Annotate( // Attach metadata to the window start identity.
     openWindow!, // Use the source window being explained.
     "reason", // Name the annotation.
     "maintenance", // Store the explanatory value.
     TemporalPoint.ForPosition(105)); // Record when the annotation became known.
 
-var annotations = pipeline.Intervals.AnnotationsFor(openWindow!); // Read annotations back in append order.
-var knownAnnotations = pipeline.Intervals.AnnotationsKnownAt( // Read point-in-time-safe annotations.
+var annotations = pipeline.History.AnnotationsFor(openWindow!); // Read annotations back in append order.
+var knownAnnotations = pipeline.History.AnnotationsKnownAt( // Read point-in-time-safe annotations.
     openWindow!, // Use the same source window.
     TemporalPoint.ForPosition(110)); // Include annotations known by position 110.
 ```
@@ -169,7 +169,7 @@ available when their close position has been processed; open windows are
 available from their start position.
 
 ```csharp
-var prepared = pipeline.Intervals // Start from recorded windows.
+var prepared = pipeline.History // Start from recorded windows.
     .Compare("Decision audit") // Name the point-in-time audit.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
     .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
@@ -190,7 +190,7 @@ windows as provisional. Closed-window rows remain final, and the same comparison
 converges with batch execution once all windows close.
 
 ```csharp
-var result = pipeline.Intervals // Start from current recorded history.
+var result = pipeline.History // Start from current recorded history.
     .Compare("Live QA") // Name the live comparison.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select provider A as target.
     .Against("provider-b", selector => selector.Source("provider-b")) // Select provider B as comparison.
@@ -219,7 +219,7 @@ var liveness = LaneLivenessTracker.ForLanes( // Create deterministic liveness st
 
 var silencePipeline = Kyft // Build a normal Kyft pipeline for liveness events.
     .For<LaneLivenessSignal>() // Consume liveness state-change events.
-    .RecordIntervals() // Record silence windows.
+    .RecordWindows() // Record silence windows.
     .WithEventTime(signal => signal.OccurredAt) // Use the actual silence/recovery time.
     .TrackWindow("LaneSilent", window => window // Record one silence window family.
         .Key(signal => signal.Lane) // Track each lane independently.
@@ -280,7 +280,7 @@ Use `Validate()` before execution when building plans dynamically. Use
 Use `Run()` when comparator rows are needed.
 
 ```csharp
-var prepared = pipeline.Intervals // Start from recorded windows.
+var prepared = pipeline.History // Start from recorded windows.
     .Compare("Provider QA") // Name the comparison.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
     .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
@@ -298,7 +298,7 @@ tooling workflows. `ExportJsonLines()` streams result rows for larger outputs.
 debugging.
 
 ```csharp
-var result = pipeline.Intervals // Start from recorded windows.
+var result = pipeline.History // Start from recorded windows.
     .Compare("Provider QA") // Name the comparison.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
     .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
@@ -314,7 +314,7 @@ options to `Run()` or `RunLive()`:
 
 ```csharp
 var debugHtml = ComparisonDebugHtmlOptions.ToFile("artifacts/provider-qa.html"); // Enable a visual artifact for this run.
-var resultWithDebug = pipeline.Intervals // Start from recorded windows.
+var resultWithDebug = pipeline.History // Start from recorded windows.
     .Compare("Provider QA") // Name the comparison.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
     .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
@@ -344,7 +344,7 @@ Use a source matrix when the same pairwise comparison needs to be read across
 several sources:
 
 ```csharp
-var matrix = pipeline.Intervals.CompareSources( // Build a directional source matrix.
+var matrix = pipeline.History.CompareSources( // Build a directional source matrix.
     "Provider matrix", // Name the matrix for reports.
     "DeviceOffline", // Compare one window family.
     ["provider-a", "provider-b", "provider-c"]); // Include these sources as rows and columns.
@@ -364,7 +364,7 @@ new one at the same processing position or event timestamp.
 ```csharp
 var pipeline = Kyft // Start a Kyft pipeline definition.
     .For<DeviceStateChanged>() // Configure the event type.
-    .RecordIntervals() // Store windows for comparison.
+    .RecordWindows() // Store windows for comparison.
     .Window("DeviceOffline", window => window // Define the source window.
         .Key(update => update.DeviceId) // Track each device independently.
         .ActiveWhen(update => update.IsOffline) // Keep it open while the device is offline.
@@ -393,7 +393,7 @@ Runtime partition, segment, and tag have different meanings:
 Comparison scopes can filter by segment and tag:
 
 ```csharp
-var escalatedIncidents = pipeline.Intervals // Start from recorded windows.
+var escalatedIncidents = pipeline.History // Start from recorded windows.
     .Compare("Escalated incident coverage") // Name the comparison.
     .Target("source-a", selector => selector.Source("source-a")) // Select the target source.
     .Against("source-b", selector => selector.Source("source-b")) // Select the comparison source.
@@ -429,7 +429,7 @@ comparators run. This is different from summing pairwise residuals, which can
 overcount.
 
 ```csharp
-var result = pipeline.Intervals // Start from recorded segmented windows.
+var result = pipeline.History // Start from recorded segmented windows.
     .Compare("Source A vs cohort") // Name the comparison.
     .Target("source-a", selector => selector.Source("source-a")) // Treat source A as target.
     .AgainstCohort("cohort", cohort => cohort // Define the cohort side.
@@ -466,7 +466,7 @@ Use hierarchy comparison to explain parent rollup activity from child
 contribution windows:
 
 ```csharp
-var hierarchy = pipeline.Intervals.CompareHierarchy( // Explain parent activity from child windows.
+var hierarchy = pipeline.History.CompareHierarchy( // Explain parent activity from child windows.
     "Region explanation", // Name the hierarchy report.
     parentWindowName: "RegionImpacted", // Select the parent roll-up window.
     childWindowName: "DeviceOffline"); // Select the child contribution window.

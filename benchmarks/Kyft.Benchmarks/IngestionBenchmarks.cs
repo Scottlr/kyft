@@ -10,7 +10,7 @@ public class IngestionBenchmarks
     public int EventCount { get; set; }
 
     [Benchmark]
-    public WindowIntervalHistory IngestAndRecordIntervals()
+    public WindowHistory IngestAndRecordWindows()
     {
         var pipeline = ComparisonBenchmarkData.CreatePipeline();
 
@@ -22,6 +22,6 @@ public class IngestionBenchmarks
             pipeline.Ingest(new BenchmarkDeviceSignal(deviceId, isOnline), source);
         }
 
-        return pipeline.Intervals;
+        return pipeline.History;
     }
 }

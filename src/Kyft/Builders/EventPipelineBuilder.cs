@@ -208,17 +208,17 @@ public sealed class EventPipelineBuilder<TEvent>
     }
 
     /// <summary>
-    /// Enables processing-position interval history for opened and closed windows.
+    /// Enables processing-position window history for opened and closed windows.
     /// </summary>
     /// <returns>The current builder.</returns>
-    public EventPipelineBuilder<TEvent> RecordIntervals()
+    public EventPipelineBuilder<TEvent> RecordWindows()
     {
-        this.options.RecordIntervals = true;
+        this.options.RecordWindows = true;
         return this;
     }
 
     /// <summary>
-    /// Configures event timestamps for interval history.
+    /// Configures event timestamps for window history.
     /// </summary>
     /// <param name="eventTime">Selects the event timestamp.</param>
     /// <returns>The current builder.</returns>
@@ -240,7 +240,7 @@ public sealed class EventPipelineBuilder<TEvent>
         return new EventPipeline<TEvent>(
             this.windows.ToArray(),
             this.emissionCallbacks.ToArray(),
-            this.options.RecordIntervals,
+            this.options.RecordWindows,
             this.options.EventTimeSelector);
     }
 

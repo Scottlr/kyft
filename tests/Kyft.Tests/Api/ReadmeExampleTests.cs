@@ -9,7 +9,7 @@ public sealed class ReadmeExampleTests
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window(
                 "DeviceOffline",
                 key: signal => signal.DeviceId,
@@ -33,7 +33,7 @@ public sealed class ReadmeExampleTests
     {
         var pipeline = Kyft
             .For<ComparisonDeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow(
                 "DeviceOffline",
                 signal => signal.DeviceId,
@@ -42,7 +42,7 @@ public sealed class ReadmeExampleTests
         pipeline.Ingest(new ComparisonDeviceSignal("device-1", IsOnline: false), source: "provider-a");
         pipeline.Ingest(new ComparisonDeviceSignal("device-1", IsOnline: true), source: "provider-a");
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Source coverage")
             .Target("all-offline", selector => selector.WindowName("DeviceOffline"))
             .Against("provider-a", selector => selector.Source("provider-a"))

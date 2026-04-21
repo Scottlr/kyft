@@ -60,7 +60,7 @@ using Kyft; // Import Kyft's pipeline and comparison APIs.
 
 var pipeline = Kyft // Start a Kyft pipeline definition.
     .For<DeviceSignal>() // Configure the event type that will be ingested.
-    .RecordIntervals() // Store opened and closed windows for comparison.
+    .RecordWindows() // Store opened and closed windows for comparison.
     .TrackWindow( // Define one state-driven window.
         "DeviceOffline", // Name the state span that will be recorded.
         key: signal => signal.DeviceId, // Track each device independently.
@@ -74,7 +74,7 @@ pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-
 public sealed record DeviceSignal(string DeviceId, bool IsOnline); // Define the event shape.
 ```
 
-`RecordIntervals()` is the important switch. It keeps the temporal evidence that
+`RecordWindows()` is the important switch. It keeps the temporal evidence that
 later comparisons, exports, and tests operate on.
 
 ## Compare Recorded Windows
@@ -83,7 +83,7 @@ Comparison is staged in the order an analyst usually asks the question:
 baseline, comparison source, scope, normalization, metric.
 
 ```csharp
-var result = pipeline.Intervals // Use the recorded window history.
+var result = pipeline.History // Use the recorded window history.
     .Compare("Provider QA") // Name the comparison for reports and exports.
     .Target("provider-a", selector => selector.Source("provider-a")) // Treat provider A as the baseline.
     .Against("provider-b", selector => selector.Source("provider-b")) // Compare provider B against it.
@@ -121,7 +121,7 @@ You can also make debug output a configuration-driven execution option:
 
 ```csharp
 var debugHtml = ComparisonDebugHtmlOptions.ToFile("artifacts/provider-qa.html"); // Enable a visual artifact for this run.
-var comparison = pipeline.Intervals // Start from recorded windows.
+var comparison = pipeline.History // Start from recorded windows.
     .Compare("Provider QA") // Name the comparison.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
     .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
@@ -140,7 +140,7 @@ Use direct history queries when you need to inspect one lane or key without
 building a comparison plan.
 
 ```csharp
-var windows = pipeline.Intervals.Query() // Start a read-only query over recorded windows.
+var windows = pipeline.History.Query() // Start a read-only query over recorded windows.
     .Window("DeviceOffline") // Restrict the query to one window family.
     .Key("device-1") // Restrict the query to one logical key.
     .Lane("provider-a") // Restrict the query to one lane, stored as Source.
@@ -148,7 +148,7 @@ var windows = pipeline.Intervals.Query() // Start a read-only query over recorde
     .Tag("fleet", "critical") // Require descriptive metadata.
     .ClosedWindows(); // Materialize matching closed windows.
 
-var latest = pipeline.Intervals.Query() // Start another recorded-history query.
+var latest = pipeline.History.Query() // Start another recorded-history query.
     .Window("DeviceOffline") // Query one window family.
     .Lane("provider-a") // Query one lane.
     .LatestWindow(); // Return the latest matching open or closed window.
@@ -158,13 +158,13 @@ For a live read model without cross-source comparison, create a snapshot at an
 explicit horizon:
 
 ```csharp
-var snapshot = pipeline.Intervals.SnapshotAt(TemporalPoint.ForPosition(100)); // Evaluate history at position 100.
+var snapshot = pipeline.History.SnapshotAt(TemporalPoint.ForPosition(100)); // Evaluate history at position 100.
 var open = snapshot.Query() // Query the horizon snapshot.
     .Window("DeviceOffline") // Inspect one window family.
     .Lane("provider-a") // Inspect one lane.
     .OpenWindows(); // Return records active at the horizon.
 
-var openQuickCheck = pipeline.Intervals.Query() // Start from the recorded history.
+var openQuickCheck = pipeline.History.Query() // Start from the recorded history.
     .Window("DeviceOffline") // Restrict the query to one window family.
     .Lane("provider-a") // Restrict the query to one lane.
     .OpenWindowsAt(TemporalPoint.ForPosition(100)); // Return records active at position 100.
@@ -174,13 +174,13 @@ var byLifecycle = snapshot.Query() // Reuse the same horizon snapshot.
     .Windows() // Materialize final and provisional records.
     .SummarizeBySegment("lifecycle"); // Group counts and measured length by lifecycle.
 
-var annotation = pipeline.Intervals.Annotate( // Attach metadata discovered after the window opened.
+var annotation = pipeline.History.Annotate( // Attach metadata discovered after the window opened.
     latest!, // Annotate the latest matching source window.
     "reason", // Name the annotation.
     "maintenance", // Store the explanatory value.
     TemporalPoint.ForPosition(105)); // Record when the annotation became known.
 
-var knownAnnotations = pipeline.Intervals.AnnotationsKnownAt( // Read point-in-time-safe annotations.
+var knownAnnotations = pipeline.History.AnnotationsKnownAt( // Read point-in-time-safe annotations.
     latest!, // Use the same source window.
     TemporalPoint.ForPosition(110)); // Include annotations known by position 110.
 ```
@@ -228,12 +228,12 @@ Metrics tools are good for dashboards, counters, histograms, and alerts. They
 usually compress time into aggregates.
 
 Kyft keeps the individual windows and emits comparison rows. That matters when
-you need to answer "which exact interval was missed?" rather than "what was the
+you need to answer "which exact window was missed?" rather than "what was the
 average error rate?"
 
-### Storing Intervals Directly In A Database
+### Storing Windows Directly In A Database
 
-A database can store intervals, but it will not give you Kyft's comparison
+A database can store windows, but it will not give you Kyft's comparison
 model by itself: staged plans, source selectors, normalization, live finality,
 known-at filtering, diagnostics, and deterministic exports.
 
@@ -261,7 +261,7 @@ Historical comparisons reject open windows by default. Live comparisons require
 an explicit horizon and mark rows that depend on open windows as provisional.
 
 ```csharp
-var live = pipeline.Intervals // Use the current recorded history.
+var live = pipeline.History // Use the current recorded history.
     .Compare("Live provider QA") // Name the live comparison.
     .Target("provider-a", selector => selector.Source("provider-a")) // Keep provider A as baseline.
     .Against("provider-b", selector => selector.Source("provider-b")) // Compare provider B against it.
@@ -295,7 +295,7 @@ var liveness = LaneLivenessTracker.ForLanes( // Create deterministic liveness st
 
 var silencePipeline = Kyft // Build a normal Kyft pipeline for liveness events.
     .For<LaneLivenessSignal>() // Consume liveness state-change events.
-    .RecordIntervals() // Record silence windows.
+    .RecordWindows() // Record silence windows.
     .WithEventTime(signal => signal.OccurredAt) // Use the actual silence/recovery time.
     .TrackWindow("LaneSilent", window => window // Record one silence window family.
         .Key(signal => signal.Lane) // Track each lane independently.
@@ -321,7 +321,7 @@ windows later.
 ```csharp
 var pipeline = Kyft // Start a Kyft pipeline definition.
     .For<DeviceStateChanged>() // Configure the event type that will be ingested.
-    .RecordIntervals() // Store open and closed windows for comparison.
+    .RecordWindows() // Store open and closed windows for comparison.
     .Window("DeviceOffline", window => window // Define one device-state window.
         .Key(update => update.DeviceId) // Track each device independently.
         .ActiveWhen(update => update.IsOffline) // Keep the window open while the device is offline.
@@ -375,7 +375,7 @@ any-member cohort is active whenever at least one declared member source is
 active. `All()` and `AtLeast(n)` let you ask stricter consensus questions.
 
 ```csharp
-var unmatched = pipeline.Intervals // Start from recorded segmented windows.
+var unmatched = pipeline.History // Start from recorded segmented windows.
     .Compare("Source A unmatched during escalation") // Name the comparison.
     .Target("source-a", selector => selector.Source("source-a")) // Treat source A as the target.
     .AgainstCohort("cohort", cohort => cohort // Compare against the whole cohort.
@@ -406,7 +406,7 @@ Use `KnownAtPosition(...)` when a backtest, replay, or audit must only use
 windows that were available at a decision point.
 
 ```csharp
-var audit = pipeline.Intervals // Start from recorded windows.
+var audit = pipeline.History // Start from recorded windows.
     .Compare("Decision audit") // Name the point-in-time audit.
     .Target("detector", selector => selector.Source("detector")) // Treat detector output as the target.
     .Against("monitor", selector => selector.Source("monitor")) // Compare monitor history against it.
@@ -439,7 +439,7 @@ var history = new WindowHistoryFixtureBuilder() // Create a compact recorded his
             .Segment("lifecycle", "Incident") // Attach a boundary segment.
             .Tag("fleet", "critical")) // Attach a descriptive tag.
     .AddClosedWindow("DeviceOffline", "device-1", 3, 7, source: "provider-b") // Add provider B's window.
-    .Build(); // Build a WindowIntervalHistory.
+    .Build(); // Build a WindowHistory.
 
 var result = history.Compare("Fixture QA") // Create a fixture comparison.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select provider A as target.

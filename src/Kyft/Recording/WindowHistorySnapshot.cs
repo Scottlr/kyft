@@ -38,7 +38,7 @@ public sealed class WindowHistorySnapshot
     }
 
     internal static WindowHistorySnapshot Create(
-        WindowIntervalHistory history,
+        WindowHistory history,
         TemporalPoint horizon)
     {
         if (horizon.Axis == TemporalAxis.Unknown)

@@ -17,5 +17,5 @@ The builder surface is intentionally narrow:
 - `Build()`
 - optional ingestion and analysis settings
 
-Intervals, overlap queries, and residual analysis live behind runtime history
+Window history, overlap queries, and residual analysis live behind runtime history
 objects. They do not add extra concepts to the main window-definition API.

@@ -7,7 +7,7 @@ public sealed class FluentComparisonBuilderTests
     [Fact]
     public void ProviderQaExampleBuildsPlan()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         var plan = history.Compare("Provider QA")
             .Target("provider-a", s => s.Source("provider-a"))
@@ -26,7 +26,7 @@ public sealed class FluentComparisonBuilderTests
     [Fact]
     public void MissingStagesProduceDiagnostics()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         var diagnostics = history.Compare("Provider QA").Validate();
 
@@ -39,7 +39,7 @@ public sealed class FluentComparisonBuilderTests
     [Fact]
     public void MultipleAgainstSelectorsAreSupported()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         var plan = history.Compare("Provider QA")
             .Target("provider-a", s => s.Source("provider-a"))
@@ -55,7 +55,7 @@ public sealed class FluentComparisonBuilderTests
     [Fact]
     public void ComparatorDeclarationsCanBePassedThrough()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         var plan = history.Compare("Extension QA")
             .Target("provider-a", s => s.Source("provider-a"))
@@ -80,26 +80,26 @@ public sealed class FluentComparisonBuilderTests
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false));
 
-        _ = pipeline.Intervals.Compare("Provider QA")
+        _ = pipeline.History.Compare("Provider QA")
             .Target("provider-a", s => s.Source("provider-a"))
             .Against("provider-b", s => s.Source("provider-b"))
             .Within(s => s.Window("DeviceOffline"))
             .Using(c => c.Overlap())
             .Build();
 
-        Assert.Single(pipeline.Intervals.OpenWindows);
-        Assert.Empty(pipeline.Intervals.ClosedWindows);
+        Assert.Single(pipeline.History.OpenWindows);
+        Assert.Empty(pipeline.History.ClosedWindows);
     }
 
     [Fact]
     public void PrepareAndRunReturnValidationArtifacts()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         var builder = history.Compare("Provider QA")
             .Target("provider-a", s => s.Source("provider-a"))
@@ -120,7 +120,7 @@ public sealed class FluentComparisonBuilderTests
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
         var directory = Path.Combine(Path.GetTempPath(), "kyft-run-debug-" + Guid.NewGuid().ToString("N"));
         var path = Path.Combine(directory, "provider-qa.html");
@@ -132,7 +132,7 @@ public sealed class FluentComparisonBuilderTests
 
         try
         {
-            var result = pipeline.Intervals
+            var result = pipeline.History
                 .Compare("Provider QA")
                 .Target("provider-a", selector => selector.Source("provider-a"))
                 .Against("provider-b", selector => selector.Source("provider-b"))

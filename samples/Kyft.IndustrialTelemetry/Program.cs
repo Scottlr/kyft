@@ -4,7 +4,7 @@ var start = DateTimeOffset.Parse("2026-04-21T08:00:00Z");
 
 var processPipeline = Kyft.Kyft
     .For<PumpTelemetry>()
-    .RecordIntervals()
+    .RecordWindows()
     .WithEventTime(update => update.Timestamp)
     .Window("PumpCavitationRisk", window => window
         .Key(update => update.PumpId)
@@ -15,7 +15,7 @@ var processPipeline = Kyft.Kyft
 
 var livenessPipeline = Kyft.Kyft
     .For<LaneLivenessSignal>()
-    .RecordIntervals()
+    .RecordWindows()
     .WithEventTime(signal => signal.OccurredAt)
     .TrackWindow("SensorSilent", window => window
         .Key(signal => signal.Lane)
@@ -42,7 +42,7 @@ IngestPump("sensor-b", 3, 9.1, 1.4, "ramp-up");
 IngestPump("sensor-a", 4, 5.0, 2.3, "steady");
 IngestPump("sensor-b", 5, 4.9, 2.4, "steady");
 
-var riskComparison = processPipeline.Intervals
+var riskComparison = processPipeline.History
     .Compare("Pump risk sensor agreement")
     .Target("sensor-a", selector => selector.Source("sensor-a"))
     .Against("sensor-b", selector => selector.Source("sensor-b"))
@@ -51,7 +51,7 @@ var riskComparison = processPipeline.Intervals
     .Using(comparators => comparators.Overlap().Residual().LeadLag(LeadLagTransition.Start, TemporalAxis.Timestamp, TimeSpan.FromMinutes(3).Ticks))
     .Run();
 
-var silence = livenessPipeline.Intervals.Query()
+var silence = livenessPipeline.History.Query()
     .Window("SensorSilent")
     .ClosedWindows();
 

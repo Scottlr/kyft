@@ -7,7 +7,7 @@ public sealed class WindowHistoryQuerySurfaceTests
     [Fact]
     public void CompareReturnsBuilderForHistory()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         var builder = history.Compare("Provider QA");
 
@@ -17,7 +17,7 @@ public sealed class WindowHistoryQuerySurfaceTests
     [Fact]
     public void CompareRejectsEmptyName()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         Assert.Throws<ArgumentException>(() => history.Compare(""));
     }
@@ -27,7 +27,7 @@ public sealed class WindowHistoryQuerySurfaceTests
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow(
                 "DeviceOffline",
                 signal => signal.DeviceId,
@@ -35,16 +35,16 @@ public sealed class WindowHistoryQuerySurfaceTests
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false));
 
-        _ = pipeline.Intervals.Compare("Provider QA");
+        _ = pipeline.History.Compare("Provider QA");
 
-        Assert.Single(pipeline.Intervals.OpenWindows);
-        Assert.Empty(pipeline.Intervals.ClosedWindows);
+        Assert.Single(pipeline.History.OpenWindows);
+        Assert.Empty(pipeline.History.ClosedWindows);
     }
 
     [Fact]
     public void ExistingDirectQueriesRemainAvailable()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         Assert.Empty(history.FindOverlaps());
         Assert.Empty(history.FindResiduals("provider-a"));
@@ -60,7 +60,7 @@ public sealed class WindowHistoryQuerySurfaceTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Normal", "standard"), "lane-b", "partition-1");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Normal", "standard"), "lane-b", "partition-1");
 
-        var windows = pipeline.Intervals.Query()
+        var windows = pipeline.History.Query()
             .Window("DeviceOffline")
             .Key("device-1")
             .Lane("lane-a")
@@ -85,11 +85,11 @@ public sealed class WindowHistoryQuerySurfaceTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Incident", "critical"), "lane-a", "partition-1");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
 
-        var open = pipeline.Intervals.Query()
+        var open = pipeline.History.Query()
             .Window("DeviceOffline")
             .Source("lane-a")
             .OpenWindows();
-        var latest = pipeline.Intervals.Query()
+        var latest = pipeline.History.Query()
             .Window("DeviceOffline")
             .Lane("lane-a")
             .LatestWindow();
@@ -103,7 +103,7 @@ public sealed class WindowHistoryQuerySurfaceTests
     [Fact]
     public void QueryReturnsEmptyLatestWindowWhenNothingMatches()
     {
-        var history = Kyft.For<DeviceSignal>().RecordIntervals().Build().Intervals;
+        var history = Kyft.For<DeviceSignal>().RecordWindows().Build().History;
 
         var latest = history.Query()
             .Window("DeviceOffline")
@@ -117,7 +117,7 @@ public sealed class WindowHistoryQuerySurfaceTests
     {
         return Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", window => window
                 .Key(signal => signal.DeviceId)
                 .ActiveWhen(signal => !signal.IsOnline)

@@ -4,7 +4,7 @@ var start = DateTimeOffset.Parse("2026-04-21T12:00:00Z");
 
 var pipeline = Kyft.Kyft
     .For<ReplicaState>()
-    .RecordIntervals()
+    .RecordWindows()
     .WithEventTime(state => state.Timestamp)
     .Window("ReplicaUnavailable", window => window
         .Key(state => state.ShardId)
@@ -27,7 +27,7 @@ Ingest("replica-b", 25, true, "secondary", "region-1");
 Ingest("replica-a", 30, true, "primary", "region-1");
 Ingest("replica-c", 35, true, "secondary", "region-2");
 
-var quorumGap = pipeline.Intervals
+var quorumGap = pipeline.History
     .Compare("Primary unavailable without quorum corroboration")
     .Target("primary", selector => selector.Source("replica-a"))
     .AgainstCohort("replica cohort", cohort => cohort
@@ -37,7 +37,7 @@ var quorumGap = pipeline.Intervals
     .Using(comparators => comparators.Residual().Coverage())
     .Run();
 
-var matrix = pipeline.Intervals.CompareSources(
+var matrix = pipeline.History.CompareSources(
     "Replica source matrix",
     "ReplicaUnavailable",
     ["replica-a", "replica-b", "replica-c"]);

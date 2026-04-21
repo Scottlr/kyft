@@ -76,9 +76,9 @@ public sealed class GapSymmetricDifferenceComparatorTests
     {
         var pipeline = Kyft
             .For<NormalizedInput>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", input => input.Key, static _ => true);
-        var plan = pipeline.Intervals
+        var plan = pipeline.History
             .Compare("Provider QA")
             .Target("provider-a", selector => selector.Source("provider-a"))
             .Against("provider-b", selector => selector.Source("provider-b"))

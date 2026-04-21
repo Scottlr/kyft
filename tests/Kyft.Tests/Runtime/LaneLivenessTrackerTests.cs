@@ -73,7 +73,7 @@ public sealed class LaneLivenessTrackerTests
         var tracker = LaneLivenessTracker.ForLanes(startedAt, TimeSpan.FromSeconds(30), "lane-a");
         var pipeline = Kyft
             .For<LaneLivenessSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .WithEventTime(signal => signal.OccurredAt)
             .TrackWindow("LaneSilent", window => window
                 .Key(signal => signal.Lane)
@@ -95,7 +95,7 @@ public sealed class LaneLivenessTrackerTests
             pipeline.Ingest(signal, source: "liveness");
         }
 
-        var window = Assert.Single(pipeline.Intervals.Query()
+        var window = Assert.Single(pipeline.History.Query()
             .Window("LaneSilent")
             .Key("lane-a")
             .ClosedWindows());

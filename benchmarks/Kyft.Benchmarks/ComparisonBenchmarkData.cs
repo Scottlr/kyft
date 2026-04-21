@@ -4,7 +4,7 @@ namespace Kyft.Benchmarks;
 
 public sealed class ComparisonBenchmarkData
 {
-    private ComparisonBenchmarkData(WindowIntervalHistory history, int eventCount, int deviceCount, int sourceCount)
+    private ComparisonBenchmarkData(WindowHistory history, int eventCount, int deviceCount, int sourceCount)
     {
         History = history;
         EventCount = eventCount;
@@ -12,7 +12,7 @@ public sealed class ComparisonBenchmarkData
         SourceCount = sourceCount;
     }
 
-    public WindowIntervalHistory History { get; }
+    public WindowHistory History { get; }
 
     public int EventCount { get; }
 
@@ -40,14 +40,14 @@ public sealed class ComparisonBenchmarkData
                 source: "provider-" + sourceIndex.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
-        return new ComparisonBenchmarkData(pipeline.Intervals, shape.EventCount, shape.DeviceCount, shape.SourceCount);
+        return new ComparisonBenchmarkData(pipeline.History, shape.EventCount, shape.DeviceCount, shape.SourceCount);
     }
 
     public static EventPipeline<BenchmarkDeviceSignal> CreatePipeline()
     {
         return global::Kyft.Kyft
             .For<BenchmarkDeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
     }
 

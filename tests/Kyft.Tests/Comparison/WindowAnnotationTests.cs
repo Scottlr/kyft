@@ -11,12 +11,12 @@ public sealed class WindowAnnotationTests
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), "lane-a");
 
-        var open = Assert.Single(pipeline.Intervals.Query()
+        var open = Assert.Single(pipeline.History.Query()
             .Window("DeviceOffline")
             .Lane("lane-a")
             .OpenWindows());
 
-        var annotation = pipeline.Intervals.Annotate(
+        var annotation = pipeline.History.Annotate(
             open,
             "reason",
             "maintenance",
@@ -24,12 +24,12 @@ public sealed class WindowAnnotationTests
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), "lane-a");
 
-        var closed = Assert.Single(pipeline.Intervals.Query()
+        var closed = Assert.Single(pipeline.History.Query()
             .Window("DeviceOffline")
             .Lane("lane-a")
             .ClosedWindows());
 
-        var annotations = pipeline.Intervals.AnnotationsFor(closed);
+        var annotations = pipeline.History.AnnotationsFor(closed);
         var attached = Assert.Single(annotations);
 
         Assert.Equal(annotation, attached);
@@ -45,17 +45,17 @@ public sealed class WindowAnnotationTests
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), "lane-a");
 
-        var open = Assert.Single(pipeline.Intervals.Query()
+        var open = Assert.Single(pipeline.History.Query()
             .Window("DeviceOffline")
             .Lane("lane-a")
             .OpenWindows());
 
-        var first = pipeline.Intervals.Annotate(open, "classification", "initial");
-        var second = pipeline.Intervals.Annotate(open, "classification", "revised");
+        var first = pipeline.History.Annotate(open, "classification", "initial");
+        var second = pipeline.History.Annotate(open, "classification", "revised");
 
         Assert.Equal(1, first.Revision);
         Assert.Equal(2, second.Revision);
-        Assert.Equal([first, second], pipeline.Intervals.AnnotationsFor(open));
+        Assert.Equal([first, second], pipeline.History.AnnotationsFor(open));
     }
 
     [Fact]
@@ -65,17 +65,17 @@ public sealed class WindowAnnotationTests
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), "lane-a");
 
-        var open = Assert.Single(pipeline.Intervals.Query()
+        var open = Assert.Single(pipeline.History.Query()
             .Window("DeviceOffline")
             .Lane("lane-a")
             .OpenWindows());
 
-        var known = pipeline.Intervals.Annotate(open, "reason", "maintenance", TemporalPoint.ForPosition(5));
-        pipeline.Intervals.Annotate(open, "owner", "team-a");
-        pipeline.Intervals.Annotate(open, "classification", "future", TemporalPoint.ForPosition(8));
-        pipeline.Intervals.Annotate(open, "timestamp-note", "different-axis", TemporalPoint.ForTimestamp(DateTimeOffset.Parse("2026-04-21T10:00:00Z")));
+        var known = pipeline.History.Annotate(open, "reason", "maintenance", TemporalPoint.ForPosition(5));
+        pipeline.History.Annotate(open, "owner", "team-a");
+        pipeline.History.Annotate(open, "classification", "future", TemporalPoint.ForPosition(8));
+        pipeline.History.Annotate(open, "timestamp-note", "different-axis", TemporalPoint.ForTimestamp(DateTimeOffset.Parse("2026-04-21T10:00:00Z")));
 
-        var annotations = pipeline.Intervals.AnnotationsKnownAt(open, TemporalPoint.ForPosition(6));
+        var annotations = pipeline.History.AnnotationsKnownAt(open, TemporalPoint.ForPosition(6));
 
         var annotation = Assert.Single(annotations);
         Assert.Equal(known, annotation);
@@ -88,12 +88,12 @@ public sealed class WindowAnnotationTests
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), "lane-a");
 
-        var open = Assert.Single(pipeline.Intervals.Query()
+        var open = Assert.Single(pipeline.History.Query()
             .Window("DeviceOffline")
             .Lane("lane-a")
             .OpenWindows());
 
-        Assert.Throws<ArgumentException>(() => pipeline.Intervals.Annotate(open, "reason", "unknown", default(TemporalPoint)));
+        Assert.Throws<ArgumentException>(() => pipeline.History.Annotate(open, "reason", "unknown", default(TemporalPoint)));
     }
 
     [Fact]
@@ -103,19 +103,19 @@ public sealed class WindowAnnotationTests
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), "lane-a");
 
-        var open = Assert.Single(pipeline.Intervals.Query()
+        var open = Assert.Single(pipeline.History.Query()
             .Window("DeviceOffline")
             .Lane("lane-a")
             .OpenWindows());
 
-        Assert.Throws<ArgumentException>(() => pipeline.Intervals.AnnotationsKnownAt(open, default));
+        Assert.Throws<ArgumentException>(() => pipeline.History.AnnotationsKnownAt(open, default));
     }
 
     private static EventPipeline<DeviceSignal> CreatePipeline()
     {
         return Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", window => window
                 .Key(signal => signal.DeviceId)
                 .ActiveWhen(signal => !signal.IsOnline));

@@ -4,7 +4,7 @@ var start = DateTimeOffset.Parse("2026-04-21T11:00:00Z");
 
 var pipeline = Kyft.Kyft
     .For<AccountRiskSignal>()
-    .RecordIntervals()
+    .RecordWindows()
     .WithEventTime(signal => signal.Timestamp)
     .Window("AccountRiskElevated", window => window
         .Key(signal => signal.AccountId)
@@ -24,20 +24,20 @@ Ingest("risk-engine-b", 6, 78, "console");
 Ingest("risk-engine-a", 12, 40, "console");
 Ingest("risk-engine-b", 16, 35, "console");
 
-var elevated = pipeline.Intervals.Query()
+var elevated = pipeline.History.Query()
     .Window("AccountRiskElevated")
     .Lane("risk-engine-a")
     .LatestWindow();
 
-var annotation = pipeline.Intervals.Annotate(
+var annotation = pipeline.History.Annotate(
     elevated!,
     "rootCause",
     "impossible-travel",
     TemporalPoint.ForPosition(7));
 
-var safeAnnotations = pipeline.Intervals.AnnotationsKnownAt(elevated!, TemporalPoint.ForPosition(8));
+var safeAnnotations = pipeline.History.AnnotationsKnownAt(elevated!, TemporalPoint.ForPosition(8));
 
-var comparison = pipeline.Intervals
+var comparison = pipeline.History
     .Compare("Risk detector audit")
     .Target("risk-engine-a", selector => selector.Source("risk-engine-a"))
     .Against("risk-engine-b", selector => selector.Source("risk-engine-b"))

@@ -12,7 +12,7 @@ public sealed class SegmentAwareComparisonTests
         AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 3);
         AddClosedWindow(pipeline, source: "source-b", phase: "Pregame", start: 3, end: 5);
 
-        var inPlay = pipeline.Intervals.WithSegment("phase", "InPlay");
+        var inPlay = pipeline.History.WithSegment("phase", "InPlay");
 
         var window = Assert.Single(inPlay);
         Assert.Equal("source-a", window.Source);
@@ -26,7 +26,7 @@ public sealed class SegmentAwareComparisonTests
         AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 3, fleet: "critical");
         AddClosedWindow(pipeline, source: "source-b", phase: "InPlay", start: 3, end: 5, fleet: "standard");
 
-        var critical = pipeline.Intervals.WithTag("fleet", "critical");
+        var critical = pipeline.History.WithTag("fleet", "critical");
 
         var window = Assert.Single(critical);
         Assert.Equal("source-a", window.Source);
@@ -40,7 +40,7 @@ public sealed class SegmentAwareComparisonTests
         AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4);
         AddClosedWindow(pipeline, source: "source-b", phase: "Pregame", start: 1, end: 4);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("In-play residual")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
@@ -61,7 +61,7 @@ public sealed class SegmentAwareComparisonTests
         AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4, fleet: "critical");
         AddClosedWindow(pipeline, source: "source-b", phase: "InPlay", start: 1, end: 4, fleet: "standard");
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Critical fleet residual")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
@@ -83,7 +83,7 @@ public sealed class SegmentAwareComparisonTests
         AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4, fleet: "critical");
         AddClosedWindow(pipeline, source: "source-b", phase: "Pregame", start: 1, end: 4, fleet: "critical");
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Critical in-play residual")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
@@ -106,7 +106,7 @@ public sealed class SegmentAwareComparisonTests
         AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4);
         AddClosedWindow(pipeline, source: "source-b", phase: "Pregame", start: 1, end: 4);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Segment-aware overlap")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
@@ -126,7 +126,7 @@ public sealed class SegmentAwareComparisonTests
         AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4);
         AddClosedWindow(pipeline, source: "source-b", phase: "InPlay", start: 2, end: 3);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Segment debug")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
@@ -155,7 +155,7 @@ public sealed class SegmentAwareComparisonTests
             boundaryChanges: [new WindowBoundaryChange("phase", "Pregame", "InPlay")]);
         AddClosedWindow(pipeline, source: "source-b", phase: "Pregame", start: 1, end: 3);
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Segment debug details")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
@@ -179,7 +179,7 @@ public sealed class SegmentAwareComparisonTests
         AddClosedWindow(pipeline, source: "source-a", phase: "InPlay", start: 1, end: 4, period: "FinalQuarter");
         AddClosedWindow(pipeline, source: "source-b", phase: "InPlay", start: 2, end: 5, period: "FinalQuarter");
 
-        var result = pipeline.Intervals
+        var result = pipeline.History
             .Compare("Nested segment debug")
             .Target("source-a", selector => selector.Source("source-a"))
             .Against("source-b", selector => selector.Source("source-b"))
@@ -198,7 +198,7 @@ public sealed class SegmentAwareComparisonTests
     {
         return Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("SelectionPriced", update => update.SelectionId, update => update.HasPrice);
     }
 
@@ -236,8 +236,8 @@ public sealed class SegmentAwareComparisonTests
             boundaryReason,
             boundaryChanges);
 
-        pipeline.Intervals.Record([open], start, eventTime: null);
-        pipeline.Intervals.Record([close], end, eventTime: null);
+        pipeline.History.Record([open], start, eventTime: null);
+        pipeline.History.Record([close], end, eventTime: null);
     }
 
     private sealed record PriceUpdate(string SelectionId, bool HasPrice);

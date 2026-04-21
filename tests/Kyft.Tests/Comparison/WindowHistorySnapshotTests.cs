@@ -11,7 +11,7 @@ public sealed class WindowHistorySnapshotTests
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
 
-        var snapshot = pipeline.Intervals.SnapshotAt(TemporalPoint.ForPosition(10));
+        var snapshot = pipeline.History.SnapshotAt(TemporalPoint.ForPosition(10));
 
         var record = Assert.Single(snapshot.Query()
             .Window("DeviceOffline")
@@ -32,7 +32,7 @@ public sealed class WindowHistorySnapshotTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Incident", "critical"), "lane-a", "partition-1");
 
-        var snapshot = pipeline.Intervals.SnapshotAt(TemporalPoint.ForPosition(10));
+        var snapshot = pipeline.History.SnapshotAt(TemporalPoint.ForPosition(10));
 
         var record = Assert.Single(snapshot.Query()
             .Window("DeviceOffline")
@@ -53,7 +53,7 @@ public sealed class WindowHistorySnapshotTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Incident", "critical"), "lane-a", "partition-1");
 
-        var snapshot = pipeline.Intervals.SnapshotAt(TemporalPoint.ForPosition(1));
+        var snapshot = pipeline.History.SnapshotAt(TemporalPoint.ForPosition(1));
 
         var record = Assert.Single(snapshot.Query()
             .Window("DeviceOffline")
@@ -74,7 +74,7 @@ public sealed class WindowHistorySnapshotTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
         pipeline.Ingest(new DeviceSignal("device-2", IsOnline: false, "Normal", "standard"), "lane-b", "partition-2");
 
-        var record = Assert.Single(pipeline.Intervals
+        var record = Assert.Single(pipeline.History
             .SnapshotAt(TemporalPoint.ForPosition(3))
             .Query()
             .Window("DeviceOffline")
@@ -97,7 +97,7 @@ public sealed class WindowHistorySnapshotTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
         pipeline.Ingest(new DeviceSignal("device-2", IsOnline: false, "Normal", "standard"), "lane-b", "partition-2");
 
-        var record = Assert.Single(pipeline.Intervals.Query()
+        var record = Assert.Single(pipeline.History.Query()
             .Window("DeviceOffline")
             .Key("device-1")
             .Lane("lane-a")
@@ -120,7 +120,7 @@ public sealed class WindowHistorySnapshotTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Incident", "critical"), "lane-a", "partition-1");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false, "Incident", "critical"), "lane-a", "partition-1");
 
-        var record = pipeline.Intervals.Query()
+        var record = pipeline.History.Query()
             .Window("DeviceOffline")
             .Lane("lane-a")
             .LatestWindowAt(TemporalPoint.ForPosition(3));
@@ -135,14 +135,14 @@ public sealed class WindowHistorySnapshotTests
     {
         var pipeline = CreatePipeline();
 
-        Assert.Throws<ArgumentException>(() => pipeline.Intervals.SnapshotAt(default));
+        Assert.Throws<ArgumentException>(() => pipeline.History.SnapshotAt(default));
     }
 
     private static EventPipeline<DeviceSignal> CreatePipeline()
     {
         return Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", window => window
                 .Key(signal => signal.DeviceId)
                 .ActiveWhen(signal => !signal.IsOnline)

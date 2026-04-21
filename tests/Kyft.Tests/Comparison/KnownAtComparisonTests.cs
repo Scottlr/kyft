@@ -84,11 +84,11 @@ public sealed class KnownAtComparisonTests
         Assert.Contains("knownAt=pos:4", result.ExportMarkdown());
     }
 
-    private static WindowIntervalHistory BuildHistory()
+    private static WindowHistory BuildHistory()
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
@@ -96,7 +96,7 @@ public sealed class KnownAtComparisonTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-a");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-b");
 
-        return pipeline.Intervals;
+        return pipeline.History;
     }
 
     private sealed record DeviceSignal(string DeviceId, bool IsOnline);

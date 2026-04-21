@@ -4,7 +4,7 @@ var start = DateTimeOffset.Parse("2026-04-21T09:00:00Z");
 
 var pipeline = Kyft.Kyft
     .For<DeviceSignal>()
-    .RecordIntervals()
+    .RecordWindows()
     .WithEventTime(signal => signal.Timestamp)
     .TrackWindow(
         "DeviceOffline",
@@ -23,17 +23,17 @@ Ingest("agent-b", 12, true);
 Ingest("agent-a", 15, true);
 Ingest("agent-a", 20, false);
 
-var closed = pipeline.Intervals.Query()
+var closed = pipeline.History.Query()
     .Window("DeviceOffline")
     .Lane("agent-a")
     .ClosedWindows();
 
-var openAtEight = pipeline.Intervals.Query()
+var openAtEight = pipeline.History.Query()
     .Window("DeviceOffline")
     .Lane("agent-a")
     .OpenWindowsAt(TemporalPoint.ForPosition(8));
 
-var comparison = pipeline.Intervals
+var comparison = pipeline.History
     .Compare("Simple monitor comparison")
     .Target("agent-a", selector => selector.Source("agent-a"))
     .Against("agent-b", selector => selector.Source("agent-b"))

@@ -6,8 +6,8 @@ Kyft keeps ingestion, comparison, and export costs separate.
 
 - Event ingestion owns mutable runtime state and should avoid export, explain,
   and snapshot work.
-- Interval recording appends window records during ingestion when
-  `RecordIntervals()` is enabled.
+- Window recording appends window records during ingestion when
+  `RecordWindows()` is enabled.
 - Comparison preparation materializes selected and normalized records.
 - Alignment builds deterministic temporal segments for comparator execution.
 - Export and explain are workflow-boundary operations, not ingestion hot paths.
@@ -16,9 +16,9 @@ Kyft keeps ingestion, comparison, and export costs separate.
 
 The benchmark project covers:
 
-- ingestion with interval recording
+- ingestion with window recording
 - ingestion with boundary segments, non-boundary tags, projected roll-ups, and
-  interval recording
+  window recording
 - preparation
 - alignment
 - overlap, residual, missing, coverage, containment, lead-lag, and multi

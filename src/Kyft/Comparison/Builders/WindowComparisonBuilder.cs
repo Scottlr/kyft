@@ -22,7 +22,7 @@ public sealed class WindowComparisonBuilder
     private ComparisonOutputOptions output;
     private bool isStrict;
 
-    internal WindowComparisonBuilder(WindowIntervalHistory history, string name)
+    internal WindowComparisonBuilder(WindowHistory history, string name)
     {
         History = history;
         Name = name;
@@ -37,7 +37,7 @@ public sealed class WindowComparisonBuilder
     /// </summary>
     public string Name { get; }
 
-    internal WindowIntervalHistory History { get; }
+    internal WindowHistory History { get; }
 
     /// <summary>
     /// Sets the target selector for the comparison.

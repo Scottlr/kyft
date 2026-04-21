@@ -70,7 +70,7 @@ public sealed class HierarchyComparisonTests
     {
         var pipeline = Kyft
             .For<PriceTick>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window(
                 "SelectionSuspension",
                 key: tick => tick.SelectionId,
@@ -88,8 +88,8 @@ public sealed class HierarchyComparisonTests
         pipeline.Ingest(new PriceTick("selection-1", "market-1", "fixture-1", 0m));
         pipeline.Ingest(new PriceTick("selection-1", "market-1", "fixture-1", 1.01m));
 
-        var first = pipeline.Intervals.CompareHierarchy("Market explanation", "MarketSuspension", "SelectionSuspension");
-        var second = pipeline.Intervals.CompareHierarchy("Market explanation", "MarketSuspension", "SelectionSuspension");
+        var first = pipeline.History.CompareHierarchy("Market explanation", "MarketSuspension", "SelectionSuspension");
+        var second = pipeline.History.CompareHierarchy("Market explanation", "MarketSuspension", "SelectionSuspension");
 
         Assert.Equal(first.Rows.Count, second.Rows.Count);
         Assert.Equal(first.Rows[0].Kind, second.Rows[0].Kind);
@@ -98,16 +98,16 @@ public sealed class HierarchyComparisonTests
         Assert.Equal(HierarchyComparisonRowKind.ParentExplained, first.Rows[0].Kind);
     }
 
-    private static WindowIntervalHistory BuildHistory(params WindowInput[] windows)
+    private static WindowHistory BuildHistory(params WindowInput[] windows)
     {
-        var constructor = typeof(WindowIntervalHistory).GetConstructor(
+        var constructor = typeof(WindowHistory).GetConstructor(
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
             binder: null,
             [typeof(bool)],
             modifiers: null)!;
-        var history = (WindowIntervalHistory)constructor.Invoke([true]);
-        var field = typeof(WindowIntervalHistory).GetField(
-            "closedIntervals",
+        var history = (WindowHistory)constructor.Invoke([true]);
+        var field = typeof(WindowHistory).GetField(
+            "closedWindows",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
         var closed = (List<ClosedWindow>)field.GetValue(history)!;
 

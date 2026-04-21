@@ -67,11 +67,11 @@ public sealed class WindowRecordIdTests
         Assert.Matches("^[0-9a-f]+$", id);
     }
 
-    private static WindowIntervalHistory BuildOfflineHistory()
+    private static WindowHistory BuildOfflineHistory()
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow(
                 "DeviceOffline",
                 signal => signal.DeviceId,
@@ -80,7 +80,7 @@ public sealed class WindowRecordIdTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-a");
 
-        return pipeline.Intervals;
+        return pipeline.History;
     }
 
     private sealed record DeviceSignal(string DeviceId, bool IsOnline);

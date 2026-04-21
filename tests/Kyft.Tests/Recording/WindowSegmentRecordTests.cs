@@ -57,11 +57,11 @@ public sealed class WindowSegmentRecordTests
     }
 
     [Fact]
-    public void RecordedIntervalsCarryEmissionSegments()
+    public void RecordedWindowsCarryEmissionSegments()
     {
         var pipeline = Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("SelectionPriced", update => update.SelectionId, update => update.HasPrice);
 
         var opened = new WindowEmission<PriceUpdate>(
@@ -76,10 +76,10 @@ public sealed class WindowSegmentRecordTests
             Kind = WindowTransitionKind.Closed
         };
 
-        pipeline.Intervals.Record([opened], processingPosition: 1, eventTime: null);
-        pipeline.Intervals.Record([closed], processingPosition: 2, eventTime: null);
+        pipeline.History.Record([opened], processingPosition: 1, eventTime: null);
+        pipeline.History.Record([closed], processingPosition: 2, eventTime: null);
 
-        var window = Assert.Single(pipeline.Intervals.ClosedWindows);
+        var window = Assert.Single(pipeline.History.ClosedWindows);
         Assert.Equal("phase", Assert.Single(window.Segments).Name);
     }
 

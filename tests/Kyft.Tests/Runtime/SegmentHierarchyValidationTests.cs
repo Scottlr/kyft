@@ -9,7 +9,7 @@ public sealed class SegmentHierarchyValidationTests
     {
         var pipeline = Kyft
             .For<DeviceStateChanged>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", window => window
                 .Key(update => update.DeviceId)
                 .ActiveWhen(update => update.IsOffline)
@@ -19,7 +19,7 @@ public sealed class SegmentHierarchyValidationTests
 
         pipeline.Ingest(new DeviceStateChanged("device-1", IsOffline: true, "Incident", "Escalated"));
 
-        var open = Assert.Single(pipeline.Intervals.OpenWindows);
+        var open = Assert.Single(pipeline.History.OpenWindows);
         Assert.Collection(
             open.Segments,
             segment =>

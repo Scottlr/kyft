@@ -18,7 +18,7 @@ public sealed class EventPipeline<TEvent>
     internal EventPipeline(
         IReadOnlyList<WindowDefinition<TEvent>> windows,
         IReadOnlyList<Action<WindowEmission<TEvent>>> emissionCallbacks,
-        bool recordIntervals,
+        bool recordWindows,
         Func<TEvent, DateTimeOffset>? eventTimeSelector)
     {
         Windows = windows;
@@ -28,7 +28,7 @@ public sealed class EventPipeline<TEvent>
         this.emissionCallbacks = emissionCallbacks.ToArray();
         this.windowCallbacks = CreateWindowCallbackMap(windows);
         this.eventTimeSelector = eventTimeSelector;
-        Intervals = new WindowIntervalHistory(recordIntervals);
+        History = new WindowHistory(recordWindows);
         this.runtimes = new WindowRuntime<TEvent>[windows.Count];
 
         for (var i = 0; i < this.runtimes.Length; i++)
@@ -45,9 +45,9 @@ public sealed class EventPipeline<TEvent>
     public EventPipelineMetadata Metadata { get; }
 
     /// <summary>
-    /// Gets interval history recorded by the pipeline.
+    /// Gets window history recorded by the pipeline.
     /// </summary>
-    public WindowIntervalHistory Intervals { get; }
+    public WindowHistory History { get; }
 
     /// <summary>
     /// Ingests one event without source or partition context.
@@ -90,7 +90,7 @@ public sealed class EventPipeline<TEvent>
         var result = new IngestionResult<TEvent>(
             emissions is null ? [] : emissions.ToArray());
 
-        Intervals.Record(
+        History.Record(
             result.Emissions,
             this.processingPosition,
             this.eventTimeSelector?.Invoke(@event));

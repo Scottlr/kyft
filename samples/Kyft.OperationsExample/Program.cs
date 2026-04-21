@@ -4,7 +4,7 @@ var start = DateTimeOffset.Parse("2026-04-19T12:00:00Z");
 
 var pipeline = Kyft.Kyft
     .For<ServiceHealthSignal>()
-    .RecordIntervals()
+    .RecordWindows()
     .WithEventTime(signal => signal.Timestamp)
     .Window(
         "ServiceDegraded",
@@ -27,7 +27,7 @@ Ingest("monitor-b", 4, isHealthy: false);
 Ingest("monitor-b", 8, isHealthy: true);
 Ingest("monitor-a", 10, isHealthy: true);
 
-var historical = pipeline.Intervals
+var historical = pipeline.History
     .Compare("Monitor degradation QA")
     .Target("monitor-a", selector => selector.Source("monitor-a"))
     .Against("monitor-b", selector => selector.Source("monitor-b"))
@@ -47,7 +47,7 @@ Console.WriteLine("lead/lag rows: " + historical.LeadLagRows.Count);
 
 Ingest("monitor-a", 14, isHealthy: false);
 
-var live = pipeline.Intervals
+var live = pipeline.History
     .Compare("Live degradation QA")
     .Target("monitor-a", selector => selector.Source("monitor-a"))
     .Against("monitor-b", selector => selector.Source("monitor-b"))

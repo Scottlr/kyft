@@ -2,16 +2,16 @@ using Kyft;
 
 namespace Kyft.Tests.Recording;
 
-public sealed class EventTimeIntervalTests
+public sealed class EventTimeWindowRecordingTests
 {
     [Fact]
-    public void IntervalTimestampsComeFromOpeningAndClosingEvents()
+    public void WindowTimestampsComeFromOpeningAndClosingEvents()
     {
         var openedAt = new DateTimeOffset(2026, 4, 12, 10, 0, 0, TimeSpan.Zero);
         var closedAt = new DateTimeOffset(2026, 4, 12, 10, 5, 0, TimeSpan.Zero);
         var pipeline = Kyft
             .For<PriceTick>()
-            .RecordIntervals()
+            .RecordWindows()
             .WithEventTime(tick => tick.Timestamp)
             .Window(
                 "SelectionSuspension",
@@ -22,19 +22,19 @@ public sealed class EventTimeIntervalTests
         pipeline.Ingest(new PriceTick("selection-1", 0m, openedAt));
         pipeline.Ingest(new PriceTick("selection-1", 1.01m, closedAt));
 
-        var interval = Assert.Single(pipeline.Intervals.ClosedWindows);
-        Assert.Equal(openedAt, interval.StartTime);
-        Assert.Equal(closedAt, interval.EndTime);
-        Assert.Equal(1, interval.StartPosition);
-        Assert.Equal(2, interval.EndPosition);
+        var window = Assert.Single(pipeline.History.ClosedWindows);
+        Assert.Equal(openedAt, window.StartTime);
+        Assert.Equal(closedAt, window.EndTime);
+        Assert.Equal(1, window.StartPosition);
+        Assert.Equal(2, window.EndPosition);
     }
 
     [Fact]
-    public void IntervalTimestampsAreEmptyWhenEventTimeIsNotConfigured()
+    public void WindowTimestampsAreEmptyWhenEventTimeIsNotConfigured()
     {
         var pipeline = Kyft
             .For<PriceTick>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window(
                 "SelectionSuspension",
                 key: tick => tick.SelectionId,
@@ -44,9 +44,9 @@ public sealed class EventTimeIntervalTests
         pipeline.Ingest(new PriceTick("selection-1", 0m, DateTimeOffset.UtcNow));
         pipeline.Ingest(new PriceTick("selection-1", 1.01m, DateTimeOffset.UtcNow));
 
-        var interval = Assert.Single(pipeline.Intervals.ClosedWindows);
-        Assert.Null(interval.StartTime);
-        Assert.Null(interval.EndTime);
+        var window = Assert.Single(pipeline.History.ClosedWindows);
+        Assert.Null(window.StartTime);
+        Assert.Null(window.EndTime);
     }
 
     [Fact]

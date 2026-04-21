@@ -113,7 +113,7 @@ public static class KyftCli
             : builder.Run();
     }
 
-    private static WindowIntervalHistory CreateHistory(JsonElement windows)
+    private static WindowHistory CreateHistory(JsonElement windows)
     {
         var builder = new WindowHistoryFixtureBuilder();
         foreach (var window in windows.EnumerateArray())

@@ -87,11 +87,11 @@ public sealed class SourceMatrixTests
         Assert.False(matrix.TryGetCell("provider-a", "provider-c", out _));
     }
 
-    private static WindowIntervalHistory BuildHistory()
+    private static WindowHistory BuildHistory()
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
@@ -99,7 +99,7 @@ public sealed class SourceMatrixTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-b");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-b");
 
-        return pipeline.Intervals;
+        return pipeline.History;
     }
 
     private sealed record DeviceSignal(string DeviceId, bool IsOnline);

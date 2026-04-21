@@ -9,7 +9,7 @@ public sealed class SegmentedRollUpRuntimeTests
     {
         var pipeline = Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window("SelectionPriced", window => window
                 .Key(update => update.SelectionId)
                 .ActiveWhen(update => update.HasPrice)
@@ -21,12 +21,12 @@ public sealed class SegmentedRollUpRuntimeTests
         pipeline.Ingest(new PriceUpdate("selection-1", "market-1", "fixture-1", HasPrice: true, "InPlay"));
 
         var closedMarket = Assert.Single(
-            pipeline.Intervals.ClosedWindows,
+            pipeline.History.ClosedWindows,
             window => window.WindowName == "MarketPriced");
         Assert.Equal("Pregame", Assert.Single(closedMarket.Segments).Value);
 
         var openMarket = Assert.Single(
-            pipeline.Intervals.OpenWindows,
+            pipeline.History.OpenWindows,
             window => window.WindowName == "MarketPriced");
         Assert.Equal("InPlay", Assert.Single(openMarket.Segments).Value);
     }
@@ -36,7 +36,7 @@ public sealed class SegmentedRollUpRuntimeTests
     {
         var pipeline = Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window("SelectionPriced", window => window
                 .Key(update => update.SelectionId)
                 .ActiveWhen(update => update.HasPrice)
@@ -49,12 +49,12 @@ public sealed class SegmentedRollUpRuntimeTests
         pipeline.Ingest(new PriceUpdate("selection-1", "market-1", "fixture-1", HasPrice: true, "InPlay"));
 
         var closedFixture = Assert.Single(
-            pipeline.Intervals.ClosedWindows,
+            pipeline.History.ClosedWindows,
             window => window.WindowName == "FixturePriced");
         Assert.Equal("Pregame", Assert.Single(closedFixture.Segments).Value);
 
         var openFixture = Assert.Single(
-            pipeline.Intervals.OpenWindows,
+            pipeline.History.OpenWindows,
             window => window.WindowName == "FixturePriced");
         Assert.Equal("InPlay", Assert.Single(openFixture.Segments).Value);
     }
@@ -64,7 +64,7 @@ public sealed class SegmentedRollUpRuntimeTests
     {
         var pipeline = Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window("SelectionPriced", window => window
                 .Key(update => update.SelectionId)
                 .ActiveWhen(update => update.HasPrice)
@@ -82,11 +82,11 @@ public sealed class SegmentedRollUpRuntimeTests
         pipeline.Ingest(new PriceUpdate("selection-1", "market-1", "fixture-1", HasPrice: true, "InPlay", "Open"));
 
         Assert.DoesNotContain(
-            pipeline.Intervals.ClosedWindows,
+            pipeline.History.ClosedWindows,
             window => window.WindowName == "MarketPriced");
 
         var openMarket = Assert.Single(
-            pipeline.Intervals.OpenWindows,
+            pipeline.History.OpenWindows,
             window => window.WindowName == "MarketPriced");
         var segment = Assert.Single(openMarket.Segments);
         Assert.Equal("phase", segment.Name);
@@ -98,7 +98,7 @@ public sealed class SegmentedRollUpRuntimeTests
     {
         var pipeline = Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window("SelectionPriced", window => window
                 .Key(update => update.SelectionId)
                 .ActiveWhen(update => update.HasPrice)
@@ -120,11 +120,11 @@ public sealed class SegmentedRollUpRuntimeTests
         pipeline.Ingest(new PriceUpdate("selection-1", "market-1", "fixture-1", HasPrice: true, "InPlay", "Q4", "Open"));
 
         Assert.DoesNotContain(
-            pipeline.Intervals.ClosedWindows,
+            pipeline.History.ClosedWindows,
             window => window.WindowName == "MarketPriced");
 
         var openMarket = Assert.Single(
-            pipeline.Intervals.OpenWindows,
+            pipeline.History.OpenWindows,
             window => window.WindowName == "MarketPriced");
         Assert.Collection(
             openMarket.Segments,
@@ -147,7 +147,7 @@ public sealed class SegmentedRollUpRuntimeTests
     {
         var pipeline = Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window("SelectionPriced", window => window
                 .Key(update => update.SelectionId)
                 .ActiveWhen(update => update.HasPrice)
@@ -162,7 +162,7 @@ public sealed class SegmentedRollUpRuntimeTests
         pipeline.Ingest(new PriceUpdate("selection-1", "market-1", "fixture-1", HasPrice: true, "InPlay"));
 
         var openMarket = Assert.Single(
-            pipeline.Intervals.OpenWindows,
+            pipeline.History.OpenWindows,
             window => window.WindowName == "MarketPriced");
         var segment = Assert.Single(openMarket.Segments);
         Assert.Equal("lifecycle", segment.Name);
@@ -174,7 +174,7 @@ public sealed class SegmentedRollUpRuntimeTests
     {
         var pipeline = Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window("SelectionPriced", window => window
                 .Key(update => update.SelectionId)
                 .ActiveWhen(update => update.HasPrice)
@@ -189,7 +189,7 @@ public sealed class SegmentedRollUpRuntimeTests
         pipeline.Ingest(new PriceUpdate("selection-1", "market-1", "fixture-1", HasPrice: true, "in-play"));
 
         var openMarket = Assert.Single(
-            pipeline.Intervals.OpenWindows,
+            pipeline.History.OpenWindows,
             window => window.WindowName == "MarketPriced");
         Assert.Equal("IN-PLAY", Assert.Single(openMarket.Segments).Value);
     }
@@ -199,7 +199,7 @@ public sealed class SegmentedRollUpRuntimeTests
     {
         var pipeline = Kyft
             .For<PriceUpdate>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window("SelectionPriced", window => window
                 .Key(update => update.SelectionId)
                 .ActiveWhen(update => update.HasPrice)

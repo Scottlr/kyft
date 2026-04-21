@@ -2,41 +2,41 @@ using Kyft;
 
 namespace Kyft.Tests.Recording;
 
-public sealed class IntervalRecordingTests
+public sealed class WindowRecordingTests
 {
     [Fact]
-    public void ClosedIntervalIsRecordedAfterOpenThenClose()
+    public void ClosedWindowIsRecordedAfterOpenThenClose()
     {
         var pipeline = CreatePipeline();
 
         pipeline.Ingest(new PriceTick("selection-1", 0m), source: "provider-a", partition: "p1");
         pipeline.Ingest(new PriceTick("selection-1", 1.01m), source: "provider-a", partition: "p1");
 
-        var interval = Assert.Single(pipeline.Intervals.ClosedWindows);
-        Assert.Equal("SelectionSuspension", interval.WindowName);
-        Assert.Equal("selection-1", interval.Key);
-        Assert.Equal(1, interval.StartPosition);
-        Assert.Equal(2, interval.EndPosition);
-        Assert.Equal("provider-a", interval.Source);
-        Assert.Equal("p1", interval.Partition);
+        var window = Assert.Single(pipeline.History.ClosedWindows);
+        Assert.Equal("SelectionSuspension", window.WindowName);
+        Assert.Equal("selection-1", window.Key);
+        Assert.Equal(1, window.StartPosition);
+        Assert.Equal(2, window.EndPosition);
+        Assert.Equal("provider-a", window.Source);
+        Assert.Equal("p1", window.Partition);
     }
 
     [Fact]
-    public void OpenWindowIsNotReportedAsClosedInterval()
+    public void OpenWindowIsNotReportedAsClosedWindow()
     {
         var pipeline = CreatePipeline();
 
         pipeline.Ingest(new PriceTick("selection-1", 0m));
 
-        Assert.Empty(pipeline.Intervals.ClosedWindows);
+        Assert.Empty(pipeline.History.ClosedWindows);
 
-        var open = Assert.Single(pipeline.Intervals.OpenWindows);
+        var open = Assert.Single(pipeline.History.OpenWindows);
         Assert.Equal("SelectionSuspension", open.WindowName);
         Assert.Equal(1, open.StartPosition);
     }
 
     [Fact]
-    public void IntervalsAreNotRecordedUnlessEnabled()
+    public void WindowsAreNotRecordedUnlessEnabled()
     {
         var pipeline = Kyft
             .For<PriceTick>()
@@ -49,14 +49,14 @@ public sealed class IntervalRecordingTests
         pipeline.Ingest(new PriceTick("selection-1", 0m));
         pipeline.Ingest(new PriceTick("selection-1", 1.01m));
 
-        Assert.Empty(pipeline.Intervals.ClosedWindows);
+        Assert.Empty(pipeline.History.ClosedWindows);
     }
 
     private static EventPipeline<PriceTick> CreatePipeline()
     {
         return Kyft
             .For<PriceTick>()
-            .RecordIntervals()
+            .RecordWindows()
             .Window(
                 "SelectionSuspension",
                 key: tick => tick.SelectionId,

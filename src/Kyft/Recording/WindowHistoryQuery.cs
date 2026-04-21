@@ -13,7 +13,7 @@ namespace Kyft;
 /// </remarks>
 public sealed class WindowHistoryQuery
 {
-    private readonly WindowIntervalHistory history;
+    private readonly WindowHistory history;
     private readonly IReadOnlyList<WindowRecord>? windows;
     private readonly List<ValueFilter> segmentFilters = [];
     private readonly List<ValueFilter> tagFilters = [];
@@ -25,7 +25,7 @@ public sealed class WindowHistoryQuery
     private bool hasSource;
     private bool hasPartition;
 
-    internal WindowHistoryQuery(WindowIntervalHistory history)
+    internal WindowHistoryQuery(WindowHistory history)
     {
         this.history = history;
     }
@@ -292,7 +292,7 @@ public sealed class WindowHistoryQuery
     {
         if (this.windows is not null)
         {
-            throw new InvalidOperationException("Horizon queries require a live WindowIntervalHistory.");
+            throw new InvalidOperationException("Horizon queries require a live WindowHistory.");
         }
 
         var query = this.history.SnapshotAt(horizon).Query();

@@ -18,7 +18,7 @@ public class SegmentCohortBenchmarks
     }
 
     [Benchmark]
-    public WindowIntervalHistory IngestSegmentedRollUps()
+    public WindowHistory IngestSegmentedRollUps()
     {
         var pipeline = SegmentCohortBenchmarkData.CreatePipeline();
 
@@ -28,7 +28,7 @@ public class SegmentCohortBenchmarks
             pipeline.Ingest(item.Signal, item.Source);
         }
 
-        return pipeline.Intervals;
+        return pipeline.History;
     }
 
     [Benchmark]

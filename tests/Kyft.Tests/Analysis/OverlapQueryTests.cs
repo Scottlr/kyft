@@ -7,7 +7,7 @@ public sealed class OverlapQueryTests
     [Fact]
     public void FindOverlapsReturnsOverlappingClosedWindowsInSameScope()
     {
-        var history = new WindowIntervalHistory(enabled: true);
+        var history = new WindowHistory(enabled: true);
         var tick = new PriceTick("selection-1");
 
         history.Record(
@@ -53,13 +53,13 @@ public sealed class OverlapQueryTests
     }
 
     [Fact]
-    public void FindOverlapsIgnoresNonOverlappingIntervals()
+    public void FindOverlapsIgnoresNonOverlappingWindows()
     {
-        var history = new WindowIntervalHistory(enabled: true);
+        var history = new WindowHistory(enabled: true);
         var tick = new PriceTick("selection-1");
 
-        RecordInterval(history, tick, source: "provider-a", start: 1, end: 2);
-        RecordInterval(history, tick, source: "provider-b", start: 2, end: 3);
+        RecordWindow(history, tick, source: "provider-a", start: 1, end: 2);
+        RecordWindow(history, tick, source: "provider-b", start: 2, end: 3);
 
         Assert.Empty(history.FindOverlaps());
     }
@@ -67,17 +67,17 @@ public sealed class OverlapQueryTests
     [Fact]
     public void FindOverlapsIgnoresDifferentScopes()
     {
-        var history = new WindowIntervalHistory(enabled: true);
+        var history = new WindowHistory(enabled: true);
         var tick = new PriceTick("selection-1");
 
-        RecordInterval(history, tick, source: "provider-a", key: "selection-1", start: 1, end: 4);
-        RecordInterval(history, tick, source: "provider-b", key: "selection-2", start: 2, end: 5);
+        RecordWindow(history, tick, source: "provider-a", key: "selection-1", start: 1, end: 4);
+        RecordWindow(history, tick, source: "provider-b", key: "selection-2", start: 2, end: 5);
 
         Assert.Empty(history.FindOverlaps());
     }
 
-    private static void RecordInterval(
-        WindowIntervalHistory history,
+    private static void RecordWindow(
+        WindowHistory history,
         PriceTick tick,
         string source,
         long start,

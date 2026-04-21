@@ -146,17 +146,17 @@ public sealed class WindowHistoryFixtureBuilder
     /// Builds a Kyft window history containing the configured windows.
     /// </summary>
     /// <returns>A window history fixture.</returns>
-    public WindowIntervalHistory Build()
+    public WindowHistory Build()
     {
-        var constructor = typeof(WindowIntervalHistory).GetConstructor(
+        var constructor = typeof(WindowHistory).GetConstructor(
             BindingFlags.Instance | BindingFlags.NonPublic,
             binder: null,
             [typeof(bool)],
             modifiers: null)
             ?? throw new InvalidOperationException("Kyft history constructor was not found.");
-        var history = (WindowIntervalHistory)constructor.Invoke([true]);
-        var field = typeof(WindowIntervalHistory).GetField(
-            "closedIntervals",
+        var history = (WindowHistory)constructor.Invoke([true]);
+        var field = typeof(WindowHistory).GetField(
+            "closedWindows",
             BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Kyft closed-window storage was not found.");
         var closed = (List<ClosedWindow>)field.GetValue(history)!;
@@ -171,17 +171,17 @@ public sealed class WindowHistoryFixtureBuilder
         return history;
     }
 
-    private void AddOpenWindows(WindowIntervalHistory history)
+    private void AddOpenWindows(WindowHistory history)
     {
         if (this.openWindows.Count == 0)
         {
             return;
         }
 
-        var keyType = typeof(WindowIntervalHistory).Assembly.GetType("Kyft.Internal.Recording.WindowRecordingKey")
+        var keyType = typeof(WindowHistory).Assembly.GetType("Kyft.Internal.Recording.WindowRecordingKey")
             ?? throw new InvalidOperationException("Kyft window recording key type was not found.");
-        var field = typeof(WindowIntervalHistory).GetField(
-            "openIntervals",
+        var field = typeof(WindowHistory).GetField(
+            "openWindows",
             BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Kyft open-window storage was not found.");
         var open = (IDictionary)field.GetValue(history)!;

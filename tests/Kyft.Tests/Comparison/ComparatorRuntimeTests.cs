@@ -52,11 +52,11 @@ public sealed class ComparatorRuntimeTests
         return (ComparisonResult)method.Invoke(null, [prepared])!;
     }
 
-    private static WindowIntervalHistory BuildHistory()
+    private static WindowHistory BuildHistory()
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
@@ -64,7 +64,7 @@ public sealed class ComparatorRuntimeTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-b");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-b");
 
-        return pipeline.Intervals;
+        return pipeline.History;
     }
 
     private sealed record DeviceSignal(string DeviceId, bool IsOnline);

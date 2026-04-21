@@ -4,7 +4,7 @@ var start = DateTimeOffset.Parse("2031-11-04T00:00:00Z");
 
 var pipeline = Kyft.Kyft
     .For<SpacecraftTelemetry>()
-    .RecordIntervals()
+    .RecordWindows()
     .WithEventTime(sample => sample.Timestamp)
     .Window("ThermalControlAnomaly", window => window
         .Key(sample => sample.ComponentId)
@@ -45,7 +45,7 @@ Ingest("flight-telemetry", 34, "approach", "science-point", "camera", "coolant-l
 Ingest("thermal-model", 45, "orbital-insertion", "burn", "spectrometer", "detector-b", 305, 300, 1.0);
 Ingest("thermal-model", 46, "orbital-insertion", "burn", "spectrometer", "cooler-b", 302, 300, 1.1);
 
-var instrumentRows = pipeline.Intervals
+var instrumentRows = pipeline.History
     .Compare("Thermal model versus flight telemetry")
     .Target("thermal-model", selector => selector.Source("thermal-model"))
     .Against("flight-telemetry", selector => selector.Source("flight-telemetry"))
@@ -54,7 +54,7 @@ var instrumentRows = pipeline.Intervals
     .Using(comparators => comparators.Overlap().Residual().LeadLag(LeadLagTransition.Start, TemporalAxis.Timestamp, TimeSpan.FromMinutes(10).Ticks).Containment())
     .Run();
 
-var spacecraftLive = pipeline.Intervals
+var spacecraftLive = pipeline.History
     .Compare("Live spacecraft thermal constraint")
     .Target("thermal-model", selector => selector.Source("thermal-model"))
     .Against("flight-telemetry", selector => selector.Source("flight-telemetry"))
@@ -62,20 +62,20 @@ var spacecraftLive = pipeline.Intervals
     .Using(comparators => comparators.Residual().Coverage())
     .RunLive(TemporalPoint.ForPosition(13));
 
-var snapshot = pipeline.Intervals.SnapshotAt(TemporalPoint.ForPosition(13));
+var snapshot = pipeline.History.SnapshotAt(TemporalPoint.ForPosition(13));
 var phaseSummary = snapshot.Query()
     .Window("ThermalControlAnomaly")
     .Windows()
     .SummarizeBySegment("missionPhase");
 
-var liveAnomaly = pipeline.Intervals.Query()
+var liveAnomaly = pipeline.History.Query()
     .Window("ThermalControlAnomaly")
     .Lane("thermal-model")
     .LatestWindowAt(TemporalPoint.ForPosition(13));
 
 if (liveAnomaly is not null)
 {
-    pipeline.Intervals.Annotate(
+    pipeline.History.Annotate(
         liveAnomaly.Window,
         "analysisNote",
         "burn attitude constraint requires follow-up thermal vacuum model",
@@ -88,7 +88,7 @@ Console.WriteLine("instrument residual rows: " + instrumentRows.ResidualRows.Cou
 Console.WriteLine("lead/lag rows: " + instrumentRows.LeadLagRows.Count);
 Console.WriteLine("spacecraft provisional rows: " + spacecraftLive.ProvisionalRowFinalities().Count);
 Console.WriteLine("phase summaries: " + phaseSummary.Count);
-Console.WriteLine("latest live anomaly annotations: " + (liveAnomaly is null ? 0 : pipeline.Intervals.AnnotationsFor(liveAnomaly.Window).Count));
+Console.WriteLine("latest live anomaly annotations: " + (liveAnomaly is null ? 0 : pipeline.History.AnnotationsFor(liveAnomaly.Window).Count));
 
 void PrintScenario()
 {

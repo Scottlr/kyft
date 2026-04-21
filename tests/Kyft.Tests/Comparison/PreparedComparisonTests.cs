@@ -45,12 +45,12 @@ public sealed class PreparedComparisonTests
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
 
-        var prepared = pipeline.Intervals.Compare("Provider QA")
+        var prepared = pipeline.History.Compare("Provider QA")
             .Target("provider-a", s => s.Source("provider-a"))
             .Against("provider-b", s => s.Source("provider-b"))
             .Within(s => s.Window("DeviceOffline"))
@@ -67,12 +67,12 @@ public sealed class PreparedComparisonTests
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
 
-        var prepared = pipeline.Intervals.Compare("Provider QA")
+        var prepared = pipeline.History.Compare("Provider QA")
             .Target("provider-a", s => s.Source("provider-a"))
             .Against("provider-b", s => s.Source("provider-b"))
             .Within(s => s.Window("DeviceOffline"))
@@ -111,12 +111,12 @@ public sealed class PreparedComparisonTests
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
 
-        var prepared = pipeline.Intervals.Compare("Provider QA")
+        var prepared = pipeline.History.Compare("Provider QA")
             .Target("provider-a", s => s.Source("provider-a"))
             .Against("provider-b", s => s.Source("provider-b"))
             .Within(s => s.Window("DeviceOffline"))
@@ -147,11 +147,11 @@ public sealed class PreparedComparisonTests
             diagnostic.Code == ComparisonPlanValidationCode.MissingEventTime);
     }
 
-    private static WindowIntervalHistory BuildHistory()
+    private static WindowHistory BuildHistory()
     {
         var pipeline = Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
 
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
@@ -159,7 +159,7 @@ public sealed class PreparedComparisonTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-b");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-b");
 
-        return pipeline.Intervals;
+        return pipeline.History;
     }
 
     private sealed record DeviceSignal(string DeviceId, bool IsOnline);

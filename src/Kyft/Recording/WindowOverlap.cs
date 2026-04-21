@@ -5,6 +5,6 @@ namespace Kyft;
 /// </summary>
 /// <param name="First">The first overlapping window.</param>
 /// <param name="Second">The second overlapping window.</param>
-public sealed record WindowIntervalOverlap(
+public sealed record WindowOverlap(
     ClosedWindow First,
     ClosedWindow Second);

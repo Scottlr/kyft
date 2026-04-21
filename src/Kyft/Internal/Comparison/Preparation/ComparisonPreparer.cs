@@ -6,7 +6,7 @@ namespace Kyft.Internal.Comparison;
 
 internal static class ComparisonPreparer
 {
-    internal static PreparedComparison Prepare(WindowIntervalHistory history, ComparisonPlan plan)
+    internal static PreparedComparison Prepare(WindowHistory history, ComparisonPlan plan)
     {
         var diagnostics = new List<ComparisonPlanDiagnostic>(plan.Validate());
         var selected = new List<WindowRecord>();

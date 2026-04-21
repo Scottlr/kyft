@@ -15,7 +15,7 @@ public sealed class WindowSummaryExtensionsTests
         pipeline.Ingest(new DeviceSignal("device-3", IsOnline: false, "Normal", "standard"), "lane-b");
         pipeline.Ingest(new DeviceSignal("device-3", IsOnline: true, "Normal", "standard"), "lane-b");
 
-        var summaries = pipeline.Intervals.Query()
+        var summaries = pipeline.History.Query()
             .Window("DeviceOffline")
             .Windows()
             .SummarizeBySegment("lifecycle");
@@ -45,7 +45,7 @@ public sealed class WindowSummaryExtensionsTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Incident", "critical"), "lane-a");
         pipeline.Ingest(new DeviceSignal("device-2", IsOnline: false, "Normal", "standard"), "lane-b");
 
-        var summaries = pipeline.Intervals.Query()
+        var summaries = pipeline.History.Query()
             .Window("DeviceOffline")
             .Windows()
             .SummarizeByTag("fleet");
@@ -74,7 +74,7 @@ public sealed class WindowSummaryExtensionsTests
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true, "Incident", "critical"), "lane-a");
         pipeline.Ingest(new DeviceSignal("device-2", IsOnline: false, "Incident", "critical"), "lane-b");
 
-        var summaries = pipeline.Intervals
+        var summaries = pipeline.History
             .SnapshotAt(TemporalPoint.ForPosition(6))
             .Query()
             .Window("DeviceOffline")
@@ -101,7 +101,7 @@ public sealed class WindowSummaryExtensionsTests
     {
         return Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", window => window
                 .Key(signal => signal.DeviceId)
                 .ActiveWhen(signal => !signal.IsOnline)

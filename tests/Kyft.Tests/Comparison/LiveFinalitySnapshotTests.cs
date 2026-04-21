@@ -12,7 +12,7 @@ public sealed class LiveFinalitySnapshotTests
         var pipeline = CreatePipeline();
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
 
-        var result = pipeline.Intervals.Compare("Live QA")
+        var result = pipeline.History.Compare("Live QA")
             .Target("provider-a", selector => selector.Source("provider-a"))
             .Against("provider-b", selector => selector.Source("provider-b"))
             .Within(scope => scope.Window("DeviceOffline"))
@@ -72,7 +72,7 @@ public sealed class LiveFinalitySnapshotTests
         var pipeline = CreatePipeline();
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
 
-        var result = pipeline.Intervals.Compare("Live QA")
+        var result = pipeline.History.Compare("Live QA")
             .Target("provider-a", selector => selector.Source("provider-a"))
             .Against("provider-b", selector => selector.Source("provider-b"))
             .Within(scope => scope.Window("DeviceOffline"))
@@ -92,18 +92,18 @@ public sealed class LiveFinalitySnapshotTests
     {
         return Kyft
             .For<DeviceSignal>()
-            .RecordIntervals()
+            .RecordWindows()
             .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
     }
 
-    private static WindowIntervalHistory BuildClosedHistory()
+    private static WindowHistory BuildClosedHistory()
     {
         var pipeline = CreatePipeline();
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-b");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-a");
         pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-b");
-        return pipeline.Intervals;
+        return pipeline.History;
     }
 
     private sealed record DeviceSignal(string DeviceId, bool IsOnline);
