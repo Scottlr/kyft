@@ -92,6 +92,40 @@ a {
   padding-bottom: 24px;
 }
 
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 0.7fr);
+  gap: 44px;
+  align-items: center;
+}
+
+.hero-graph {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.hero-graph p {
+  margin: 18px 0 0;
+  font-size: 14px;
+}
+
+.graph-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 30px;
+}
+
+.graph-row span:first-child {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .eyebrow,
 .section-kicker {
   margin: 0 0 10px;
@@ -189,6 +223,11 @@ li,
 }
 
 .diagram-card,
+.card-grid article,
+.capability-list div,
+.code-grid article,
+.wide-example,
+.comparison-list article,
 .summary-list a,
 .use-case-list article,
 .api-tree,
@@ -199,6 +238,19 @@ li,
 }
 
 .diagram-card {
+  padding: 18px;
+}
+
+.card-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.card-grid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.card-grid article {
   padding: 18px;
 }
 
@@ -326,11 +378,57 @@ li,
   color: var(--ink);
 }
 
+.link-line {
+  margin: 18px 0 0;
+}
+
+.link-line a {
+  color: var(--green);
+  font-weight: 800;
+}
+
+.capability-list {
+  display: grid;
+  gap: 10px;
+}
+
+.capability-list div {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.38fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 16px;
+}
+
+.capability-list strong {
+  color: var(--ink);
+}
+
+.capability-list span {
+  color: var(--muted);
+}
+
 .code-strip {
   display: grid;
   grid-template-columns: minmax(260px, 0.45fr) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
+}
+
+.code-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.45fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.code-grid article,
+.wide-example {
+  min-width: 0;
+  padding: 18px;
+}
+
+.wide-example {
+  margin-top: 14px;
 }
 
 pre {
@@ -399,7 +497,7 @@ pre code {
   content: "";
 }
 
-.mini-graph .bar {
+.mini-track .bar {
   position: absolute;
   top: 4px;
   height: 12px;
@@ -421,6 +519,18 @@ pre code {
 
 .mini-graph .phase.alt {
   background: #64748b;
+}
+
+.comparison-list {
+  display: grid;
+  gap: 12px;
+}
+
+.comparison-list article {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.34fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px;
 }
 
 .visualiser-frame {
@@ -582,9 +692,14 @@ pre code {
 }
 
 @media (max-width: 980px) {
+  .hero-grid,
   .diagram-grid,
+  .card-grid.four,
   .two-col,
   .code-strip,
+  .code-grid,
+  .capability-list div,
+  .comparison-list article,
   .use-case-list article,
   .summary-list.grid,
   .api-reference-layout {

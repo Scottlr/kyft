@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Kyft is a C# package for recording temporal state windows and comparing them across sources, providers, or pipeline stages.">
-  <title>Kyft - temporal window analysis for C#</title>
+  <meta name="description" content="Kyft is a C# library for recording temporal state windows and comparing them across sources, providers, or pipeline stages.">
+  <title>Kyft - temporal state-window comparison for C#</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -20,83 +20,108 @@
   </header>
 
   <main>
-    <section class="page-hero">
-      <p class="eyebrow">C# temporal analysis package</p>
-      <h1>Record state as windows. Compare what each source saw.</h1>
-      <p class="lead">
-        Kyft is for systems where the important question is not just the latest
-        value. It records when state was active, which lane observed it, where
-        sources overlapped or diverged, and what was knowable at a point in time.
-      </p>
-      <div class="actions">
-        <a class="button primary" href="https://github.com/Scottlr/kyft">GitHub</a>
-        <a class="button secondary" href="api.html">API reference</a>
+    <section class="page-hero hero-grid">
+      <div>
+        <p class="eyebrow">Kyft</p>
+        <h1>Temporal state-window recording and comparison for C#.</h1>
+        <p class="lead">
+          Kyft records when keyed state was active, then compares those windows
+          across sources, providers, or pipeline stages. It is for questions
+          where the latest value is not enough.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/Scottlr/kyft">GitHub repository</a>
+          <a class="button secondary" href="#install">Get started</a>
+        </div>
+      </div>
+
+      <div class="hero-graph" aria-label="State windows compared across sources">
+        <div class="graph-row">
+          <span>source A</span>
+          <span class="mini-track"><span class="bar target" style="left: 12%; width: 54%"></span></span>
+        </div>
+        <div class="graph-row">
+          <span>source B</span>
+          <span class="mini-track"><span class="bar compare" style="left: 34%; width: 39%"></span></span>
+        </div>
+        <div class="graph-row">
+          <span>comparison</span>
+          <span class="mini-track">
+            <span class="bar residual" style="left: 12%; width: 22%"></span>
+            <span class="bar compare" style="left: 34%; width: 32%"></span>
+            <span class="bar missing" style="left: 66%; width: 7%"></span>
+          </span>
+        </div>
+        <p>
+          One state, two observed histories, three useful answers: target-only,
+          overlap, and comparison-only coverage.
+        </p>
       </div>
     </section>
 
     <section class="doc-section">
       <div class="section-heading">
-        <p class="eyebrow">The problem</p>
-        <h2>Window analytics becomes hard when state has multiple histories.</h2>
+        <p class="eyebrow">What it does</p>
+        <h2>Kyft turns predicates into recorded temporal evidence.</h2>
         <p>
-          A current-state table collapses the answer. Kyft keeps the temporal
-          evidence visible: the active ranges, the source lanes, the gaps, and
-          the horizon used to make the result.
+          A temporal window is a period where a predicate stayed true for a key.
+          Kyft records those periods as open and closed windows, including the
+          source lane and context needed to inspect them later.
         </p>
       </div>
 
       <div class="diagram-grid">
         <article class="diagram-card">
-          <h3>Latest value loses the incident</h3>
-          <div class="state-diagram" aria-label="Latest value loses previous state">
+          <h3>Latest value loses the window</h3>
+          <div class="state-diagram" aria-label="Latest value loses previous active state">
             <div class="state-row">
               <span class="row-label">history</span>
-              <span class="timeline muted"></span>
-              <span class="window warn" style="left: 24%; width: 34%"></span>
-              <span class="point" style="left: 78%"></span>
+              <span class="timeline"></span>
+              <span class="window warn" style="left: 22%; width: 36%"></span>
+              <span class="point ok" style="left: 78%"></span>
             </div>
             <div class="state-row">
               <span class="row-label">latest</span>
-              <span class="timeline muted"></span>
+              <span class="timeline"></span>
               <span class="point ok" style="left: 78%"></span>
             </div>
           </div>
           <p>
-            If only the latest state is stored, the earlier active period is
-            gone. Kyft records the window as evidence.
+            If the current value is healthy, a latest-state table cannot explain
+            that the same key was unhealthy earlier.
           </p>
         </article>
 
         <article class="diagram-card">
           <h3>Sources disagree over time</h3>
-          <div class="state-diagram" aria-label="Two lanes with partial overlap">
+          <div class="state-diagram" aria-label="Two source lanes with partial overlap">
             <div class="state-row">
               <span class="row-label">lane A</span>
               <span class="timeline"></span>
-              <span class="window target" style="left: 18%; width: 49%"></span>
+              <span class="window target" style="left: 16%; width: 50%"></span>
             </div>
             <div class="state-row">
               <span class="row-label">lane B</span>
               <span class="timeline"></span>
-              <span class="window compare" style="left: 38%; width: 39%"></span>
+              <span class="window compare" style="left: 38%; width: 38%"></span>
             </div>
             <div class="state-row">
-              <span class="row-label">result</span>
+              <span class="row-label">rows</span>
               <span class="timeline"></span>
-              <span class="window residual" style="left: 18%; width: 20%"></span>
-              <span class="window overlap" style="left: 38%; width: 29%"></span>
-              <span class="window missing" style="left: 67%; width: 10%"></span>
+              <span class="window residual" style="left: 16%; width: 22%"></span>
+              <span class="window overlap" style="left: 38%; width: 28%"></span>
+              <span class="window missing" style="left: 66%; width: 10%"></span>
             </div>
           </div>
           <p>
-            Kyft turns lane histories into overlap, residual, missing, coverage,
-            gap, containment, lead/lag, and as-of rows.
+            Kyft compares histories and emits rows for overlap, residual,
+            missing, coverage, gap, containment, lead/lag, and as-of analysis.
           </p>
         </article>
 
         <article class="diagram-card">
-          <h3>Live windows need a horizon</h3>
-          <div class="state-diagram" aria-label="Open window clipped by horizon">
+          <h3>Open windows need a horizon</h3>
+          <div class="state-diagram" aria-label="Open window clipped by a live horizon">
             <div class="state-row">
               <span class="row-label">open</span>
               <span class="timeline"></span>
@@ -111,9 +136,8 @@
             </div>
           </div>
           <p>
-            Open windows can be evaluated at an explicit processing position or
-            timestamp, with rows marked as provisional when they depend on that
-            live horizon.
+            Live comparisons evaluate still-open windows at an explicit
+            processing position or timestamp and mark provisional rows.
           </p>
         </article>
       </div>
@@ -121,37 +145,126 @@
 
     <section class="doc-section two-col">
       <div>
-        <p class="eyebrow">Package shape</p>
-        <h2>Small primitives for temporal evidence.</h2>
-        <p>
-          Define a keyed predicate, record the resulting windows, then query or
-          compare those windows. Kyft stays focused on temporal state history
-          rather than becoming a stream processor, metrics platform, or database
-          abstraction.
-        </p>
+        <p class="eyebrow">Why it exists</p>
+        <h2>Ordinary state tracking throws away the evidence analysts need.</h2>
       </div>
-      <div class="summary-list">
-        <a href="use-cases.html">
-          <strong>Use cases</strong>
-          <span>Monitoring, IoT, payments, logistics, distributed systems, and pipeline analysis.</span>
-        </a>
-        <a href="visualiser.html">
-          <strong>Debug visualiser</strong>
-          <span>Open comparison results as self-contained HTML timelines.</span>
-        </a>
-        <a href="api.html">
-          <strong>API reference</strong>
-          <span>Builders, history queries, comparison plans, temporal types, and testing helpers.</span>
-        </a>
+      <div>
+        <p>
+          A current-state table can answer what is true now. It cannot answer
+          when a state became true, which source saw it first, whether another
+          source missed it, or what information was knowable at the decision
+          point.
+        </p>
+        <p>
+          Kyft keeps the temporal record as first-class data inside C# code. It
+          does not replace your event pipeline, database, or dashboard; it gives
+          the application a focused model for recorded state windows and
+          source-aware comparison.
+        </p>
       </div>
     </section>
 
-    <section class="doc-section code-strip">
-      <div>
-        <p class="eyebrow">Minimal example</p>
-        <h2>Define a state, ingest events, compare lanes.</h2>
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Concrete use cases</p>
+        <h2>Useful when correctness depends on time, source, and visibility.</h2>
       </div>
-      <pre><code>using Kyft;
+      <div class="card-grid four">
+        <article>
+          <h3>Monitoring provider comparison</h3>
+          <p>Find where one provider reported an outage that another missed, reported late, or recovered from sooner.</p>
+        </article>
+        <article>
+          <h3>Decision-point audit</h3>
+          <p>Evaluate only the windows and annotations that were knowable at a specific processing position or timestamp.</p>
+        </article>
+        <article>
+          <h3>Live/open-window analysis</h3>
+          <p>Include still-open windows at a live horizon while keeping provisional rows separate from final rows.</p>
+        </article>
+        <article>
+          <h3>Historical pipeline analysis</h3>
+          <p>Compare stages in a pipeline to see where state diverged, lagged, disappeared, or gained extra coverage.</p>
+        </article>
+      </div>
+      <p class="link-line"><a href="use-cases.html">Open the use-cases page</a></p>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Key capabilities</p>
+        <h2>Focused primitives for temporal state comparison.</h2>
+      </div>
+      <div class="capability-list">
+        <div>
+          <strong>Record windows and intervals</strong>
+          <span>Capture opened and closed state windows with key, source, partition, segment, and tag context.</span>
+        </div>
+        <div>
+          <strong>Compare overlap, residual, missing, and coverage</strong>
+          <span>Turn lane histories into structured rows instead of hand-written interval joins.</span>
+        </div>
+        <div>
+          <strong>Reason at a point in time</strong>
+          <span>Query windows and annotations at a horizon without leaking future knowledge into an audit.</span>
+        </div>
+        <div>
+          <strong>Separate live from final</strong>
+          <span>Clip open windows to a horizon and preserve whether rows depend on ongoing state.</span>
+        </div>
+        <div>
+          <strong>Export deterministic artifacts</strong>
+          <span>Produce JSON, JSON Lines, Markdown, and self-contained HTML debug output from comparison results.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Debug visualiser</p>
+        <h2>Inspect comparison behavior as a browser-readable timeline.</h2>
+        <p>
+          The HTML visualiser helps explain surprising rows: which windows were
+          selected, where sources overlapped, where gaps appeared, and whether
+          live rows are still provisional.
+        </p>
+      </div>
+      <div class="summary-list grid">
+        <a href="examples/provider-comparison.html">
+          <strong>Provider comparison</strong>
+          <span>Six lanes with overlap, residual, missing, coverage, and live finality.</span>
+        </a>
+        <a href="examples/multi-lane-overlap.html">
+          <strong>Multi-lane overlap</strong>
+          <span>Several gateways reporting staggered active windows.</span>
+        </a>
+        <a href="examples/cohort-quorum.html">
+          <strong>Cohort quorum</strong>
+          <span>A primary lane compared against an at-least-two cohort.</span>
+        </a>
+        <a href="examples/segmented-live.html">
+          <strong>Segmented live windows</strong>
+          <span>Phase and period segments with open windows clipped at a horizon.</span>
+        </a>
+      </div>
+      <p class="link-line"><a href="visualiser.html">Open the visualiser page</a></p>
+    </section>
+
+    <section class="doc-section" id="install">
+      <div class="section-heading">
+        <p class="eyebrow">Code examples</p>
+        <h2>Define the state once, then query or compare recorded history.</h2>
+      </div>
+      <div class="code-grid">
+        <article>
+          <h3>Install</h3>
+          <pre><code>dotnet add package Kyft
+dotnet add package Kyft.Testing</code></pre>
+          <p>`Kyft.Testing` is optional. It provides fixtures, snapshots, and assertions for consumer tests.</p>
+        </article>
+        <article>
+          <h3>Record windows</h3>
+          <pre><code>using Kyft;
 
 var pipeline = Kyft
     .For&lt;DeviceSignal&gt;()
@@ -161,18 +274,58 @@ var pipeline = Kyft
         key: signal =&gt; signal.DeviceId,
         isActive: signal =&gt; !signal.IsOnline);
 
-pipeline.Ingest(new DeviceSignal("device-17", false), source: "source-a");
-pipeline.Ingest(new DeviceSignal("device-17", true), source: "source-a");
-
-var result = pipeline.History
-    .Compare("Source comparison")
-    .Target("source-a", selector =&gt; selector.Source("source-a"))
-    .Against("source-b", selector =&gt; selector.Source("source-b"))
-    .Within(scope =&gt; scope.Window("DeviceOffline"))
-    .Using(comparators =&gt; comparators.Overlap().Residual().Missing())
-    .Run();
+pipeline.Ingest(new DeviceSignal("device-17", false), source: "provider-a");
+pipeline.Ingest(new DeviceSignal("device-17", true), source: "provider-a");
 
 public sealed record DeviceSignal(string DeviceId, bool IsOnline);</code></pre>
+        </article>
+      </div>
+
+      <article class="wide-example">
+        <h3>Compare recorded windows</h3>
+        <pre><code>var result = pipeline.History
+    .Compare("Provider QA")
+    .Target("provider-a", selector =&gt; selector.Source("provider-a"))
+    .Against("provider-b", selector =&gt; selector.Source("provider-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(comparators =&gt; comparators
+        .Overlap()
+        .Residual()
+        .Missing()
+        .Coverage())
+    .Run();
+
+result.ExportDebugHtml("artifacts/provider-qa.html");</code></pre>
+      </article>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Why not just X?</p>
+        <h2>Kyft is a narrow temporal evidence layer, not a platform replacement.</h2>
+      </div>
+      <div class="comparison-list">
+        <article>
+          <h3>Storing timestamps in a database</h3>
+          <p>A database can persist windows, but it will not give you staged comparison plans, selectors, normalization, live finality, diagnostics, or deterministic exports by itself.</p>
+        </article>
+        <article>
+          <h3>Latest-state tracking</h3>
+          <p>Latest-state tables answer what is true now. Kyft answers when it was true, who saw it, and whether another lane missed it.</p>
+        </article>
+        <article>
+          <h3>Generic event processing</h3>
+          <p>Stream processors route and aggregate events. Kyft stays smaller: it records interpreted state windows and compares their temporal evidence.</p>
+        </article>
+        <article>
+          <h3>Metrics dashboards</h3>
+          <p>Dashboards compress time into counters, rates, and charts. Kyft keeps individual windows and emits rows that can be audited.</p>
+        </article>
+        <article>
+          <h3>Event sourcing</h3>
+          <p>Event sourcing preserves facts and rebuilds state. Kyft analyzes the windows produced after those facts have been interpreted.</p>
+        </article>
+      </div>
     </section>
   </main>
 
