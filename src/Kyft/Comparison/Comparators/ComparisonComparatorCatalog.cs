@@ -4,7 +4,7 @@ namespace Kyft;
 /// Describes comparator declarations understood by core Kyft.
 /// </summary>
 /// <remarks>
-/// The catalog is intended for tooling, fixture validation, and agent workflows.
+/// The catalog is intended for tooling and fixture validation.
 /// Runtime execution is still driven by declarations in the comparison plan.
 /// Extension packages can expose additional declarations with
 /// <see cref="ComparisonExtensionBuilder" />.

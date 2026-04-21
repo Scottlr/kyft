@@ -293,7 +293,7 @@ var explanation = prepared.Explain(); // Render deterministic diagnostic text.
 
 `Explain()` returns deterministic diagnostic text. It is not generated prose.
 `ExportJson()` returns deterministic JSON for CI artifacts, issue reports, and
-agent workflows. `ExportJsonLines()` streams result rows for larger outputs.
+tooling workflows. `ExportJsonLines()` streams result rows for larger outputs.
 `ExportDebugHtml()` writes a standalone visual artifact for browser-based
 debugging.
 
@@ -324,7 +324,7 @@ var resultWithDebug = pipeline.Intervals // Start from recorded windows.
 ```
 
 Use debug HTML at workflow boundaries, test failure boundaries, notebook
-boundaries, incident handoff boundaries, or agent handoff boundaries. Avoid
+boundaries, incident handoff boundaries, or support handoff boundaries. Avoid
 writing it on every ingestion event.
 
 Use `ErrorDiagnostics()`, `WarningDiagnostics()`,
@@ -336,7 +336,7 @@ needs a filtered view of the result metadata.
 Plans are cheap. Preparation enumerates recorded history and normalization work.
 Comparator execution materializes result rows. Avoid exporting or explaining
 results in ingestion hot paths; build those artifacts at workflow boundaries,
-test failure boundaries, notebook boundaries, or agent handoff points.
+test failure boundaries, notebook boundaries, or support handoff points.
 
 ## Source Matrix
 

@@ -9,7 +9,7 @@ dotnet run --project samples/Kyft.LogisticsColdChain/Kyft.LogisticsColdChain.csp
 dotnet run --project samples/Kyft.SecurityAccessAudit/Kyft.SecurityAccessAudit.csproj # Known-at audit and late annotations.
 dotnet run --project samples/Kyft.IndustrialTelemetry/Kyft.IndustrialTelemetry.csproj # Industrial process windows plus lane liveness.
 dotnet run --project samples/Kyft.DistributedQuorum/Kyft.DistributedQuorum.csproj # Cohort and source-matrix analysis for replicated systems.
-dotnet run --project samples/Kyft.SpaceMissionResearch/Kyft.SpaceMissionResearch.csproj # Hierarchical research-grade spacecraft thermal analysis.
+dotnet run --project samples/Kyft.SpaceMissionResearch/Kyft.SpaceMissionResearch.csproj # Hierarchical advanced spacecraft thermal analysis.
 dotnet run --project samples/Kyft.OperationsExample/Kyft.OperationsExample.csproj # Service monitoring comparison with exports.
 ```
 

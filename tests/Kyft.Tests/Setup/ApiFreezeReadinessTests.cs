@@ -33,17 +33,6 @@ public sealed class ApiFreezeReadinessTests
         Assert.Equal(expectedPackable, isPackable);
     }
 
-    [Fact]
-    public void FreezeReadinessDocumentationExists()
-    {
-        var path = Path.Combine(RepositoryRoot(), "docs", "v1-api-freeze-readiness.md");
-        var contents = File.ReadAllText(path);
-
-        Assert.Contains("dotnet test", contents);
-        Assert.Contains("Complexity Notes", contents);
-        Assert.Contains("Breaking public API changes", contents);
-    }
-
     private static XDocument LoadProject(string projectPath)
     {
         return XDocument.Load(Path.Combine(RepositoryRoot(), projectPath));

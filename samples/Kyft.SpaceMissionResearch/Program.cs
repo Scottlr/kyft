@@ -82,7 +82,7 @@ if (liveAnomaly is not null)
         TemporalPoint.ForPosition(13));
 }
 
-Console.WriteLine("Space mission research-grade thermal analysis");
+Console.WriteLine("Space mission advanced thermal analysis");
 Console.WriteLine("instrument overlap rows: " + instrumentRows.OverlapRows.Count);
 Console.WriteLine("instrument residual rows: " + instrumentRows.ResidualRows.Count);
 Console.WriteLine("lead/lag rows: " + instrumentRows.LeadLagRows.Count);
@@ -127,7 +127,7 @@ void Ingest(
 {
     pipeline.Ingest(
         new SpacecraftTelemetry(
-            "voyager-research-analogue",
+            "voyager-analogue",
             instrument,
             component,
             missionPhase,

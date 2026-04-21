@@ -463,7 +463,7 @@ dotnet run --project samples/Kyft.OperationsExample/Kyft.OperationsExample.cspro
 
 More samples are available in [samples/README.md](samples/README.md), ranging
 from simple device monitoring to logistics, security audit, industrial
-telemetry, distributed quorum analysis, and research-grade spacecraft thermal
+telemetry, distributed quorum analysis, and advanced spacecraft thermal
 analysis.
 
 ## More Detail
@@ -472,6 +472,4 @@ analysis.
 - [Comparator reference](docs/comparator-reference.md)
 - [Live finality and changelog](docs/live-finality-and-changelog.md)
 - [Fixture schema](docs/fixture-schema.md)
-- [API shape review](docs/api-shape-review.md)
 - [Performance notes](docs/performance-notes.md)
-- [Agent guidance](docs/agent-guidance.md)

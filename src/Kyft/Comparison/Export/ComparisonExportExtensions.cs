@@ -89,7 +89,7 @@ public static class ComparisonExportExtensions
     /// </summary>
     /// <remarks>
     /// The document is intended for workflow-boundary debugging, issue reports,
-    /// live incident inspection, and agent handoff. It includes inline styles
+    /// live incident inspection, and support handoff. It includes inline styles
     /// and does not require a web server, CDN, JavaScript package, or external
     /// asset.
     /// </remarks>
