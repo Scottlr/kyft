@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spanfold segment and tag concepts for splitting temporal windows and attaching non-boundary context.">
+  <title>Spanfold segments and tags</title>
+  <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-language="csharp">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+    <nav class="nav" aria-label="Primary navigation">
+      <div class="nav-section"><span class="nav-title">Start</span><a href="index.html">Overview</a><a href="get-started.html">Get started</a></div>
+      <div class="nav-section"><span class="nav-title">Docs</span><a href="use-cases.html">Use cases</a><a href="visualiser.html">Visualiser</a><a href="llm-context.html">LLM context</a></div>
+      <div class="nav-section">
+        <span class="nav-title">Concepts</span>
+        <a href="concepts.html">Overview</a>
+        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item active" href="concepts-segments.html">Segments and tags</a>
+        <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
+        <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a>
+        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
+        <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
+      </div>
+      <div class="nav-section"><span class="nav-title">Reference</span><a href="api.html">API</a><a href="https://github.com/Scottlr/spanfold">GitHub</a></div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero compact">
+      <p class="eyebrow">Concepts</p>
+      <h1>Split windows only when context changes the analysis.</h1>
+      <p class="lead">
+        Segments are boundary context: when a segment value changes, the active
+        window is split. Tags are descriptive context: they travel with the
+        window without creating a new interval.
+      </p>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <h2>Segments create boundaries.</h2>
+        <p>
+          Use segments for lifecycle, phase, market, deployment, region, or
+          period values that must be scoped or compared as separate intervals.
+          Nested segments let one dimension sit under another.
+        </p>
+      </div>
+      <div>
+        <pre><code>.Window("DeviceOffline", window =&gt; window
+    .Key(update =&gt; update.DeviceId)
+    .ActiveWhen(update =&gt; update.IsOffline)
+    .Segment("lifecycle", lifecycle =&gt; lifecycle
+        .Value(update =&gt; update.Lifecycle)
+        .Child("stage", stage =&gt; stage.Value(update =&gt; update.Stage)))
+    .Tag("fleet", update =&gt; update.FleetId))</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="comparison-list">
+        <article><h3>Partition</h3><p>Isolates runtime state. It decides which state machine receives an event.</p></article>
+        <article><h3>Segment</h3><p>Splits windows and can be used in comparison scope filters.</p></article>
+        <article><h3>Tag</h3><p>Describes a window without splitting it, useful for filters and export context.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><span>Spanfold</span><a href="concepts.html">Concepts overview</a></footer>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+  <script src="syntax.js"></script>
+  <script src="language.js"></script>
+</body>
+</html>

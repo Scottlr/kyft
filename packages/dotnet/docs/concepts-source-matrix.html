@@ -34,6 +34,7 @@
         <span class="nav-title">Concepts</span>
         <a href="concepts.html">Overview</a>
         <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a>
         <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
         <a class="nav-sub-item active" href="concepts-source-matrix.html">Source matrix</a>
         <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
@@ -52,8 +53,8 @@
       <h1>Compare many sources without losing direction.</h1>
       <p class="lead">
         A source matrix runs directional pairwise comparisons across a provider
-        set. Hierarchy comparison explains parent roll-up activity from child
-        contribution windows.
+        set. Use it when the same question needs to be read across every
+        provider pair without collapsing direction.
       </p>
     </section>
 
@@ -74,21 +75,17 @@
       </div>
     </section>
 
-    <section class="doc-section two-col">
-      <div>
-        <h2>Hierarchy explanation</h2>
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Reading cells</p>
+        <h2>Direction is part of the result.</h2>
         <p>
-          Use hierarchy comparison when a parent roll-up is active and you need
-          to show which child windows explain it, where the parent was
-          unexplained, or where child activity was orphaned.
+          A residual in row A, column B means A had target-only duration against
+          B. The opposite cell asks the reverse question and can produce a
+          different answer.
         </p>
       </div>
-      <div>
-        <pre><code>var hierarchy = pipeline.History.CompareHierarchy(
-    "Region explanation",
-    parentWindowName: "RegionImpacted",
-    childWindowName: "DeviceOffline");</code></pre>
-      </div>
+      <p class="link-line"><a href="concepts-hierarchy.html">Open hierarchy concepts</a></p>
     </section>
   </main>
 

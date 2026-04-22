@@ -34,8 +34,11 @@
         <span class="nav-title">Concepts</span>
         <a href="concepts.html">Overview</a>
         <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a>
         <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
         <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a>
+        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item active" href="concepts-advanced-analytics.html">Advanced analytics</a>
       </div>
       <div class="nav-section">
@@ -95,6 +98,77 @@
         <article><h3>Lead and lag</h3><p>Compare start or end transitions and summarize whether the target led or lagged the comparison side.</p></article>
         <article><h3>As-of</h3><p>Evaluate what matched at a specific decision point without leaking future evidence into the answer.</p></article>
         <article><h3>Live finality</h3><p>Clip open windows to a horizon and keep provisional rows separate from final rows.</p></article>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Examples</p>
+        <h2>Common advanced analysis patterns.</h2>
+      </div>
+      <div class="code-grid">
+        <article>
+          <h3>Coverage threshold</h3>
+          <pre><code>var result = pipeline.History
+    .Compare("Coverage SLA")
+    .Target("primary", s =&gt; s.Source("primary"))
+    .Against("backup", s =&gt; s.Source("backup"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(c =&gt; c.Coverage().Gap())
+    .Run();
+
+var coverageRatio = result.CoverageRows.TotalCoveredMagnitude()
+    / result.CoverageRows.TotalTargetMagnitude();
+
+var gapLength = result.GapRows.TotalPositionLength();</code></pre>
+        </article>
+        <article>
+          <h3>Lead/lag tolerance</h3>
+          <pre><code>var timing = pipeline.History
+    .Compare("Provider timing")
+    .Target("provider-a", s =&gt; s.Source("provider-a"))
+    .Against("provider-b", s =&gt; s.Source("provider-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(c =&gt; c.LeadLag(
+        LeadLagTransition.Start,
+        TemporalAxis.ProcessingPosition,
+        toleranceMagnitude: 5))
+    .Run();
+
+var lateStarts = timing.LeadLagRows
+    .Where(row =&gt; row.Direction == LeadLagDirection.TargetLags);</code></pre>
+        </article>
+      </div>
+
+      <div class="code-grid stacked-code">
+        <article>
+          <h3>As-of audit</h3>
+          <pre><code>var audit = pipeline.History
+    .Compare("Decision audit")
+    .Target("decision", s =&gt; s.Source("decision-service"))
+    .Against("risk", s =&gt; s.Source("risk-provider"))
+    .Within(scope =&gt; scope.Window("HighRisk"))
+    .Normalize(n =&gt; n.KnownAtPosition(42))
+    .Using(c =&gt; c.AsOf(
+        AsOfDirection.Previous,
+        TemporalAxis.ProcessingPosition,
+        toleranceMagnitude: 10))
+    .Run();</code></pre>
+        </article>
+        <article>
+          <h3>Symmetric difference</h3>
+          <pre><code>var divergence = pipeline.History
+    .Compare("Provider divergence")
+    .Target("provider-a", s =&gt; s.Source("provider-a"))
+    .Against("provider-b", s =&gt; s.Source("provider-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(c =&gt; c.SymmetricDifference().Containment())
+    .Run();
+
+var totalDisagreement = divergence
+    .SymmetricDifferenceRows
+    .TotalPositionLength();</code></pre>
+        </article>
       </div>
     </section>
   </main>

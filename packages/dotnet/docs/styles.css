@@ -91,6 +91,10 @@ a {
   gap: 4px;
 }
 
+.nav-section:has(.nav-sub-item) {
+  gap: 0;
+}
+
 .nav-title {
   padding: 0 18px 4px;
   color: var(--ink-faint);
@@ -127,7 +131,7 @@ a {
 .nav a.nav-sub-item {
   width: 100%;
   min-height: 32px;
-  padding: 7px 18px;
+  padding: 7px 18px 7px 34px;
   border-left: 0;
   border-radius: 0;
   background: color-mix(in srgb, var(--bg-card) 44%, transparent);
@@ -1418,6 +1422,10 @@ pre .hljs-comment {
     background: color-mix(in srgb, var(--bg-panel) 52%, transparent);
   }
 
+  .nav-section:has(.nav-sub-item) {
+    gap: 0;
+  }
+
   .nav-title {
     display: block;
     padding: 2px 8px 4px;
@@ -1434,8 +1442,8 @@ pre .hljs-comment {
   .nav a.nav-sub-item {
     width: 100%;
     min-height: 38px;
-    padding: 9px 10px;
-    border-radius: 6px;
+    padding: 9px 10px 9px 24px;
+    border-radius: 0;
     background: color-mix(in srgb, var(--bg-card) 58%, transparent);
   }
 
