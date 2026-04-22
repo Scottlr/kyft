@@ -585,7 +585,8 @@ li,
   top: calc(100% + 6px);
   z-index: 3;
   min-height: 16px;
-  padding: 2px 4px;
+  max-width: min(138px, calc(100% - 10px));
+  padding: 3px 6px;
   border: 1px solid var(--rule);
   border-radius: 4px;
   background: var(--accent-amber);
@@ -594,19 +595,13 @@ li,
   font-weight: 780;
   line-height: 1.05;
   text-align: center;
-  white-space: normal;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .lane-note::before,
 .timeline-note::before {
-  position: absolute;
-  top: -7px;
-  left: 50%;
-  width: 1px;
-  height: 6px;
-  background: currentColor;
-  content: "";
-  opacity: 0.45;
+  content: none;
 }
 
 .timeline-note.note-residual {
@@ -881,7 +876,7 @@ pre .hljs-comment {
 }
 
 .mini-track .lane-note {
-  top: 30px;
+  top: 28px;
 }
 
 .mini-track .bar[data-label]::after {
