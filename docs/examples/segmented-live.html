@@ -223,16 +223,14 @@ h3 {
 .track {
   position: relative;
   min-height: 28px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--rule) 72%, var(--ink));
   border-radius: 0;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 12.5% 100%,
-    linear-gradient(90deg, transparent 0 99%, color-mix(in srgb, var(--ink) 13%, transparent) 99% 100%) 0 0 / 6.25% 100%,
-    linear-gradient(180deg, var(--bg-card), var(--bg-panel));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 50%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 11%, transparent) 1px, transparent 1px) 0 0 / 12.5% 100%,
+    linear-gradient(90deg, transparent 0 99%, color-mix(in srgb, var(--ink) 17%, transparent) 99% 100%) 0 0 / 6.25% 100%,
+    color-mix(in srgb, var(--bg-panel) 72%, var(--bg-card));
+  box-shadow: none;
 }
 
 .track::before {
@@ -248,12 +246,31 @@ h3 {
 .bar {
   position: absolute;
   top: 4px;
+  z-index: 2;
   height: 20px;
   min-width: 3px;
-  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 26%, transparent);
   border-radius: 0;
   opacity: 1;
   box-shadow: none;
+}
+
+.bar::before,
+.bar::after {
+  position: absolute;
+  top: -8px;
+  bottom: -18px;
+  width: 0;
+  border-left: 1px dotted color-mix(in srgb, var(--ink-muted) 72%, transparent);
+  content: "";
+}
+
+.bar::before {
+  left: -1px;
+}
+
+.bar::after {
+  right: -1px;
 }
 
 .bar.target { background: var(--accent-slate); }
@@ -327,15 +344,13 @@ h3 {
 .band-track {
   position: relative;
   min-height: 32px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--rule) 72%, var(--ink));
   border-radius: 0;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 12.5% 100%,
-    linear-gradient(180deg, var(--bg-card), var(--bg-panel));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 50%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 11%, transparent) 1px, transparent 1px) 0 0 / 12.5% 100%,
+    color-mix(in srgb, var(--bg-panel) 72%, var(--bg-card));
+  box-shadow: none;
 }
 
 .band-segment {

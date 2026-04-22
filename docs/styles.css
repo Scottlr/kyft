@@ -522,15 +522,13 @@ li,
   position: relative;
   height: 26px;
   overflow: visible;
-  border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
+  border: 1px solid color-mix(in srgb, var(--rule) 72%, var(--ink));
   border-radius: 0;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1px) 0 0 / 20% 100%,
-    linear-gradient(90deg, transparent 0 99%, color-mix(in srgb, var(--ink) 14%, transparent) 99% 100%) 0 0 / 10% 100%,
-    linear-gradient(180deg, var(--bg-card), var(--bg-panel));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 50%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 12%, transparent) 1px, transparent 1px) 0 0 / 20% 100%,
+    linear-gradient(90deg, transparent 0 99%, color-mix(in srgb, var(--ink) 18%, transparent) 99% 100%) 0 0 / 10% 100%,
+    color-mix(in srgb, var(--bg-panel) 72%, var(--bg-card));
+  box-shadow: none;
 }
 
 .quick-track::before {
@@ -549,9 +547,27 @@ li,
   z-index: 2;
   height: 16px;
   min-width: 8px;
-  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 26%, transparent);
   border-radius: 0;
   box-shadow: none;
+}
+
+.quick-window::before,
+.quick-window::after {
+  position: absolute;
+  top: -7px;
+  bottom: -22px;
+  width: 0;
+  border-left: 1px dotted color-mix(in srgb, var(--ink-muted) 72%, transparent);
+  content: "";
+}
+
+.quick-window::before {
+  left: -1px;
+}
+
+.quick-window::after {
+  right: -1px;
 }
 
 .quick-window.target {
@@ -626,14 +642,12 @@ li,
   align-self: start;
   margin-top: 3px;
   overflow: visible;
-  border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
+  border: 1px solid color-mix(in srgb, var(--rule) 72%, var(--ink));
   border-radius: 0;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 25% 100%,
-    linear-gradient(180deg, var(--bg-card), var(--bg-panel));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 46%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 11%, transparent) 1px, transparent 1px) 0 0 / 25% 100%,
+    color-mix(in srgb, var(--bg-panel) 72%, var(--bg-card));
+  box-shadow: none;
 }
 
 .timeline::before {
@@ -701,7 +715,7 @@ li,
 .window {
   top: 2px;
   height: 12px;
-  border: 1px solid color-mix(in srgb, var(--ink) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 26%, transparent);
   border-radius: 0;
   box-shadow: none;
 }
@@ -709,8 +723,8 @@ li,
 .window::before,
 .window::after {
   position: absolute;
-  top: -10px;
-  bottom: -18px;
+  top: -9px;
+  bottom: -34px;
   z-index: 1;
   width: 0;
   border-left: 1px dotted color-mix(in srgb, var(--ink-muted) 76%, transparent);
@@ -1063,15 +1077,13 @@ pre .hljs-comment {
   min-width: 0;
   height: 26px;
   overflow: visible;
-  border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
+  border: 1px solid color-mix(in srgb, var(--rule) 72%, var(--ink));
   border-radius: 0;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1px) 0 0 / 20% 100%,
-    linear-gradient(90deg, transparent 0 99%, color-mix(in srgb, var(--ink) 14%, transparent) 99% 100%) 0 0 / 10% 100%,
-    linear-gradient(180deg, var(--bg-card), var(--bg-panel));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 50%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 12%, transparent) 1px, transparent 1px) 0 0 / 20% 100%,
+    linear-gradient(90deg, transparent 0 99%, color-mix(in srgb, var(--ink) 18%, transparent) 99% 100%) 0 0 / 10% 100%,
+    color-mix(in srgb, var(--bg-panel) 72%, var(--bg-card));
+  box-shadow: none;
 }
 
 .mini-track::before {
@@ -1090,9 +1102,27 @@ pre .hljs-comment {
   z-index: 2;
   height: 16px;
   min-width: 8px;
-  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 26%, transparent);
   border-radius: 0;
   box-shadow: none;
+}
+
+.mini-track .bar::before,
+.mini-track .bar::after {
+  position: absolute;
+  top: -7px;
+  bottom: -22px;
+  width: 0;
+  border-left: 1px dotted color-mix(in srgb, var(--ink-muted) 72%, transparent);
+  content: "";
+}
+
+.mini-track .bar::before {
+  left: -1px;
+}
+
+.mini-track .bar::after {
+  right: -1px;
 }
 
 .mini-track .lane-note {
