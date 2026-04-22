@@ -451,17 +451,21 @@ li,
 
 .state-diagram {
   display: grid;
-  gap: 13px;
+  gap: 16px;
   margin: 20px 0 18px;
 }
 
 .quick-timeline {
   display: grid;
-  gap: 14px;
-  padding: 20px;
-  border: 1px solid var(--rule);
+  gap: 20px;
+  padding: 22px;
+  border: 1px solid color-mix(in srgb, var(--rule) 88%, var(--ink));
   border-radius: 8px;
-  background: var(--bg-card);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 86%, white), var(--bg-card));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 54%, transparent),
+    0 10px 24px color-mix(in srgb, var(--ink) 5%, transparent);
 }
 
 .quick-row {
@@ -473,31 +477,53 @@ li,
 }
 
 .quick-row.annotated-quick-row {
-  min-height: 44px;
+  min-height: 58px;
 }
 
-.quick-row span:first-child,
-.quick-row span:last-child {
+.quick-row > span:first-child,
+.quick-row > span:last-child {
   color: var(--ink-muted);
   font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .quick-track {
   position: relative;
-  height: 12px;
-  overflow: hidden;
-  border-radius: 999px;
+  height: 30px;
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
+  border-radius: 8px;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 20% 100%,
-    var(--bg-panel);
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1px) 0 0 / 20% 100%,
+    linear-gradient(90deg, transparent 0 99%, color-mix(in srgb, var(--ink) 14%, transparent) 99% 100%) 0 0 / 10% 100%,
+    linear-gradient(180deg, var(--bg-card), var(--bg-panel));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 50%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.quick-track::before {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  left: 9px;
+  height: 1px;
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  content: "";
 }
 
 .quick-window {
   position: absolute;
-  top: 0;
-  height: 12px;
-  border-radius: 999px;
+  top: 6px;
+  z-index: 2;
+  height: 16px;
+  min-width: 8px;
+  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 20%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
 .quick-window.target {
@@ -515,37 +541,35 @@ li,
 
 .quick-note {
   position: absolute;
-  top: 26px;
+  top: 33px;
   z-index: 3;
-  padding: 2px 5px;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  background: var(--accent-amber);
-  color: var(--ink);
-  font-size: 0.75rem;
-  font-weight: 780;
-  line-height: 1.1;
+  padding: 0 2px;
+  color: var(--ink-muted);
+  font-size: 0.66rem;
+  font-weight: 680;
+  line-height: 1.05;
+  opacity: 0.88;
   transform: translateX(-50%);
   white-space: nowrap;
 }
 
 .quick-note::before {
   position: absolute;
-  top: -13px;
+  top: -10px;
   left: 50%;
-  width: 1px;
-  height: 12px;
-  background: currentColor;
+  width: 0;
+  height: 8px;
+  border-left: 1px dotted color-mix(in srgb, var(--ink-muted) 70%, transparent);
   content: "";
-  opacity: 0.45;
+  transform: translateX(-50%);
 }
 
 .quick-note.note-residual {
-  color: var(--ink);
+  color: var(--ink-muted);
 }
 
 .quick-note.note-overlap {
-  color: var(--ink);
+  color: var(--ink-muted);
 }
 
 .state-row {
@@ -558,7 +582,7 @@ li,
 }
 
 .state-row.annotated-row {
-  min-height: 50px;
+  min-height: 58px;
 }
 
 .row-label,
@@ -570,14 +594,28 @@ li,
 
 .timeline {
   position: relative;
-  height: 8px;
+  height: 18px;
   align-self: start;
-  margin-top: 7px;
+  margin-top: 3px;
   overflow: visible;
-  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
+  border-radius: 8px;
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 25% 100%,
-    var(--bg-panel);
+    linear-gradient(180deg, var(--bg-card), var(--bg-panel));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 46%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.timeline::before {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  left: 7px;
+  height: 1px;
+  background: color-mix(in srgb, var(--ink) 17%, transparent);
+  content: "";
 }
 
 .lane-note,
@@ -633,9 +671,13 @@ li,
 }
 
 .window {
-  top: -1px;
+  top: 3px;
   height: 10px;
-  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 13%, transparent);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 18%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ink) 10%, transparent);
 }
 
 .window.target,
@@ -680,12 +722,13 @@ li,
 }
 
 .point {
-  top: -4px;
-  width: 16px;
-  height: 16px;
+  top: 1px;
+  width: 14px;
+  height: 14px;
   border: 3px solid var(--bg-card);
   border-radius: 50%;
   background: var(--accent-rust);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
 .point.ok {
@@ -700,7 +743,7 @@ li,
 }
 
 .horizon {
-  top: -8px;
+  top: -4px;
 }
 
 .two-col {
@@ -882,14 +925,18 @@ pre .hljs-comment {
   display: grid;
   grid-template-columns: 108px minmax(0, 1fr);
   column-gap: 10px;
-  row-gap: 44px;
+  row-gap: 46px;
   align-self: center;
   width: 100%;
   min-width: 0;
-  padding: 22px 20px 36px;
-  border: 1px solid var(--rule);
+  padding: 23px 20px 38px;
+  border: 1px solid color-mix(in srgb, var(--rule) 88%, var(--ink));
   border-radius: 8px;
-  background: var(--bg-card);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 86%, white), var(--bg-card));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 54%, transparent),
+    0 10px 24px color-mix(in srgb, var(--ink) 5%, transparent);
 }
 
 .mini-graph .label {
@@ -903,20 +950,24 @@ pre .hljs-comment {
 .mini-track {
   position: relative;
   min-width: 0;
-  height: 24px;
+  height: 30px;
   overflow: visible;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
+  border-radius: 8px;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 20% 100%,
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1px) 0 0 / 20% 100%,
+    linear-gradient(90deg, transparent 0 99%, color-mix(in srgb, var(--ink) 14%, transparent) 99% 100%) 0 0 / 10% 100%,
     linear-gradient(180deg, var(--bg-card), var(--bg-panel));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 50%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
 .mini-track::before {
   position: absolute;
   top: 50%;
-  right: 8px;
-  left: 8px;
+  right: 9px;
+  left: 9px;
   height: 1px;
   background: color-mix(in srgb, var(--ink) 18%, transparent);
   content: "";
@@ -924,22 +975,26 @@ pre .hljs-comment {
 
 .mini-track .bar {
   position: absolute;
-  top: 4px;
-  height: 14px;
+  top: 6px;
+  z-index: 2;
+  height: 16px;
   min-width: 8px;
-  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
-  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 20%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
 .mini-track .lane-note {
-  top: 30px;
+  top: 33px;
   max-width: min(160px, calc(100% - 14px));
   pointer-events: none;
 }
 
 .mini-track .lane-note::before {
-  top: -8px;
-  height: 6px;
+  top: -10px;
+  height: 8px;
 }
 
 .mini-track .bar[data-label]::after {
@@ -961,11 +1016,12 @@ pre .hljs-comment {
 
 .mini-graph .marker {
   position: absolute;
-  top: 0;
+  top: 2px;
   z-index: 2;
   width: 2px;
   height: 24px;
   background: var(--ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg-card) 55%, transparent);
 }
 
 .mini-graph .phase {

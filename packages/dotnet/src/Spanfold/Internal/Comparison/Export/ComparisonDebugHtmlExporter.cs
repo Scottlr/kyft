@@ -218,20 +218,24 @@ h3 {
 .timeline-shell {
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 8px;
-  border: 1px solid var(--rule);
+  padding-bottom: 10px;
+  border: 1px solid color-mix(in srgb, var(--rule) 88%, var(--ink));
   border-radius: 8px;
-  background: var(--bg-card);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 86%, white), var(--bg-card));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 54%, transparent),
+    0 10px 24px color-mix(in srgb, var(--ink) 5%, transparent);
 }
 
 .timeline-canvas {
   min-width: var(--timeline-width, 1100px);
-  padding: 14px;
+  padding: 16px;
 }
 
 .timeline {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .lane {
@@ -258,11 +262,25 @@ h3 {
   position: relative;
   min-height: 34px;
   overflow: hidden;
-  border: 1px solid var(--rule);
+  border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
   border-radius: 8px;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px) 0 0 / 12.5% 100%,
-    var(--bg-panel);
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 12.5% 100%,
+    linear-gradient(90deg, transparent 0 99%, color-mix(in srgb, var(--ink) 13%, transparent) 99% 100%) 0 0 / 6.25% 100%,
+    linear-gradient(180deg, var(--bg-card), var(--bg-panel));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 50%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.track::before {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  left: 10px;
+  height: 1px;
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  content: "";
 }
 
 .bar {
@@ -270,8 +288,12 @@ h3 {
   top: 6px;
   height: 20px;
   min-width: 3px;
+  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
   border-radius: 6px;
   opacity: 0.94;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 20%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
 .bar.target { background: var(--accent-slate); }
@@ -280,15 +302,25 @@ h3 {
 .bar.residual { background: var(--accent-rust); }
 .bar.missing { background: var(--accent-amber); }
 .bar.gap { background: var(--ink-faint); }
-.bar.open { outline: 2px dashed color-mix(in srgb, var(--ink) 46%, transparent); outline-offset: 2px; }
+.bar.open {
+  border-style: dashed;
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, white 12%, transparent) 0 5px,
+    transparent 5px 10px);
+}
 
 .boundary-marker {
   position: absolute;
-  top: 2px;
-  bottom: 2px;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--accent-amber);
+  top: 4px;
+  bottom: 4px;
+  z-index: 3;
+  width: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-amber) 78%, var(--ink));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--bg-card) 72%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--accent-amber) 22%, transparent);
 }
 
 .axis {
@@ -336,9 +368,14 @@ h3 {
   position: relative;
   min-height: 36px;
   overflow: hidden;
-  border: 1px solid var(--rule);
+  border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
   border-radius: 8px;
-  background: var(--bg-panel);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 12.5% 100%,
+    linear-gradient(180deg, var(--bg-card), var(--bg-panel));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 50%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
 .band-segment {
@@ -348,7 +385,7 @@ h3 {
   min-width: 4px;
   overflow: hidden;
   padding: 2px 8px;
-  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
   border-radius: 6px;
   color: var(--ink);
   font-size: 12px;
@@ -356,6 +393,9 @@ h3 {
   line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 24%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ink) 10%, transparent);
 }
 
 .band-segment.c0 { background: color-mix(in srgb, var(--accent-slate) 24%, var(--bg-card)); }
