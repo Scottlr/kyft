@@ -6,7 +6,11 @@ from spanfold import (
     AsOfMatchStatus,
     ComparisonChangelog,
     ComparisonDiagnosticSeverity,
+    ComparisonDuplicateWindowPolicy,
     ComparisonFinality,
+    ComparisonNormalizationPolicy,
+    ComparisonNullTimestampPolicy,
+    ComparisonOpenWindowPolicy,
     ComparisonRowFinality,
     ComparisonSide,
     ContainmentStatus,
@@ -285,6 +289,79 @@ def test_event_time_mode_compares_recorded_timestamps() -> None:
     assert not result.diagnostics
     assert result.overlap_rows[0].range.start.timestamp == start + timedelta(minutes=2)
     assert result.overlap_rows[0].range.require_end().timestamp == start + timedelta(minutes=5)
+
+
+def test_default_normalization_policy_matches_historical_comparison_defaults() -> None:
+    policy = ComparisonNormalizationPolicy.default()
+
+    assert policy.require_closed_windows
+    assert policy.use_half_open_ranges
+    assert policy.time_axis is TemporalAxis.PROCESSING_POSITION
+    assert policy.open_window_policy is ComparisonOpenWindowPolicy.REQUIRE_CLOSED
+    assert policy.open_window_horizon is None
+    assert policy.null_timestamp_policy is ComparisonNullTimestampPolicy.REJECT
+    assert not policy.coalesce_adjacent_windows
+    assert policy.duplicate_window_policy is ComparisonDuplicateWindowPolicy.PRESERVE
+
+
+def test_normalization_policy_modifiers_match_builder_surface() -> None:
+    known_at = TemporalPoint.for_position(10)
+
+    policy = (
+        ComparisonNormalizationPolicy.event_time()
+        .with_known_at(known_at)
+        .coalescing_adjacent_windows()
+        .rejecting_duplicate_windows()
+    )
+
+    assert policy.time_axis is TemporalAxis.TIMESTAMP
+    assert policy.known_at == known_at
+    assert policy.coalesce_adjacent_windows
+    assert policy.duplicate_window_policy is ComparisonDuplicateWindowPolicy.REJECT
+
+
+def test_normalize_accepts_policy_for_live_horizon() -> None:
+    pipeline = _pipeline()
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-a")
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-b")
+
+    result = (
+        pipeline.history.compare("Live")
+        .target("provider-a")
+        .against("provider-b")
+        .within(window_name="DeviceOffline")
+        .normalize(ComparisonNormalizationPolicy.clip_open_windows_to(TemporalPoint.for_position(5)))
+        .using("overlap")
+        .run()
+    )
+
+    assert result.evaluation_horizon == TemporalPoint.for_position(5)
+    assert result.overlap_rows[0].finality is ComparisonFinality.PROVISIONAL
+
+
+def test_normalization_policy_can_select_event_time_and_missing_timestamp_policy() -> None:
+    pipeline = _pipeline()
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-a")
+    pipeline.ingest(DeviceStatus("device-1", True), source="provider-a")
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-b")
+    pipeline.ingest(DeviceStatus("device-1", True), source="provider-b")
+
+    result = (
+        pipeline.history.compare("Event-time QA")
+        .target("provider-a")
+        .against("provider-b")
+        .within(window_name="DeviceOffline")
+        .normalize(
+            ComparisonNormalizationPolicy.event_time(
+                null_timestamp_policy=ComparisonNullTimestampPolicy.EXCLUDE
+            )
+        )
+        .using("overlap")
+        .run()
+    )
+
+    assert not result.overlap_rows
+    assert not result.diagnostics
 
 
 def test_normalization_can_reject_duplicate_windows() -> None:

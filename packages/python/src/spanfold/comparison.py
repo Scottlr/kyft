@@ -6,7 +6,7 @@ import html
 import json
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -36,6 +36,27 @@ class ComparisonSide(Enum):
 
     TARGET = "target"
     AGAINST = "against"
+
+
+class ComparisonOpenWindowPolicy(Enum):
+    """Describes how open windows are handled during normalization."""
+
+    REQUIRE_CLOSED = "require_closed"
+    CLIP_TO_HORIZON = "clip_to_horizon"
+
+
+class ComparisonNullTimestampPolicy(Enum):
+    """Describes how event-time normalization handles missing timestamps."""
+
+    REJECT = "reject"
+    EXCLUDE = "exclude"
+
+
+class ComparisonDuplicateWindowPolicy(Enum):
+    """Describes how duplicate normalized windows are handled."""
+
+    PRESERVE = "preserve"
+    REJECT = "reject"
 
 
 class ContainmentStatus(Enum):
@@ -87,6 +108,103 @@ class HierarchyComparisonRowKind(Enum):
     PARENT_EXPLAINED = "parent_explained"
     UNEXPLAINED_PARENT = "unexplained_parent"
     ORPHAN_CHILD = "orphan_child"
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonNormalizationPolicy:
+    """Describes how recorded windows are normalized before comparison."""
+
+    require_closed_windows: bool = True
+    use_half_open_ranges: bool = True
+    time_axis: TemporalAxis = TemporalAxis.PROCESSING_POSITION
+    open_window_policy: ComparisonOpenWindowPolicy = ComparisonOpenWindowPolicy.REQUIRE_CLOSED
+    open_window_horizon: TemporalPoint | None = None
+    null_timestamp_policy: ComparisonNullTimestampPolicy = ComparisonNullTimestampPolicy.REJECT
+    coalesce_adjacent_windows: bool = False
+    duplicate_window_policy: ComparisonDuplicateWindowPolicy = (
+        ComparisonDuplicateWindowPolicy.PRESERVE
+    )
+    known_at: TemporalPoint | None = None
+
+    def __post_init__(self) -> None:
+        if not self.use_half_open_ranges:
+            msg = "Only half-open ranges are supported."
+            raise ValueError(msg)
+        if (
+            self.open_window_policy is ComparisonOpenWindowPolicy.CLIP_TO_HORIZON
+            and self.open_window_horizon is None
+        ):
+            msg = "open_window_horizon is required when clipping open windows."
+            raise ValueError(msg)
+        if (
+            self.open_window_policy is ComparisonOpenWindowPolicy.REQUIRE_CLOSED
+            and self.open_window_horizon is not None
+        ):
+            msg = "open_window_horizon cannot be set when open windows require closure."
+            raise ValueError(msg)
+
+    @classmethod
+    def default(cls) -> ComparisonNormalizationPolicy:
+        """Return the default historical comparison normalization policy."""
+
+        return cls()
+
+    @classmethod
+    def require_closed(cls) -> ComparisonNormalizationPolicy:
+        """Return a policy that excludes open windows from historical comparison."""
+
+        return cls()
+
+    @classmethod
+    def clip_open_windows_to(
+        cls,
+        horizon: TemporalPoint,
+        *,
+        time_axis: TemporalAxis | None = None,
+    ) -> ComparisonNormalizationPolicy:
+        """Return a policy that clips open windows to an explicit horizon."""
+
+        return cls(
+            require_closed_windows=False,
+            time_axis=time_axis or horizon.axis,
+            open_window_policy=ComparisonOpenWindowPolicy.CLIP_TO_HORIZON,
+            open_window_horizon=horizon,
+        )
+
+    @classmethod
+    def event_time(
+        cls,
+        *,
+        null_timestamp_policy: ComparisonNullTimestampPolicy = (
+            ComparisonNullTimestampPolicy.REJECT
+        ),
+    ) -> ComparisonNormalizationPolicy:
+        """Return a policy that normalizes on the event-time axis."""
+
+        return cls(
+            time_axis=TemporalAxis.TIMESTAMP,
+            null_timestamp_policy=null_timestamp_policy,
+        )
+
+    def with_known_at(self, point: TemporalPoint) -> ComparisonNormalizationPolicy:
+        """Return this policy with a known-at availability point."""
+
+        return self._replace(known_at=point)
+
+    def coalescing_adjacent_windows(self) -> ComparisonNormalizationPolicy:
+        """Return this policy with adjacent-window coalescing enabled."""
+
+        return self._replace(coalesce_adjacent_windows=True)
+
+    def rejecting_duplicate_windows(self) -> ComparisonNormalizationPolicy:
+        """Return this policy with duplicate normalized windows rejected."""
+
+        return self._replace(
+            duplicate_window_policy=ComparisonDuplicateWindowPolicy.REJECT
+        )
+
+    def _replace(self, **changes: Any) -> ComparisonNormalizationPolicy:
+        return replace(self, **changes)
 
 
 @dataclass(frozen=True, slots=True)
@@ -830,6 +948,7 @@ class WindowComparisonBuilder:
 
     def normalize(
         self,
+        policy: ComparisonNormalizationPolicy | None = None,
         *,
         axis: TemporalAxis = TemporalAxis.PROCESSING_POSITION,
         horizon: TemporalPoint | None = None,
@@ -840,6 +959,9 @@ class WindowComparisonBuilder:
     ) -> WindowComparisonBuilder:
         """Choose the comparison axis, open-window horizon, and availability point."""
 
+        if policy is not None:
+            self._apply_normalization_policy(policy)
+            return self
         if missing_event_time not in {"reject", "exclude"}:
             msg = "missing_event_time must be 'reject' or 'exclude'."
             raise ValueError(msg)
@@ -853,6 +975,17 @@ class WindowComparisonBuilder:
         self._coalesce_adjacent = coalesce_adjacent
         self._duplicate_windows = duplicate_windows
         return self
+
+    def _apply_normalization_policy(
+        self,
+        policy: ComparisonNormalizationPolicy,
+    ) -> None:
+        self._axis = policy.time_axis
+        self._horizon = policy.open_window_horizon
+        self._known_at = policy.known_at
+        self._missing_event_time_policy = policy.null_timestamp_policy.value
+        self._coalesce_adjacent = policy.coalesce_adjacent_windows
+        self._duplicate_windows = policy.duplicate_window_policy.value
 
     def using(self, *comparators: str) -> WindowComparisonBuilder:
         """Choose comparators to run by name."""
@@ -987,7 +1120,8 @@ class WindowComparisonBuilder:
         diagnostics: list[str],
     ) -> None:
         if self._axis is TemporalAxis.TIMESTAMP and _missing_event_time(window):
-            _append_once(diagnostics, "missing_event_time")
+            if self._missing_event_time_policy == "reject":
+                _append_once(diagnostics, "missing_event_time")
             return
         if not window.is_closed and self._horizon is None:
             _append_once(diagnostics, "open_windows_without_policy")

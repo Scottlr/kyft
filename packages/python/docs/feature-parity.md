@@ -25,13 +25,13 @@
 - Basic runtime diagnostics for as-of future-leakage risk.
 - Event-time comparison mode with missing timestamp diagnostics.
 - Duplicate-window rejection and adjacent-window coalescing normalization.
+- Full normalization policy object mirroring the C# plan surface.
 - `run_live()` live comparison shortcut for explicit horizon clipping.
 - Structured diagnostics with warning/error severity and strict-mode promotion.
 - JSON export includes structured diagnostics and row finality snapshots.
 
 ## Implement Later
 
-- Full normalization policy object mirroring the C# plan surface.
 - Benchmarks.
 
 ## Intentionally Different in Python
