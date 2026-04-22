@@ -16,9 +16,25 @@
     </button>
     <nav class="nav" aria-label="Primary navigation">
       <div class="nav-section"><span class="nav-title">Start</span><a href="index.html">Overview</a><a href="get-started.html">Get started</a></div>
-      <div class="nav-section"><span class="nav-title">Docs</span><a href="use-cases.html">Use cases</a><a href="visualiser.html">Visualiser</a><a href="llm-context.html">LLM context</a></div>
-      <div class="nav-section"><span class="nav-title">Concepts</span><a href="concepts.html">Overview</a><a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a><a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a><a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a><a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a><a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a><a class="nav-sub-item active" href="concepts-live-finality.html">Live finality</a><a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a></div>
-      <div class="nav-section"><span class="nav-title">Reference</span><a href="api.html">API</a><a href="https://github.com/Scottlr/spanfold">GitHub</a></div>
+      <div class="nav-section"><span class="nav-title">Docs</span><a href="use-cases.html">Use cases</a></div>
+      <div class="nav-section"><span class="nav-title">Auditing</span><a class="nav-sub-item" href="visualiser.html">Visual Auditing</a><a class="nav-sub-item" href="llm-context.html">Agentic Auditing</a></div>
+      <div class="nav-section">
+        <span class="nav-title">Concepts</span>
+        <a href="concepts.html">Overview</a>
+        <a class="nav-sub-item" href="concepts-state-windows.html">State windows</a>
+        <a class="nav-sub-item" href="concepts-temporal-model.html">Temporal model</a>
+        <a class="nav-sub-item" href="concepts-querying-history.html">Querying history</a>
+        <a class="nav-sub-item" href="concepts-comparing-histories.html">Comparing histories</a>
+        <a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a>
+        <a class="nav-sub-item active" href="concepts-live-finality.html">Live finality</a>
+        <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
+        <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a>
+        <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Reference</span><a href="api.html">API</a><a href="https://github.com/Scottlr/spanfold">GitHub</a></div>
     </nav>
   </header>
 
@@ -34,11 +50,12 @@
 
     <section class="doc-section two-col">
       <div>
-        <h2>Always choose a horizon.</h2>
+        <p class="eyebrow">Problem</p>
+        <h2>Open windows are useful, but they are not final evidence.</h2>
         <p>
-          The horizon is the processing position or timestamp where the live
-          view is evaluated. Rows derived from still-open windows can change
-          when more events arrive.
+          During an incident the current open window is often the most important
+          record. But if a comparison treats it like closed history, the result
+          can look settled even though the end point has not happened yet.
         </p>
       </div>
       <div>
@@ -54,11 +71,88 @@ var provisional = live.ProvisionalRowFinalities();</code></pre>
       </div>
     </section>
 
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Solution</p>
+        <h2>Clip open windows to a horizon and label provisional rows.</h2>
+        <p>
+          The horizon is the processing position or timestamp where the live view
+          is evaluated. Rows derived from windows clipped to that horizon can
+          change when more events arrive, so Spanfold keeps row finality explicit.
+        </p>
+      </div>
+      <div class="state-diagram" aria-label="Open window clipped to a horizon">
+        <div class="state-row annotated-row"><span class="row-label">Open</span><span class="timeline"><span class="window target dashed" style="left: 24%; width: 58%"></span><span class="horizon" style="left: 82%"></span><span class="lane-note" style="left: 55%">still active</span></span></div>
+        <div class="state-row annotated-row"><span class="row-label">Live</span><span class="timeline"><span class="window overlap" style="left: 24%; width: 58%"></span><span class="horizon" style="left: 82%"></span><span class="lane-note" style="left: 55%">provisional row</span></span></div>
+      </div>
+    </section>
+
     <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Journey</p>
+        <h2>Decide whether the question is historical or live.</h2>
+        <p>
+          Historical comparisons should usually reject open windows because the
+          evidence is not complete. Live comparisons intentionally include open
+          windows, but only after clipping them to a declared horizon and
+          labeling rows that can still change.
+        </p>
+      </div>
+      <div class="quick-timeline" aria-label="Closed and live finality journey">
+        <div class="quick-row annotated-quick-row">
+          <span>closed</span>
+          <span class="quick-track"><span class="quick-window target" style="left: 12%; width: 28%"></span><span class="quick-note" style="left: 26%">settled</span></span>
+          <span>final rows</span>
+        </div>
+        <div class="quick-row annotated-quick-row">
+          <span>open</span>
+          <span class="quick-track"><span class="quick-window compare" style="left: 46%; width: 34%"></span><span class="quick-note" style="left: 63%">still active</span></span>
+          <span>not historical</span>
+        </div>
+        <div class="quick-row annotated-quick-row">
+          <span>horizon</span>
+          <span class="quick-track"><span class="quick-window residual" style="left: 46%; width: 34%"></span><span class="quick-note" style="left: 80%">clip here</span></span>
+          <span>provisional</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Row finality</p>
+        <h2>Finality belongs to the row, not just the run.</h2>
+        <p>
+          A live comparison can contain both final and provisional rows. Closed
+          historical ranges remain final even in a live run. Only rows derived
+          from clipped open windows need the provisional label.
+        </p>
+      </div>
       <div class="comparison-list">
-        <article><h3>Final rows</h3><p>Depend only on closed windows and remain stable when the same comparison is replayed.</p></article>
-        <article><h3>Provisional rows</h3><p>Depend on open windows clipped to the current horizon and may change later.</p></article>
-        <article><h3>Changelog export</h3><p>Use finality metadata to separate settled evidence from live incident state.</p></article>
+        <article><h3>Final rows</h3><p>Depend only on closed windows and remain stable when the same comparison is replayed from the same history.</p></article>
+        <article><h3>Provisional rows</h3><p>Depend on open windows clipped to the current horizon and may change when those windows close or extend.</p></article>
+        <article><h3>Exports</h3><p>Debug HTML, JSON, Markdown, and LLM context carry finality metadata so incident reports can distinguish live state from settled history.</p></article>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Use it for</p>
+        <h2>Dashboards, incident rooms, and replay-safe audits.</h2>
+        <p>
+          Live finality lets the same comparison model power a current dashboard
+          and a later historical review without confusing the two. The dashboard
+          can show what appears true at the horizon, while exports can preserve
+          which rows were provisional at the time.
+        </p>
+      </div>
+      <div>
+        <p>
+          For audits, prefer historical runs with closed windows and known-at
+          filtering. For operations, use live runs with a visible horizon. The
+          distinction is what prevents a live view from being mistaken for final
+          evidence.
+        </p>
+        <p class="link-line"><a href="concepts-cohorts.html">Next: cohorts</a></p>
       </div>
     </section>
   </main>

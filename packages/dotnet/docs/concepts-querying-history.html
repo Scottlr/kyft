@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spanfold querying history concepts for reading recorded windows before comparing sources.">
+  <title>Spanfold querying history</title>
+  <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-language="csharp">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect y="3" width="20" height="2" rx="1" fill="currentColor"/><rect y="9" width="20" height="2" rx="1" fill="currentColor"/><rect y="15" width="20" height="2" rx="1" fill="currentColor"/></svg>
+    </button>
+    <nav class="nav" aria-label="Primary navigation">
+      <div class="nav-section"><span class="nav-title">Start</span><a href="index.html">Overview</a><a href="get-started.html">Get started</a></div>
+      <div class="nav-section"><span class="nav-title">Docs</span><a href="use-cases.html">Use cases</a></div>
+      <div class="nav-section"><span class="nav-title">Auditing</span><a class="nav-sub-item" href="visualiser.html">Visual Auditing</a><a class="nav-sub-item" href="llm-context.html">Agentic Auditing</a></div>
+      <div class="nav-section"><span class="nav-title">Concepts</span><a href="concepts.html">Overview</a><a class="nav-sub-item" href="concepts-state-windows.html">State windows</a><a class="nav-sub-item" href="concepts-temporal-model.html">Temporal model</a><a class="nav-sub-item active" href="concepts-querying-history.html">Querying history</a><a class="nav-sub-item" href="concepts-comparing-histories.html">Comparing histories</a><a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a><a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a><a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a><a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a><a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a><a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a><a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a></div>
+      <div class="nav-section"><span class="nav-title">Reference</span><a href="api.html">API</a><a href="https://github.com/Scottlr/spanfold">GitHub</a></div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero compact">
+      <p class="eyebrow">Concepts</p>
+      <h1>Inspect one history before comparing two.</h1>
+      <p class="lead">
+        Not every temporal question is cross-source. Sometimes you first need
+        to know which windows exist, which are open, what was active at a point,
+        or what context was attached to one lane.
+      </p>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Problem</p>
+        <h2>A comparison result is too late if the source history is wrong.</h2>
+        <p>
+          Before asking why two providers disagree, inspect the raw recorded
+          history. Direct history queries help validate predicates, key
+          selectors, source labels, segment boundaries, and open windows.
+        </p>
+      </div>
+      <div>
+        <pre><code>var open = pipeline.History.OpenWindows
+    .Where(window =&gt; window.WindowName == "DeviceOffline");
+
+var closedForDevice = pipeline.History.ClosedWindows
+    .Where(window =&gt; window.WindowName == "DeviceOffline")
+    .Where(window =&gt; Equals(window.Key, "device-17"));</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Solution</p>
+        <h2>Treat the recorded history as the first diagnostic surface.</h2>
+        <p>
+          Query one history when you need to understand what Spanfold recorded
+          before introducing another source. This is the place to verify that
+          the active predicate opens and closes in the right places, the key is
+          stable, the source lane is correct, and segments split exactly where
+          the domain says they should.
+        </p>
+      </div>
+      <div class="state-diagram" aria-label="Single history query surfaces open and closed windows">
+        <div class="state-row annotated-row"><span class="row-label">Closed</span><span class="timeline"><span class="window target" style="left: 14%; width: 28%"></span><span class="window compare" style="left: 52%; width: 18%"></span><span class="lane-note" style="left: 28%">past incident</span><span class="lane-note" style="left: 61%">short blip</span></span></div>
+        <div class="state-row annotated-row"><span class="row-label">Open</span><span class="timeline"><span class="window dashed" style="left: 74%; width: 16%"></span><span class="lane-note" style="left: 82%">current</span></span></div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Questions</p>
+        <h2>Start with one lane before explaining disagreement.</h2>
+      </div>
+      <div class="comparison-list">
+        <article><h3>What is open now?</h3><p>Read open windows to see active state before running live comparison.</p></article>
+        <article><h3>What closed earlier?</h3><p>Read closed windows to validate start/end boundaries and source labels.</p></article>
+        <article><h3>What was knowable?</h3><p>Use known-at filtering when an audit must not include future records.</p></article>
+        <article><h3>What should be exported?</h3><p>Use JSON, Markdown, debug HTML, or LLM context once the recorded evidence is correct.</p></article>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">How</p>
+        <h2>Narrow by window, key, source, segment, and tag.</h2>
+        <p>
+          A useful query usually starts broad, then narrows. First confirm the
+          window family exists. Then filter by key or source. Finally add
+          segment and tag filters to make sure the context model behaves the way
+          a later comparison will expect.
+        </p>
+      </div>
+      <div>
+        <pre><code>var incidentWindows = pipeline.History
+    .Query()
+    .Window("DeviceOffline")
+    .Segment("lifecycle", "Incident")
+    .Tag("fleet", "critical")
+    .Windows();
+
+var byLifecycle = pipeline.History
+    .Query()
+    .Window("DeviceOffline")
+    .Windows()
+    .SummarizeBySegment("lifecycle");</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Spanfold</span>
+    <a href="concepts-comparing-histories.html">Next: comparing histories</a>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+  <script src="syntax.js"></script>
+  <script src="language.js"></script>
+</body>
+</html>

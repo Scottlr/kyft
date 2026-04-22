@@ -27,16 +27,25 @@
       <div class="nav-section">
         <span class="nav-title">Docs</span>
         <a href="use-cases.html">Use cases</a>
-        <a href="visualiser.html">Visualiser</a>
-        <a href="llm-context.html">LLM context</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Auditing</span>
+        <a class="nav-sub-item" href="visualiser.html">Visual Auditing</a>
+        <a class="nav-sub-item" href="llm-context.html">Agentic Auditing</a>
       </div>
       <div class="nav-section">
         <span class="nav-title">Concepts</span>
         <a href="concepts.html">Overview</a>
-        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-state-windows.html">State windows</a>
+        <a class="nav-sub-item" href="concepts-temporal-model.html">Temporal model</a>
+        <a class="nav-sub-item" href="concepts-querying-history.html">Querying history</a>
+        <a class="nav-sub-item" href="concepts-comparing-histories.html">Comparing histories</a>
         <a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a>
+        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
         <a class="nav-sub-item active" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a>
         <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
       </div>
       <div class="nav-section">
@@ -60,32 +69,98 @@
 
     <section class="doc-section two-col">
       <div>
-        <h2>Source matrix</h2>
+        <p class="eyebrow">Problem</p>
+        <h2>A provider set creates too many pairwise stories.</h2>
         <p>
-          Each matrix cell has a target source and a comparison source. The row
-          source is the target; the column source is the comparison side. That
-          direction matters for residual, missing, lead/lag, and coverage rows.
+          With two providers, it is reasonable to read one comparison result.
+          With five providers, the same question becomes twenty directional
+          comparisons. Looking only at aggregates hides which source was the
+          target, which source was the comparison side, and whether the failure
+          was asymmetric.
+        </p>
+        <p>
+          That direction matters. A residual in provider A versus provider B
+          means A had target-only duration that B did not cover. The opposite
+          cell asks whether B had target-only duration against A. Both cells can
+          be true over different ranges.
+        </p>
+      </div>
+      <div class="state-diagram" aria-label="Directional source matrix with asymmetric cells">
+        <div class="state-row annotated-row">
+          <span class="row-label">A -> B</span>
+          <span class="timeline">
+            <span class="window residual" style="left: 18%; width: 20%"></span>
+            <span class="window overlap" style="left: 38%; width: 26%"></span>
+            <span class="timeline-note note-residual" style="left: 28%">A only</span>
+            <span class="timeline-note note-overlap" style="left: 51%">covered</span>
+          </span>
+        </div>
+        <div class="state-row annotated-row">
+          <span class="row-label">B -> A</span>
+          <span class="timeline">
+            <span class="window overlap" style="left: 38%; width: 26%"></span>
+            <span class="window missing" style="left: 64%; width: 18%"></span>
+            <span class="timeline-note note-overlap" style="left: 51%">covered</span>
+            <span class="timeline-note note-missing" style="left: 73%">B only</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Solution</p>
+        <h2>Build a directional cell for every source pair.</h2>
+        <p>
+          A source matrix keeps source order explicit. Rows are targets. Columns
+          are comparison sources. The diagonal is self-comparison, so it acts as
+          a quick signal that the source had windows for the selected window
+          family. Every non-diagonal cell runs the same overlap, residual,
+          missing, and coverage logic.
         </p>
       </div>
       <div>
         <pre><code>var matrix = pipeline.History.CompareSources(
     "Provider matrix",
     "DeviceOffline",
-    ["provider-a", "provider-b", "provider-c"]);</code></pre>
+    ["provider-a", "provider-b", "provider-c"]);
+
+var weakCells = matrix.Cells
+    .Where(cell =&gt; !cell.IsDiagonal)
+    .Where(cell =&gt; cell.CoverageRatio.GetValueOrDefault(1) &lt; 0.95)
+    .ToArray();</code></pre>
       </div>
     </section>
 
     <section class="doc-section">
       <div class="section-heading">
-        <p class="eyebrow">Reading cells</p>
-        <h2>Direction is part of the result.</h2>
+        <p class="eyebrow">How to read it</p>
+        <h2>Use the cell kind before the number.</h2>
         <p>
-          A residual in row A, column B means A had target-only duration against
-          B. The opposite cell asks the reverse question and can produce a
-          different answer.
+          The matrix is not just a heat map. Read each cell as a compact
+          comparison result, then drill into the underlying rows when a number
+          looks wrong.
         </p>
       </div>
-      <p class="link-line"><a href="concepts-hierarchy.html">Open hierarchy concepts</a></p>
+      <div class="comparison-list">
+        <article><h3>Diagonal cell</h3><p>Shows the source against itself. It is expected to have full coverage when the source has windows, and no target residuals because both sides are the same lane.</p></article>
+        <article><h3>Residual count</h3><p>Duration or row count where the row source was active and the column source was not. This is the main signal for target coverage failure.</p></article>
+        <article><h3>Missing count</h3><p>Duration or row count where the column source was active and the row source was not. This is the reverse disagreement, kept in the same cell so direction is visible.</p></article>
+        <article><h3>Coverage ratio</h3><p>Covered target magnitude divided by total target magnitude for that directional pair. A low ratio says the column source did not cover the row source well enough.</p></article>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Use it for</p>
+        <h2>Provider QA, migration checks, and source drift.</h2>
+        <p>
+          Source matrices are useful when every provider should tell the same
+          state story, or when a new provider is being phased in and must be
+          measured against the established lanes before it becomes trusted.
+        </p>
+      </div>
+      <p class="link-line"><a href="concepts-rollups.html">Next: roll-ups</a></p>
     </section>
   </main>
 

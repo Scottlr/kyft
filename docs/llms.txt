@@ -21,8 +21,10 @@ Overlap, Residual (target-only), Missing (comparison-only), Gap, Coverage, Symme
 - [Overview](https://scottlr.github.io/Spanfold/index.html)
 - [Get started](https://scottlr.github.io/Spanfold/get-started.html)
 - [Use cases](https://scottlr.github.io/Spanfold/use-cases.html)
+- [Concepts](https://scottlr.github.io/Spanfold/concepts.html)
 - [API reference](https://scottlr.github.io/Spanfold/api.html)
-- [Visualiser](https://scottlr.github.io/Spanfold/visualiser.html)
+- [Visual Auditing](https://scottlr.github.io/Spanfold/visualiser.html)
+- [Agentic Auditing](https://scottlr.github.io/Spanfold/llm-context.html)
 - [Comparator reference](https://github.com/Scottlr/Spanfold/blob/main/docs/comparator-reference.md)
 - [Comparison guide](https://github.com/Scottlr/Spanfold/blob/main/docs/comparison-guide.md)
 

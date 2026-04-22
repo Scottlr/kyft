@@ -27,18 +27,25 @@
       <div class="nav-section">
         <span class="nav-title">Docs</span>
         <a href="use-cases.html">Use cases</a>
-        <a href="visualiser.html">Visualiser</a>
-        <a href="llm-context.html">LLM context</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Auditing</span>
+        <a class="nav-sub-item" href="visualiser.html">Visual Auditing</a>
+        <a class="nav-sub-item" href="llm-context.html">Agentic Auditing</a>
       </div>
       <div class="nav-section">
         <span class="nav-title">Concepts</span>
         <a href="concepts.html">Overview</a>
-        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-state-windows.html">State windows</a>
+        <a class="nav-sub-item" href="concepts-temporal-model.html">Temporal model</a>
+        <a class="nav-sub-item" href="concepts-querying-history.html">Querying history</a>
+        <a class="nav-sub-item" href="concepts-comparing-histories.html">Comparing histories</a>
         <a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a>
+        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item active" href="concepts-cohorts.html">Cohorts</a>
         <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
         <a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a>
-        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
       </div>
       <div class="nav-section">
@@ -62,11 +69,13 @@
 
     <section class="doc-section two-col">
       <div>
-        <h2>Use cohort activity rules.</h2>
+        <p class="eyebrow">Problem</p>
+        <h2>Pairwise comparisons overcount group coverage.</h2>
         <p>
-          The cohort lane is active when the configured rule is satisfied over
-          an aligned segment. Evidence metadata records the rule, active count,
-          active sources, and whether the cohort covered that segment.
+          If a target should be covered by any two of three replicas, comparing
+          the target to each replica separately creates three disagreement
+          stories. The real question is whether the group, as a group, satisfied
+          the rule over each segment.
         </p>
       </div>
       <div>
@@ -86,6 +95,55 @@ var uncovered = result
       </div>
     </section>
 
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Solution</p>
+        <h2>Materialize the group as one derived lane.</h2>
+        <p>
+          Spanfold evaluates cohort activity over each aligned segment before
+          residual, missing, coverage, or overlap rows are emitted. The result
+          still exposes evidence metadata: active count, required count, active
+          sources, and whether the cohort lane was active.
+        </p>
+      </div>
+      <div class="state-diagram" aria-label="Cohort activity from member lanes">
+        <div class="state-row annotated-row"><span class="row-label">B</span><span class="timeline"><span class="window target" style="left: 20%; width: 42%"></span></span></div>
+        <div class="state-row annotated-row"><span class="row-label">C</span><span class="timeline"><span class="window compare" style="left: 38%; width: 42%"></span></span></div>
+        <div class="state-row annotated-row"><span class="row-label">Cohort</span><span class="timeline"><span class="window overlap" style="left: 38%; width: 24%"></span><span class="lane-note" style="left: 50%">at least 2</span></span></div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">How it works</p>
+        <h2>The cohort is evaluated segment by segment.</h2>
+        <p>
+          Spanfold first aligns the member source windows into temporal
+          segments. For each segment, it counts active members, applies the
+          cohort rule, records the active sources, and emits a derived against
+          lane. Comparators then run against that derived lane, not against each
+          member individually.
+        </p>
+      </div>
+      <div class="quick-timeline" aria-label="Cohort member windows becoming one derived lane">
+        <div class="quick-row annotated-quick-row">
+          <span>members</span>
+          <span class="quick-track"><span class="quick-window target" style="left: 16%; width: 30%"></span><span class="quick-window compare" style="left: 34%; width: 34%"></span><span class="quick-note" style="left: 43%">two active</span></span>
+          <span>source evidence</span>
+        </div>
+        <div class="quick-row annotated-quick-row">
+          <span>rule</span>
+          <span class="quick-track"><span class="quick-window residual" style="left: 34%; width: 12%"></span><span class="quick-window overlap" style="left: 46%; width: 22%"></span><span class="quick-note" style="left: 57%">at least 2</span></span>
+          <span>activity test</span>
+        </div>
+        <div class="quick-row annotated-quick-row">
+          <span>cohort</span>
+          <span class="quick-track"><span class="quick-window overlap" style="left: 46%; width: 22%"></span><span class="quick-note" style="left: 57%">derived lane</span></span>
+          <span>compare once</span>
+        </div>
+      </div>
+    </section>
+
     <section class="doc-section">
       <div class="section-heading">
         <p class="eyebrow">Rules</p>
@@ -94,9 +152,50 @@ var uncovered = result
       <div class="card-grid four">
         <article><h3>Any</h3><p>At least one member source makes the cohort active.</p></article>
         <article><h3>All</h3><p>Every declared member must be active.</p></article>
+        <article><h3>None</h3><p>No member source may be active.</p></article>
         <article><h3>At least</h3><p>A quorum-style minimum active count.</p></article>
+        <article><h3>At most</h3><p>A ceiling on how many members may be active.</p></article>
         <article><h3>Exactly</h3><p>A precise active count for strict agreement rules.</p></article>
       </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Evidence</p>
+        <h2>Keep the group decision explainable.</h2>
+        <p>
+          Cohort rows carry metadata that explains why the derived lane was
+          active or inactive. That metadata is useful when a quorum fails: it
+          shows the rule, required count, observed active count, and member
+          sources that contributed to the segment.
+        </p>
+      </div>
+      <div>
+        <pre><code>var inactiveSegments = result.CohortEvidence()
+    .Where(evidence =&gt; !evidence.IsActive)
+    .Select(evidence =&gt; new
+    {
+        evidence.Rule,
+        evidence.RequiredCount,
+        evidence.ActiveCount,
+        evidence.ActiveSources
+    })
+    .ToArray();</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Use it for</p>
+        <h2>Quorum, fallback coverage, and group consensus.</h2>
+        <p>
+          Use cohorts when the comparison side is a policy over many sources:
+          any fallback can cover the primary, all checks must agree before a
+          release gate passes, no source may report an unsafe condition, or at
+          least two replicas must confirm a state before it is trusted.
+        </p>
+      </div>
+      <p class="link-line"><a href="concepts-source-matrix.html">Next: source matrix</a></p>
     </section>
   </main>
 

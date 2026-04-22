@@ -20,19 +20,25 @@
     </button>
     <nav class="nav" aria-label="Primary navigation">
       <div class="nav-section"><span class="nav-title">Start</span><a href="index.html">Overview</a><a href="get-started.html">Get started</a></div>
-      <div class="nav-section"><span class="nav-title">Docs</span><a href="use-cases.html">Use cases</a><a href="visualiser.html">Visualiser</a><a href="llm-context.html">LLM context</a></div>
+      <div class="nav-section"><span class="nav-title">Docs</span><a href="use-cases.html">Use cases</a></div>
+      <div class="nav-section"><span class="nav-title">Auditing</span><a class="nav-sub-item" href="visualiser.html">Visual Auditing</a><a class="nav-sub-item" href="llm-context.html">Agentic Auditing</a></div>
       <div class="nav-section">
         <span class="nav-title">Concepts</span>
         <a href="concepts.html">Overview</a>
-        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-state-windows.html">State windows</a>
+        <a class="nav-sub-item" href="concepts-temporal-model.html">Temporal model</a>
+        <a class="nav-sub-item" href="concepts-querying-history.html">Querying history</a>
+        <a class="nav-sub-item" href="concepts-comparing-histories.html">Comparing histories</a>
         <a class="nav-sub-item active" href="concepts-segments.html">Segments and tags</a>
+        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
         <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
         <a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a>
-        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
       </div>
-      <div class="nav-section"><span class="nav-title">Reference</span><a href="api.html">API</a><a href="https://github.com/Scottlr/spanfold">GitHub</a></div>
+      <div class="nav-section">
+        <span class="nav-title">Reference</span><a href="api.html">API</a><a href="https://github.com/Scottlr/spanfold">GitHub</a></div>
     </nav>
   </header>
 
@@ -49,11 +55,31 @@
 
     <section class="doc-section two-col">
       <div>
-        <h2>Segments create boundaries.</h2>
+        <p class="eyebrow">Problem</p>
+        <h2>Not every label should become a new key.</h2>
         <p>
-          Use segments for lifecycle, phase, market, deployment, region, or
-          period values that must be scoped or compared as separate intervals.
-          Nested segments let one dimension sit under another.
+          Operational state often changes context while staying active. A device
+          can remain offline while an incident moves from triage to escalated.
+          If that context matters analytically, one long window is too coarse.
+          If it does not create a boundary, splitting the window creates noise.
+        </p>
+      </div>
+      <div>
+        <div class="state-diagram" aria-label="Segment value splitting one active window">
+          <div class="state-row annotated-row"><span class="row-label">State</span><span class="timeline"><span class="window target" style="left: 14%; width: 68%"></span><span class="lane-note" style="left: 48%">offline</span></span></div>
+          <div class="state-row annotated-row"><span class="row-label">Segment</span><span class="timeline"><span class="window compare" style="left: 14%; width: 34%"></span><span class="window residual" style="left: 48%; width: 34%"></span><span class="lane-note" style="left: 31%">triage</span><span class="lane-note" style="left: 65%">escalated</span></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Solution</p>
+        <h2>Use partitions, segments, and tags for different jobs.</h2>
+        <p>
+          Partition isolates runtime state. Segment changes split an active
+          window and can be used in comparison scope. Tags attach descriptive
+          metadata without creating a boundary.
         </p>
       </div>
       <div>
@@ -68,10 +94,71 @@
     </section>
 
     <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">How it works</p>
+        <h2>Segment changes close and reopen the active range.</h2>
+        <p>
+          A segment is not just a label. It participates in the window boundary.
+          If the active predicate stays true but the segment value changes,
+          Spanfold closes the old active window and opens a new one with the new
+          segment value. Tags do not do that; they describe the window without
+          changing the interval shape.
+        </p>
+      </div>
+      <div class="quick-timeline" aria-label="Segment changes split windows while tags remain metadata">
+        <div class="quick-row annotated-quick-row">
+          <span>predicate</span>
+          <span class="quick-track"><span class="quick-window target" style="left: 14%; width: 68%"></span><span class="quick-note" style="left: 48%">offline remains true</span></span>
+          <span>one truth span</span>
+        </div>
+        <div class="quick-row annotated-quick-row">
+          <span>segment</span>
+          <span class="quick-track"><span class="quick-window compare" style="left: 14%; width: 34%"></span><span class="quick-window residual" style="left: 48%; width: 34%"></span><span class="quick-note" style="left: 31%">triage</span><span class="quick-note" style="left: 65%">escalated</span></span>
+          <span>two windows</span>
+        </div>
+        <div class="quick-row annotated-quick-row">
+          <span>tag</span>
+          <span class="quick-track"><span class="quick-window overlap" style="left: 14%; width: 68%"></span><span class="quick-note" style="left: 48%">fleet = critical</span></span>
+          <span>metadata only</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Definitions</p>
+        <h2>Choose the smallest concept that carries the meaning.</h2>
+      </div>
       <div class="comparison-list">
-        <article><h3>Partition</h3><p>Isolates runtime state. It decides which state machine receives an event.</p></article>
-        <article><h3>Segment</h3><p>Splits windows and can be used in comparison scope filters.</p></article>
-        <article><h3>Tag</h3><p>Describes a window without splitting it, useful for filters and export context.</p></article>
+        <article><h3>Partition</h3><p>Isolates runtime state. It decides which state machine receives an event and prevents unrelated entities or lanes from mutating the same active window.</p></article>
+        <article><h3>Segment</h3><p>Splits windows when context changes. Use it for phases, lifecycle, market, deployment, or period boundaries that must be compared independently.</p></article>
+        <article><h3>Tag</h3><p>Describes a window without splitting it. Use it for fleet, customer, region, build number, or other metadata that should travel into exports and filters.</p></article>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Example</p>
+        <h2>Filter comparisons by the context that changes the answer.</h2>
+        <p>
+          Once segments and tags are recorded, they can be used in history
+          queries, comparison scope, roll-up projection, and exports. Use
+          segments when the answer should be measured inside a phase. Use tags
+          when the same window should be discoverable by descriptive metadata.
+        </p>
+      </div>
+      <div>
+        <pre><code>var escalatedCritical = pipeline.History
+    .Compare("Escalated critical fleet QA")
+    .Target("primary", s =&gt; s.Source("primary"))
+    .Against("backup", s =&gt; s.Source("backup"))
+    .Within(scope =&gt; scope
+        .Window("DeviceOffline")
+        .Segment("lifecycle", "Incident")
+        .Segment("stage", "Escalated")
+        .Tag("fleet", "critical"))
+    .Using(c =&gt; c.Overlap().Residual().Missing())
+    .Run();</code></pre>
       </div>
     </section>
   </main>

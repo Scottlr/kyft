@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Spanfold LLM context export for agents that need full temporal comparison data, row evidence, and deterministic analysis context.">
-  <title>Spanfold LLM context export</title>
+  <meta name="description" content="Spanfold agentic auditing context export for agents that need full temporal comparison data, row evidence, and deterministic analysis context.">
+  <title>Spanfold agentic auditing</title>
   <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -27,18 +27,25 @@
       <div class="nav-section">
         <span class="nav-title">Docs</span>
         <a href="use-cases.html">Use cases</a>
-        <a href="visualiser.html">Visualiser</a>
-        <a class="active" href="llm-context.html">LLM context</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Auditing</span>
+        <a class="nav-sub-item" href="visualiser.html">Visual Auditing</a>
+        <a class="nav-sub-item active" href="llm-context.html">Agentic Auditing</a>
       </div>
       <div class="nav-section">
         <span class="nav-title">Concepts</span>
         <a href="concepts.html">Overview</a>
-        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-state-windows.html">State windows</a>
+        <a class="nav-sub-item" href="concepts-temporal-model.html">Temporal model</a>
+        <a class="nav-sub-item" href="concepts-querying-history.html">Querying history</a>
+        <a class="nav-sub-item" href="concepts-comparing-histories.html">Comparing histories</a>
         <a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a>
+        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
         <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
         <a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a>
-        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
       </div>
       <div class="nav-section">
@@ -60,10 +67,10 @@
       </div>
     </div>
     <section class="page-hero compact">
-      <p class="eyebrow">LLM context</p>
+      <p class="eyebrow">Agentic Auditing</p>
       <h1>Export the full comparison context for agents.</h1>
       <p class="lead">
-        The visualiser is for humans. LLM context is for agents: a deterministic
+        Visual auditing is for humans. Agentic auditing is for agents: a deterministic
         JSON artifact with analysis instructions, a compact summary, Markdown
         orientation, the full result data, and row documents for chunked review.
       </p>

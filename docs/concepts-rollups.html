@@ -27,18 +27,25 @@
       <div class="nav-section">
         <span class="nav-title">Docs</span>
         <a href="use-cases.html">Use cases</a>
-        <a href="visualiser.html">Visualiser</a>
-        <a href="llm-context.html">LLM context</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Auditing</span>
+        <a class="nav-sub-item" href="visualiser.html">Visual Auditing</a>
+        <a class="nav-sub-item" href="llm-context.html">Agentic Auditing</a>
       </div>
       <div class="nav-section">
         <span class="nav-title">Concepts</span>
         <a href="concepts.html">Overview</a>
-        <a class="nav-sub-item active" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-state-windows.html">State windows</a>
+        <a class="nav-sub-item" href="concepts-temporal-model.html">Temporal model</a>
+        <a class="nav-sub-item" href="concepts-querying-history.html">Querying history</a>
+        <a class="nav-sub-item" href="concepts-comparing-histories.html">Comparing histories</a>
         <a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a>
+        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
         <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item active" href="concepts-rollups.html">Roll-ups</a>
         <a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a>
-        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
       </div>
       <div class="nav-section">
@@ -62,11 +69,36 @@
 
     <section class="doc-section two-col">
       <div>
-        <h2>When to use a roll-up</h2>
+        <p class="eyebrow">Problem</p>
+        <h2>Parent state is often implied by child state.</h2>
         <p>
-          Use roll-ups when the parent state is defined by child activity: any
-          device offline makes a zone offline, all checks passing makes a stage
-          healthy, or two replicas active make a service available.
+          A zone may be offline because any device in it is offline. A region
+          may be impacted because any zone is impacted. If every parent state is
+          recalculated later in a separate reporting query, the parent timeline
+          can drift away from the child evidence that created it.
+        </p>
+        <p>
+          Roll-ups record the parent state at the same temporal level as the
+          child state. That means parent windows can be queried, compared,
+          exported, and explained with the same APIs.
+        </p>
+      </div>
+      <div class="state-diagram" aria-label="Child windows rolling up to parent windows">
+        <div class="state-row annotated-row"><span class="row-label">Device 1</span><span class="timeline"><span class="window target" style="left: 16%; width: 32%"></span><span class="lane-note" style="left: 32%">offline</span></span></div>
+        <div class="state-row annotated-row"><span class="row-label">Device 2</span><span class="timeline"><span class="window compare" style="left: 44%; width: 32%"></span><span class="lane-note" style="left: 60%">offline</span></span></div>
+        <div class="state-row annotated-row"><span class="row-label">Zone</span><span class="timeline"><span class="window overlap" style="left: 16%; width: 60%"></span><span class="lane-note" style="left: 46%">any child active</span></span></div>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Solution</p>
+        <h2>Declare parent activity from child contribution windows.</h2>
+        <p>
+          A roll-up watches the child windows produced by the pipeline and opens
+          a parent window when the child aggregate satisfies the rule. The rule
+          can be simple, such as active count greater than zero, or it can
+          represent quorum, threshold, or health logic.
         </p>
       </div>
       <div>
@@ -92,8 +124,32 @@
 
     <section class="doc-section">
       <div class="section-heading">
+        <p class="eyebrow">Mechanics</p>
+        <h2>A roll-up is still a normal window.</h2>
+        <p>
+          Once created, the parent window is not a special report-only object.
+          It has a window name, key, source, partition, temporal range, and
+          segment context. That is what lets later concept layers reuse it.
+        </p>
+      </div>
+      <div class="comparison-list">
+        <article><h3>Child contribution</h3><p>Each child window contributes active or inactive evidence inside the parent key selected by the roll-up key expression.</p></article>
+        <article><h3>Parent predicate</h3><p>The roll-up rule evaluates the child aggregate, such as active count, required count, or another domain-specific threshold.</p></article>
+        <article><h3>Parent window</h3><p>When the predicate is true, Spanfold records a parent window that can be compared just like a directly recorded child window.</p></article>
+        <article><h3>Chained roll-ups</h3><p>A parent window can feed another parent level, such as device to zone to region, without changing how downstream comparisons work.</p></article>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
         <p class="eyebrow">Segment projection</p>
         <h2>Choose which child context survives at parent level.</h2>
+        <p>
+          Segment projection is the important design choice. Preserving every
+          child segment can make parent windows too fragmented. Dropping all
+          segments can make the parent impossible to explain. Project only the
+          context that still changes the parent-level question.
+        </p>
       </div>
       <div class="capability-list">
         <div>
@@ -113,6 +169,7 @@
           <span>Normalize segment values before they are emitted on the parent roll-up.</span>
         </div>
       </div>
+      <p class="link-line"><a href="concepts-hierarchy.html">Next: hierarchy</a></p>
     </section>
   </main>
 

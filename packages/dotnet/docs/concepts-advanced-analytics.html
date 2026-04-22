@@ -27,18 +27,25 @@
       <div class="nav-section">
         <span class="nav-title">Docs</span>
         <a href="use-cases.html">Use cases</a>
-        <a href="visualiser.html">Visualiser</a>
-        <a href="llm-context.html">LLM context</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Auditing</span>
+        <a class="nav-sub-item" href="visualiser.html">Visual Auditing</a>
+        <a class="nav-sub-item" href="llm-context.html">Agentic Auditing</a>
       </div>
       <div class="nav-section">
         <span class="nav-title">Concepts</span>
         <a href="concepts.html">Overview</a>
-        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-state-windows.html">State windows</a>
+        <a class="nav-sub-item" href="concepts-temporal-model.html">Temporal model</a>
+        <a class="nav-sub-item" href="concepts-querying-history.html">Querying history</a>
+        <a class="nav-sub-item" href="concepts-comparing-histories.html">Comparing histories</a>
         <a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a>
+        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
         <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
         <a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a>
-        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
         <a class="nav-sub-item active" href="concepts-advanced-analytics.html">Advanced analytics</a>
       </div>
       <div class="nav-section">
@@ -62,27 +69,157 @@
 
     <section class="doc-section two-col">
       <div>
-        <h2>Compose comparator rows.</h2>
+        <p class="eyebrow">Problem</p>
+        <h2>Advanced questions usually start as interval joins.</h2>
         <p>
-          Start with overlap and residual, then add the rows needed for the
-          incident, audit, or quality report. Each row keeps record ids and
-          temporal ranges so the result can be exported and inspected later.
+          A provider comparison, SLA audit, or incident review rarely needs one
+          number. It needs to know which source was active, which source was
+          silent, which ranges overlapped, where coverage disappeared, and what
+          was knowable when a decision was made.
         </p>
       </div>
       <div>
-        <pre><code>var result = pipeline.History
+        <p>
+          Hand-written interval joins tend to mix those concerns together:
+          filtering, clipping, source alignment, null handling, row labeling,
+          finality, and summary math all end up in one query. Spanfold keeps the
+          interpretation step separate. First record windows with stable ids and
+          context. Then compose comparator row families over those windows.
+        </p>
+        <p>
+          The result is still granular. Coverage ratios and lead/lag summaries
+          are derived from rows that carry the original window ids, ranges,
+          source names, segments, tags, and finality.
+        </p>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Journey</p>
+        <h2>From source windows to decision rows.</h2>
+        <p>
+          The advanced analytics flow is deliberately staged: select the two
+          sides, normalize them onto a temporal axis, align the ranges, emit the
+          row families needed by the decision, then aggregate only after the
+          evidence rows exist.
+        </p>
+      </div>
+
+      <div class="diagram-grid">
+        <article class="diagram-card">
+          <h3>1. Align lanes</h3>
+          <div class="state-diagram" aria-label="Target and comparison windows before analytics">
+            <div class="state-row annotated-row">
+              <span class="row-label">Target</span>
+              <span class="timeline">
+                <span class="window target" style="left: 12%; width: 48%"></span>
+                <span class="lane-note" style="left: 36%">primary active</span>
+              </span>
+            </div>
+            <div class="state-row annotated-row">
+              <span class="row-label">Against</span>
+              <span class="timeline">
+                <span class="window compare" style="left: 32%; width: 46%"></span>
+                <span class="lane-note" style="left: 55%">backup active</span>
+              </span>
+            </div>
+          </div>
+          <p>
+            Select source, key, window, segment, and tag scope before asking any
+            analytic question.
+          </p>
+        </article>
+
+        <article class="diagram-card">
+          <h3>2. Emit evidence</h3>
+          <div class="state-diagram" aria-label="Derived overlap residual and missing rows">
+            <div class="state-row annotated-row">
+              <span class="row-label">Rows</span>
+              <span class="timeline">
+                <span class="window residual" style="left: 12%; width: 20%"></span>
+                <span class="window overlap" style="left: 32%; width: 28%"></span>
+                <span class="window missing" style="left: 60%; width: 18%"></span>
+                <span class="timeline-note note-residual" style="left: 22%">residual</span>
+                <span class="timeline-note note-overlap" style="left: 46%">overlap</span>
+                <span class="timeline-note note-missing" style="left: 69%">missing</span>
+              </span>
+            </div>
+            <div class="state-row annotated-row">
+              <span class="row-label">Timing</span>
+              <span class="timeline">
+                <span class="point" style="left: 12%"></span>
+                <span class="point ok" style="left: 32%"></span>
+                <span class="lane-note" style="left: 22%">target leads</span>
+              </span>
+            </div>
+          </div>
+          <p>
+            Comparator rows name the kind of evidence rather than hiding it
+            inside a single aggregate.
+          </p>
+        </article>
+
+        <article class="diagram-card">
+          <h3>3. Clip live state</h3>
+          <div class="state-diagram" aria-label="Open window clipped at a live horizon">
+            <div class="state-row annotated-row">
+              <span class="row-label">Open</span>
+              <span class="timeline">
+                <span class="window dashed" style="left: 24%; width: 58%"></span>
+                <span class="horizon" style="left: 82%"></span>
+                <span class="lane-note" style="left: 55%">still active</span>
+              </span>
+            </div>
+            <div class="state-row annotated-row">
+              <span class="row-label">Result</span>
+              <span class="timeline">
+                <span class="window overlap" style="left: 24%; width: 58%"></span>
+                <span class="horizon" style="left: 82%"></span>
+                <span class="lane-note" style="left: 55%">provisional</span>
+              </span>
+            </div>
+          </div>
+          <p>
+            Live runs evaluate open windows at a declared horizon and mark rows
+            whose answer can still change.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Solution</p>
+        <h2>Compose the evidence rows you need.</h2>
+        <p>
+          Start with the row families that answer the business question. Add
+          overlap when you need agreement, residual when the target must be
+          covered, missing when the comparison source reported something the
+          target did not, and coverage or gap rows when the output must roll up
+          into a threshold.
+        </p>
+      </div>
+      <div>
+        <pre><code>var qa = pipeline.History
     .Compare("Provider QA")
-    .Target("provider-a", selector =&gt; selector.Source("provider-a"))
-    .Against("provider-b", selector =&gt; selector.Source("provider-b"))
-    .Within(scope =&gt; scope.Window("DeviceOffline"))
-    .Using(comparators =&gt; comparators
+    .Target("provider-a", s =&gt; s.Source("provider-a"))
+    .Against("provider-b", s =&gt; s.Source("provider-b"))
+    .Within(scope =&gt; scope
+        .Window("DeviceOffline")
+        .Tag("region", "eu-west"))
+    .Normalize(n =&gt; n.RequireClosedWindows().OnPosition())
+    .Using(c =&gt; c
         .Overlap()
         .Residual()
         .Missing()
         .Coverage()
         .Gap()
         .Containment()
-        .Declaration("lead-lag:Start:ProcessingPosition:5"))
+        .LeadLag(
+            LeadLagTransition.Start,
+            TemporalAxis.ProcessingPosition,
+            toleranceMagnitude: 5))
     .Run();</code></pre>
       </div>
     </section>
@@ -90,42 +227,46 @@
     <section class="doc-section">
       <div class="section-heading">
         <p class="eyebrow">Analytics</p>
-        <h2>Choose the result family that matches the decision.</h2>
+        <h2>Choose the row family that matches the decision.</h2>
       </div>
       <div class="comparison-list">
-        <article><h3>Coverage and gaps</h3><p>Measure how much target activity was covered and where expected coverage disappeared.</p></article>
-        <article><h3>Containment</h3><p>Classify whether one side fully contains, partly contains, or misses the other side's active windows.</p></article>
-        <article><h3>Lead and lag</h3><p>Compare start or end transitions and summarize whether the target led or lagged the comparison side.</p></article>
-        <article><h3>As-of</h3><p>Evaluate what matched at a specific decision point without leaking future evidence into the answer.</p></article>
-        <article><h3>Live finality</h3><p>Clip open windows to a horizon and keep provisional rows separate from final rows.</p></article>
+        <article><h3>Coverage</h3><p>Use when the target should have been backed by another source. Coverage rows support ratios such as covered magnitude divided by target magnitude, while preserving the ranges that contributed to the number.</p></article>
+        <article><h3>Gaps</h3><p>Use when absence is the failure mode. Gap rows isolate uncovered spans so alerts and audits can point to concrete start and end positions rather than just a failed percentage.</p></article>
+        <article><h3>Containment</h3><p>Use when one side is expected to fully wrap another, such as a maintenance window containing a provider outage or a parent state containing child activity.</p></article>
+        <article><h3>Lead and lag</h3><p>Use when transition timing matters. Compare starts or ends on processing position or event time, apply a tolerance, and classify whether the target led, lagged, or matched.</p></article>
+        <article><h3>As-of</h3><p>Use for audits and replay. Evaluate the previous or next matching window at a decision point after applying known-at normalization, so future evidence does not leak into the answer.</p></article>
+        <article><h3>Live finality</h3><p>Use when open windows are part of the answer. Clip them to a horizon and keep provisional rows visibly separate from final rows in exports and summaries.</p></article>
       </div>
     </section>
 
     <section class="doc-section">
       <div class="section-heading">
         <p class="eyebrow">Examples</p>
-        <h2>Common advanced analysis patterns.</h2>
+        <h2>Turn evidence rows into operational answers.</h2>
       </div>
       <div class="code-grid">
         <article>
           <h3>Coverage threshold</h3>
-          <pre><code>var result = pipeline.History
-    .Compare("Coverage SLA")
+          <pre><code>var coverage = pipeline.History
+    .Compare("Backup coverage SLA")
     .Target("primary", s =&gt; s.Source("primary"))
     .Against("backup", s =&gt; s.Source("backup"))
     .Within(scope =&gt; scope.Window("DeviceOffline"))
     .Using(c =&gt; c.Coverage().Gap())
     .Run();
 
-var coverageRatio = result.CoverageRows.TotalCoveredMagnitude()
-    / result.CoverageRows.TotalTargetMagnitude();
+var covered = coverage.CoverageRows.TotalCoveredMagnitude();
+var expected = coverage.CoverageRows.TotalTargetMagnitude();
+var ratio = expected == 0 ? 1d : (double)covered / expected;
 
-var gapLength = result.GapRows.TotalPositionLength();</code></pre>
+var longestGap = coverage.GapRows
+    .OrderByDescending(row =&gt; row.Range.GetPositionLength())
+    .FirstOrDefault();</code></pre>
         </article>
         <article>
-          <h3>Lead/lag tolerance</h3>
+          <h3>Transition drift</h3>
           <pre><code>var timing = pipeline.History
-    .Compare("Provider timing")
+    .Compare("Provider start drift")
     .Target("provider-a", s =&gt; s.Source("provider-a"))
     .Against("provider-b", s =&gt; s.Source("provider-b"))
     .Within(scope =&gt; scope.Window("DeviceOffline"))
@@ -136,13 +277,14 @@ var gapLength = result.GapRows.TotalPositionLength();</code></pre>
     .Run();
 
 var lateStarts = timing.LeadLagRows
-    .Where(row =&gt; row.Direction == LeadLagDirection.TargetLags);</code></pre>
+    .Where(row =&gt; row.Direction == LeadLagDirection.TargetLags)
+    .ToArray();</code></pre>
         </article>
       </div>
 
       <div class="code-grid stacked-code">
         <article>
-          <h3>As-of audit</h3>
+          <h3>Point-in-time audit</h3>
           <pre><code>var audit = pipeline.History
     .Compare("Decision audit")
     .Target("decision", s =&gt; s.Source("decision-service"))
@@ -153,21 +295,25 @@ var lateStarts = timing.LeadLagRows
         AsOfDirection.Previous,
         TemporalAxis.ProcessingPosition,
         toleranceMagnitude: 10))
-    .Run();</code></pre>
+    .Run();
+
+var decisionEvidence = audit.AsOfRows
+    .Where(row =&gt; row.TargetPoint.Position == 42);</code></pre>
         </article>
         <article>
-          <h3>Symmetric difference</h3>
-          <pre><code>var divergence = pipeline.History
-    .Compare("Provider divergence")
+          <h3>Live dashboard export</h3>
+          <pre><code>var horizon = TemporalPoint.ForPosition(1_250);
+
+var live = pipeline.History
+    .Compare("Current provider QA")
     .Target("provider-a", s =&gt; s.Source("provider-a"))
     .Against("provider-b", s =&gt; s.Source("provider-b"))
     .Within(scope =&gt; scope.Window("DeviceOffline"))
-    .Using(c =&gt; c.SymmetricDifference().Containment())
-    .Run();
+    .Normalize(n =&gt; n.ClipOpenWindowsTo(horizon))
+    .Using(c =&gt; c.Overlap().Residual().Missing())
+    .RunLive(horizon);
 
-var totalDisagreement = divergence
-    .SymmetricDifferenceRows
-    .TotalPositionLength();</code></pre>
+var provisionalRows = live.ProvisionalRowFinalities();</code></pre>
         </article>
       </div>
     </section>

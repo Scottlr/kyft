@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spanfold state window concepts: why latest state is not enough, how active predicates become temporal windows, and what each recorded window contains.">
+  <title>Spanfold state windows</title>
+  <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-language="csharp">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+    <nav class="nav" aria-label="Primary navigation">
+      <div class="nav-section">
+        <span class="nav-title">Start</span>
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Docs</span>
+        <a href="use-cases.html">Use cases</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Auditing</span>
+        <a class="nav-sub-item" href="visualiser.html">Visual Auditing</a>
+        <a class="nav-sub-item" href="llm-context.html">Agentic Auditing</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Concepts</span>
+        <a href="concepts.html">Overview</a>
+        <a class="nav-sub-item active" href="concepts-state-windows.html">State windows</a>
+        <a class="nav-sub-item" href="concepts-temporal-model.html">Temporal model</a>
+        <a class="nav-sub-item" href="concepts-querying-history.html">Querying history</a>
+        <a class="nav-sub-item" href="concepts-comparing-histories.html">Comparing histories</a>
+        <a class="nav-sub-item" href="concepts-segments.html">Segments and tags</a>
+        <a class="nav-sub-item" href="concepts-live-finality.html">Live finality</a>
+        <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
+        <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-hierarchy.html">Hierarchy</a>
+        <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Reference</span>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero compact">
+      <p class="eyebrow">Concepts</p>
+      <h1>State windows are the unit of evidence.</h1>
+      <p class="lead">
+        A latest-state table tells you what is true now. A state window tells
+        you when a predicate was true, for which key, from which source, and
+        with what context. Everything else in Spanfold builds on that record.
+      </p>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Problem</p>
+        <h2>Latest state erases the shape of the incident.</h2>
+        <p>
+          If a device is healthy now, a latest-state table cannot show that it
+          was offline earlier, which provider saw it, how long it lasted, or
+          whether another provider missed it. That missing duration is usually
+          the evidence needed for debugging, audit, and quality checks.
+        </p>
+      </div>
+      <div class="state-diagram" aria-label="Events becoming a state window">
+        <div class="state-row annotated-row">
+          <span class="row-label">Events</span>
+          <span class="timeline">
+            <span class="point" style="left: 22%"></span>
+            <span class="point ok" style="left: 62%"></span>
+            <span class="lane-note" style="left: 22%">offline</span>
+            <span class="lane-note" style="left: 62%">online</span>
+          </span>
+        </div>
+        <div class="state-row annotated-row">
+          <span class="row-label">Window</span>
+          <span class="timeline">
+            <span class="window target" style="left: 22%; width: 40%"></span>
+            <span class="lane-note" style="left: 42%">active range</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Solution</p>
+        <h2>Record predicate truth as a half-open range.</h2>
+        <p>
+          A window opens when the active predicate becomes true for a key and
+          closes when it becomes false. Think of it as <code>[start, end)</code>:
+          active at the start point and no longer active at the end point. That
+          convention lets touching windows line up without overlapping by one
+          unit.
+        </p>
+      </div>
+      <div>
+        <pre><code>var pipeline = Spanfold.Spanfold
+    .For&lt;DeviceSignal&gt;()
+    .RecordWindows()
+    .Window("DeviceOffline", window =&gt; window
+        .Key(signal =&gt; signal.DeviceId)
+        .ActiveWhen(signal =&gt; !signal.IsOnline))
+    .Build();</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">What is stored</p>
+        <h2>A window carries identity, time, and context.</h2>
+      </div>
+      <div class="comparison-list">
+        <article><h3>Window name and key</h3><p>The state family and logical entity, such as <code>DeviceOffline</code> for <code>device-17</code>.</p></article>
+        <article><h3>Source and partition</h3><p>The lane that reported the state and the runtime partition that owns its state machine.</p></article>
+        <article><h3>Temporal range</h3><p>Processing positions or timestamps for the start and end of active state.</p></article>
+        <article><h3>Segments and tags</h3><p>Boundary context and descriptive metadata preserved for later filtering, comparison, and export.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Spanfold</span>
+    <a href="concepts-temporal-model.html">Next: temporal model</a>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+  <script src="syntax.js"></script>
+  <script src="language.js"></script>
+</body>
+</html>
