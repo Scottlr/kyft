@@ -48,10 +48,10 @@ a {
   z-index: 20;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-start;
   width: var(--sidebar-width);
-  padding: 24px 18px;
+  padding: 24px 16px;
   overflow-y: auto;
   border-right: 1px solid var(--line);
   background: var(--sidebar-bg);
@@ -59,15 +59,19 @@ a {
 }
 
 .brand {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: flex-start;
   flex: 0 0 auto;
+  width: 100%;
+  padding: 0 8px 18px;
+  border-bottom: 1px solid rgba(197, 187, 170, 0.72);
   text-decoration: none;
 }
 
 .brand img {
   display: block;
-  width: 166px;
+  width: 154px;
   height: auto;
 }
 
@@ -75,85 +79,48 @@ a {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-top: 28px;
-  gap: 2px;
+  margin-top: 18px;
+  gap: 18px;
   color: var(--muted);
   font-size: 14px;
 }
 
-.nav-group {
-  border-top: 1px solid rgba(197, 187, 170, 0.7);
-  padding: 7px 0;
+.nav-section {
+  display: grid;
+  gap: 4px;
 }
 
-.nav-group:first-child {
-  border-top: 0;
-}
-
-.nav-group summary {
-  display: flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 6px 9px;
-  border-radius: 6px;
+.nav-title {
+  padding: 0 8px 5px;
   color: var(--green);
-  cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 850;
   letter-spacing: 0;
-  list-style: none;
   text-transform: uppercase;
-  transition: background 120ms ease, color 120ms ease;
 }
 
-.nav-group summary::-webkit-details-marker {
-  display: none;
-}
-
-.nav-group summary::after {
-  margin-left: auto;
-  color: var(--muted);
-  content: "+";
-  font-size: 16px;
-  line-height: 1;
-}
-
-.nav-group[open] summary::after {
-  content: "-";
-}
-
-.nav-group summary:hover {
-  background: var(--surface);
-}
-
-.nav-group a {
+.nav a {
   display: flex;
   align-items: center;
   min-height: 34px;
-  padding: 6px 9px;
+  padding: 6px 8px;
   border-radius: 6px;
+  color: var(--muted);
+  line-height: 1.25;
   text-decoration: none;
   transition: background 120ms ease, color 120ms ease;
 }
 
-.nav-group a:hover {
+.nav a:hover,
+.nav a.active {
   background: var(--surface);
+  color: var(--ink);
 }
 
-.nav-child {
-  padding-left: 24px !important;
-  font-size: 13px;
+.nav a.active {
+  box-shadow: inset 3px 0 0 var(--green);
 }
 
-.nav-child::before {
-  display: inline-block;
-  width: 8px;
-  margin-right: 8px;
-  border-top: 1px solid var(--line-strong);
-  content: "";
-}
-
-.nav-group a:hover,
 .summary-list a:hover strong {
   color: var(--green);
 }
@@ -250,8 +217,8 @@ body[data-language="python"] .language-panel[data-language="python"] {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 0.7fr);
-  gap: 44px;
+  grid-template-columns: minmax(0, 0.82fr) minmax(420px, 0.78fr);
+  gap: 34px;
   align-items: center;
 }
 
@@ -266,6 +233,53 @@ body[data-language="python"] .language-panel[data-language="python"] {
 .hero-graph p {
   margin: 18px 0 0;
   font-size: 14px;
+}
+
+.install-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.install-card-header {
+  margin-bottom: 14px;
+}
+
+.install-card h2 {
+  margin-bottom: 0;
+  font-size: 24px;
+}
+
+.install-methods {
+  display: grid;
+  gap: 10px;
+}
+
+.install-methods article {
+  min-width: 0;
+}
+
+.install-methods h3 {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.install-methods pre {
+  border: 1px solid rgba(22, 22, 20, 0.1);
+  border-radius: 6px;
+}
+
+.install-methods pre code {
+  padding: 11px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .graph-row {
@@ -990,7 +1004,25 @@ pre code {
   .nav {
     flex-flow: row wrap;
     margin-top: 16px;
-    gap: 6px;
+    gap: 8px;
+  }
+
+  .brand {
+    width: auto;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .brand img {
+    width: 146px;
+  }
+
+  .nav-section {
+    display: contents;
+  }
+
+  .nav-title {
+    display: none;
   }
 
   .nav a {
@@ -999,17 +1031,8 @@ pre code {
     background: var(--surface);
   }
 
-  .nav-group {
-    border-top: 0;
-    padding: 0;
-  }
-
-  .nav-group summary {
-    background: var(--surface);
-  }
-
-  .nav-group[open] {
-    flex-basis: 100%;
+  .nav a.active {
+    box-shadow: inset 0 -2px 0 var(--green);
   }
 
   main,
