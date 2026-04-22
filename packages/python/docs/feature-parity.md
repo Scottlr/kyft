@@ -11,7 +11,10 @@
 - Source-window rollups, nested rollups, and rollup segment projection.
 - Parent/child hierarchy comparison summaries.
 - Direct history query API.
+- C#-compatible direct overlap and residual history helpers.
+- Snapshot records and snapshot query materializers.
 - Window group summaries by segment and tag.
+- Pipeline metadata for configured window and rollup names.
 - Known-at annotations.
 - Liveness helpers for heartbeat, silence, and stale lanes.
 - Directional source matrix helper.

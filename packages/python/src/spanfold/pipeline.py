@@ -8,10 +8,12 @@ from datetime import datetime
 from typing import Any
 
 from spanfold.records import (
+    EventPipelineMetadata,
     OpenWindow,
     WindowBoundaryChange,
     WindowBoundaryReason,
     WindowHistory,
+    WindowMetadata,
     WindowSegment,
     WindowTag,
     WindowTransitionKind,
@@ -136,6 +138,10 @@ class EventPipeline:
         self._event_time = event_time
         self._callbacks = tuple(on_emission)
         self.history = WindowHistory(enabled=record_windows)
+        self.metadata = EventPipelineMetadata(
+            event_type=None,
+            windows=tuple(_window_metadata(window) for window in self._windows),
+        )
 
     @property
     def processing_position(self) -> int:
@@ -641,6 +647,13 @@ def _select_tags(definition: _WindowDefinition, event: Any) -> tuple[WindowTag, 
     if definition.tags is None:
         return ()
     return coerce_tags(definition.tags(event))
+
+
+def _window_metadata(definition: _WindowDefinition | _RollUpDefinition) -> WindowMetadata:
+    return WindowMetadata(
+        definition.name,
+        tuple(_window_metadata(rollup) for rollup in definition.rollups),
+    )
 
 
 def _project_segments(

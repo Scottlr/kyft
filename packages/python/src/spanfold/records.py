@@ -150,6 +150,22 @@ class WindowRecord:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class WindowMetadata:
+    """Describes a configured window or roll-up."""
+
+    name: str
+    rollups: tuple[WindowMetadata, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class EventPipelineMetadata:
+    """Describes a built event pipeline."""
+
+    event_type: type[Any] | None
+    windows: tuple[WindowMetadata, ...]
+
+
 @dataclass(frozen=True, init=False, slots=True)
 class ClosedWindow(WindowRecord):
     """A closed recorded window."""
@@ -269,28 +285,72 @@ class WindowGroupSummary:
 
 
 @dataclass(frozen=True, slots=True)
+class WindowSnapshotRecord:
+    """Describes one recorded window as evaluated at a snapshot horizon."""
+
+    window: WindowRecord
+    range: TemporalRange
+    finality: Any
+
+
+@dataclass(frozen=True, slots=True)
+class WindowOverlap:
+    """Describes two closed windows that overlap within the same window scope."""
+
+    first: ClosedWindow
+    second: ClosedWindow
+
+
+@dataclass(frozen=True, slots=True)
+class WindowResidualSegment:
+    """Describes a target-source segment left after comparison overlap is removed."""
+
+    window_name: str
+    key: Any
+    source: Any
+    start_position: int
+    end_position: int
+    partition: Any = None
+
+
+@dataclass(frozen=True, slots=True)
 class WindowHistorySnapshot:
     """A read-only view of recorded history at a horizon."""
 
     horizon: TemporalPoint
-    windows: tuple[WindowRecord, ...]
+    records: tuple[WindowSnapshotRecord, ...]
+
+    @property
+    def windows(self) -> tuple[WindowRecord, ...]:
+        """Return source windows visible in the snapshot."""
+
+        return tuple(record.window for record in self.records)
 
     @property
     def closed_windows(self) -> tuple[ClosedWindow, ...]:
-        """Return closed windows visible in the snapshot."""
+        """Return source windows that were final at the snapshot horizon."""
 
-        return tuple(window for window in self.windows if isinstance(window, ClosedWindow))
+        return tuple(
+            record.window
+            for record in self.records
+            if isinstance(record.window, ClosedWindow)
+            and record.finality is _comparison_finality("FINAL")
+        )
 
     @property
     def open_windows(self) -> tuple[WindowRecord, ...]:
-        """Return horizon-clipped windows that were still open."""
+        """Return source windows that were still active at the snapshot horizon."""
 
-        return tuple(window for window in self.windows if not isinstance(window, ClosedWindow))
+        return tuple(
+            record.window
+            for record in self.records
+            if record.finality is _comparison_finality("PROVISIONAL")
+        )
 
-    def query(self) -> WindowHistoryQuery:
-        """Start a direct read-only query over snapshot windows."""
+    def query(self) -> WindowSnapshotQuery:
+        """Start a direct read-only query over snapshot records."""
 
-        return WindowHistoryQuery(self.windows)
+        return WindowSnapshotQuery(self)
 
 
 class WindowHistory:
@@ -400,26 +460,17 @@ class WindowHistory:
     def snapshot_at(self, horizon: TemporalPoint) -> WindowHistorySnapshot:
         """Evaluate recorded windows at an explicit horizon."""
 
-        windows: list[WindowRecord] = list(self._closed)
-        for window in self._open.values():
-            if horizon.axis is TemporalAxis.PROCESSING_POSITION:
-                windows.append(
-                    WindowRecord(
-                        window.window_name,
-                        window.key,
-                        window.start_position,
-                        horizon.position,
-                        window.source,
-                        window.partition,
-                        window.start_time,
-                        window.end_time,
-                        window.segments,
-                        window.tags,
-                    )
-                )
-            else:
-                windows.append(window)
-        return WindowHistorySnapshot(horizon, tuple(windows))
+        if horizon.axis is TemporalAxis.UNKNOWN:
+            msg = "Snapshot horizon must use a known temporal axis."
+            raise ValueError(msg)
+
+        records: list[WindowSnapshotRecord] = []
+        for window in self.windows:
+            record = _snapshot_record(window, horizon)
+            if record is not None:
+                records.append(record)
+        records.sort(key=lambda record: _window_sort_key(record.window))
+        return WindowHistorySnapshot(horizon, tuple(records))
 
     def annotate(
         self,
@@ -517,6 +568,53 @@ class WindowHistory:
             child_window_name,
         )
 
+    def find_overlaps(self) -> tuple[WindowOverlap, ...]:
+        """Find overlapping closed windows within the same window scope."""
+
+        overlaps: list[WindowOverlap] = []
+        for index, first in enumerate(self._closed):
+            for second in self._closed[index + 1 :]:
+                if not _same_scope(first, second) or not _closed_windows_overlap(first, second):
+                    continue
+                overlaps.append(WindowOverlap(first, second))
+        return tuple(overlaps)
+
+    def find_residuals(self, target_source: Any) -> tuple[WindowResidualSegment, ...]:
+        """Find target-source segments not covered by other sources."""
+
+        if target_source is None:
+            msg = "target_source is required."
+            raise ValueError(msg)
+
+        residuals: list[WindowResidualSegment] = []
+        for target in self._closed:
+            if target.source != target_source:
+                continue
+            target_end = _closed_end_position(target)
+            segments = [(target.start_position, target_end)]
+            for comparison in self._closed:
+                if (
+                    target is comparison
+                    or comparison.source == target_source
+                    or not _same_scope(target, comparison)
+                    or not _closed_windows_overlap(target, comparison)
+                ):
+                    continue
+                segments = _subtract_position_window(segments, comparison)
+            for start, end in segments:
+                if start < end:
+                    residuals.append(
+                        WindowResidualSegment(
+                            target.window_name,
+                            target.key,
+                            target_source,
+                            start,
+                            end,
+                            target.partition,
+                        )
+                    )
+        return tuple(residuals)
+
 
 class WindowHistoryQuery:
     """Fluent direct query API for recorded windows."""
@@ -529,25 +627,50 @@ class WindowHistoryQuery:
 
         return self._filter(lambda window: window.window_name == window_name)
 
+    def window(self, window_name: str) -> WindowHistoryQuery:
+        """Alias for :meth:`where_window`."""
+
+        return self.where_window(window_name)
+
     def where_key(self, key: Any) -> WindowHistoryQuery:
         """Filter by logical window key."""
 
         return self._filter(lambda window: window.key == key)
+
+    def key(self, key: Any) -> WindowHistoryQuery:
+        """Alias for :meth:`where_key`."""
+
+        return self.where_key(key)
 
     def where_source(self, source: Any) -> WindowHistoryQuery:
         """Filter by source or lane."""
 
         return self._filter(lambda window: window.source == source)
 
+    def source(self, source: Any) -> WindowHistoryQuery:
+        """Alias for :meth:`where_source`."""
+
+        return self.where_source(source)
+
     def where_lane(self, lane: Any) -> WindowHistoryQuery:
         """Alias for filtering by source/lane."""
 
         return self.where_source(lane)
 
+    def lane(self, lane: Any) -> WindowHistoryQuery:
+        """Alias for :meth:`where_lane`."""
+
+        return self.where_lane(lane)
+
     def where_partition(self, partition: Any) -> WindowHistoryQuery:
         """Filter by partition."""
 
         return self._filter(lambda window: window.partition == partition)
+
+    def partition(self, partition: Any) -> WindowHistoryQuery:
+        """Alias for :meth:`where_partition`."""
+
+        return self.where_partition(partition)
 
     def where_segment(self, name: str, value: Any) -> WindowHistoryQuery:
         """Filter by segment value."""
@@ -558,12 +681,22 @@ class WindowHistoryQuery:
             )
         )
 
+    def segment(self, name: str, value: Any) -> WindowHistoryQuery:
+        """Alias for :meth:`where_segment`."""
+
+        return self.where_segment(name, value)
+
     def where_tag(self, name: str, value: Any) -> WindowHistoryQuery:
         """Filter by tag value."""
 
         return self._filter(
             lambda window: any(tag.name == name and tag.value == value for tag in window.tags)
         )
+
+    def tag(self, name: str, value: Any) -> WindowHistoryQuery:
+        """Alias for :meth:`where_tag`."""
+
+        return self.where_tag(name, value)
 
     def closed(self) -> WindowHistoryQuery:
         """Return only closed windows."""
@@ -578,12 +711,53 @@ class WindowHistoryQuery:
     def latest(self) -> WindowRecord | None:
         """Return the latest window by start position, or ``None``."""
 
-        return max(self._windows, key=lambda window: window.start_position, default=None)
+        matches = self.windows()
+        return matches[-1] if matches else None
 
     def all(self) -> tuple[WindowRecord, ...]:
         """Materialize the query result."""
 
-        return self._windows
+        return self.windows()
+
+    def windows(self) -> tuple[WindowRecord, ...]:
+        """Materialize matching windows in deterministic order."""
+
+        return tuple(sorted(self._windows, key=_window_sort_key))
+
+    def closed_windows(self) -> tuple[ClosedWindow, ...]:
+        """Materialize matching closed windows in deterministic order."""
+
+        return tuple(window for window in self.windows() if isinstance(window, ClosedWindow))
+
+    def open_windows(self) -> tuple[OpenWindow, ...]:
+        """Materialize matching open windows in deterministic order."""
+
+        return tuple(window for window in self.windows() if isinstance(window, OpenWindow))
+
+    def latest_window(self) -> WindowRecord | None:
+        """Alias for :meth:`latest`."""
+
+        return self.latest()
+
+    def windows_at(self, horizon: TemporalPoint) -> tuple[WindowSnapshotRecord, ...]:
+        """Materialize matching snapshot records at an explicit horizon."""
+
+        return _snapshot_query_for_windows(self._windows, horizon).windows()
+
+    def closed_windows_at(self, horizon: TemporalPoint) -> tuple[WindowSnapshotRecord, ...]:
+        """Materialize final matching snapshot records at an explicit horizon."""
+
+        return _snapshot_query_for_windows(self._windows, horizon).closed_windows()
+
+    def open_windows_at(self, horizon: TemporalPoint) -> tuple[WindowSnapshotRecord, ...]:
+        """Materialize provisional matching snapshot records at an explicit horizon."""
+
+        return _snapshot_query_for_windows(self._windows, horizon).open_windows()
+
+    def latest_window_at(self, horizon: TemporalPoint) -> WindowSnapshotRecord | None:
+        """Return the latest matching snapshot record at an explicit horizon."""
+
+        return _snapshot_query_for_windows(self._windows, horizon).latest_window()
 
     def summarize_by_segment(self, name: str) -> tuple[WindowGroupSummary, ...]:
         """Summarize matching windows by one segment dimension."""
@@ -597,6 +771,149 @@ class WindowHistoryQuery:
 
     def _filter(self, predicate: Any) -> WindowHistoryQuery:
         return WindowHistoryQuery(window for window in self._windows if predicate(window))
+
+
+class WindowSnapshotQuery:
+    """Fluent direct query API for window snapshot records."""
+
+    def __init__(self, snapshot: WindowHistorySnapshot) -> None:
+        self._records = snapshot.records
+        self._horizon = snapshot.horizon
+
+    def window(self, window_name: str) -> WindowSnapshotQuery:
+        """Filter by configured window name."""
+
+        return self._filter(lambda record: record.window.window_name == window_name)
+
+    def where_window(self, window_name: str) -> WindowSnapshotQuery:
+        """Alias for :meth:`window`."""
+
+        return self.window(window_name)
+
+    def key(self, key: Any) -> WindowSnapshotQuery:
+        """Filter by logical window key."""
+
+        return self._filter(lambda record: record.window.key == key)
+
+    def where_key(self, key: Any) -> WindowSnapshotQuery:
+        """Alias for :meth:`key`."""
+
+        return self.key(key)
+
+    def source(self, source: Any) -> WindowSnapshotQuery:
+        """Filter by source or lane."""
+
+        return self._filter(lambda record: record.window.source == source)
+
+    def where_source(self, source: Any) -> WindowSnapshotQuery:
+        """Alias for :meth:`source`."""
+
+        return self.source(source)
+
+    def lane(self, lane: Any) -> WindowSnapshotQuery:
+        """Alias for filtering by source/lane."""
+
+        return self.source(lane)
+
+    def where_lane(self, lane: Any) -> WindowSnapshotQuery:
+        """Alias for :meth:`lane`."""
+
+        return self.lane(lane)
+
+    def partition(self, partition: Any) -> WindowSnapshotQuery:
+        """Filter by partition."""
+
+        return self._filter(lambda record: record.window.partition == partition)
+
+    def where_partition(self, partition: Any) -> WindowSnapshotQuery:
+        """Alias for :meth:`partition`."""
+
+        return self.partition(partition)
+
+    def segment(self, name: str, value: Any) -> WindowSnapshotQuery:
+        """Filter by segment value."""
+
+        return self._filter(
+            lambda record: any(
+                segment.name == name and segment.value == value
+                for segment in record.window.segments
+            )
+        )
+
+    def where_segment(self, name: str, value: Any) -> WindowSnapshotQuery:
+        """Alias for :meth:`segment`."""
+
+        return self.segment(name, value)
+
+    def tag(self, name: str, value: Any) -> WindowSnapshotQuery:
+        """Filter by tag value."""
+
+        return self._filter(
+            lambda record: any(
+                tag.name == name and tag.value == value for tag in record.window.tags
+            )
+        )
+
+    def where_tag(self, name: str, value: Any) -> WindowSnapshotQuery:
+        """Alias for :meth:`tag`."""
+
+        return self.tag(name, value)
+
+    def windows(self) -> tuple[WindowSnapshotRecord, ...]:
+        """Materialize all matching snapshot records."""
+
+        return tuple(sorted(self._records, key=lambda record: _window_sort_key(record.window)))
+
+    def closed_windows(self) -> tuple[WindowSnapshotRecord, ...]:
+        """Materialize matching final snapshot records."""
+
+        return tuple(
+            record
+            for record in self.windows()
+            if record.finality is _comparison_finality("FINAL")
+        )
+
+    def open_windows(self) -> tuple[WindowSnapshotRecord, ...]:
+        """Materialize matching provisional snapshot records."""
+
+        return tuple(
+            record
+            for record in self.windows()
+            if record.finality is _comparison_finality("PROVISIONAL")
+        )
+
+    def latest_window(self) -> WindowSnapshotRecord | None:
+        """Return the latest matching snapshot record, or ``None``."""
+
+        records = self.windows()
+        return records[-1] if records else None
+
+    def latest(self) -> WindowSnapshotRecord | None:
+        """Alias for :meth:`latest_window`."""
+
+        return self.latest_window()
+
+    def all(self) -> tuple[WindowSnapshotRecord, ...]:
+        """Alias for :meth:`windows`."""
+
+        return self.windows()
+
+    def summarize_by_segment(self, name: str) -> tuple[WindowGroupSummary, ...]:
+        """Summarize matching snapshot records by one segment dimension."""
+
+        return _summarize_snapshot_records(self._records, WindowGroupKind.SEGMENT, name)
+
+    def summarize_by_tag(self, name: str) -> tuple[WindowGroupSummary, ...]:
+        """Summarize matching snapshot records by one tag."""
+
+        return _summarize_snapshot_records(self._records, WindowGroupKind.TAG, name)
+
+    def _filter(self, predicate: Any) -> WindowSnapshotQuery:
+        snapshot = WindowHistorySnapshot(
+            self._horizon,
+            tuple(record for record in self._records if predicate(record)),
+        )
+        return WindowSnapshotQuery(snapshot)
 
 
 def summarize_by_segment(
@@ -707,6 +1024,41 @@ def _summarize_by_metadata(
     )
 
 
+def _summarize_snapshot_records(
+    records: Iterable[WindowSnapshotRecord],
+    group_kind: WindowGroupKind,
+    name: str,
+) -> tuple[WindowGroupSummary, ...]:
+    if not name or not name.strip():
+        msg = "Summary dimension name cannot be empty."
+        raise ValueError(msg)
+
+    groups: dict[tuple[str, str], _WindowSummaryAccumulator] = {}
+    for record in records:
+        for value in _metadata_values(record.window, group_kind, name):
+            key = (type(value).__qualname__, repr(value))
+            accumulator = groups.get(key)
+            if accumulator is None:
+                accumulator = _WindowSummaryAccumulator(group_kind, name, value)
+                groups[key] = accumulator
+            accumulator.record_count += 1
+            if record.finality is _comparison_finality("FINAL"):
+                accumulator.final_count += 1
+            else:
+                accumulator.provisional_count += 1
+            if record.range.axis is TemporalAxis.PROCESSING_POSITION:
+                accumulator.measured_position_count += 1
+                accumulator.total_position_length += record.range.position_length()
+            elif record.range.axis is TemporalAxis.TIMESTAMP:
+                accumulator.measured_time_count += 1
+                accumulator.total_time_duration += record.range.time_duration()
+
+    return tuple(
+        accumulator.to_summary()
+        for _, accumulator in sorted(groups.items(), key=lambda item: item[0])
+    )
+
+
 def _metadata_values(
     window: WindowRecord,
     group_kind: WindowGroupKind,
@@ -725,3 +1077,107 @@ def _metadata_values(
 
 def _recording_key(window: WindowRecord) -> tuple[str, Any, Any, Any, tuple[WindowSegment, ...]]:
     return (window.window_name, window.key, window.source, window.partition, window.segments)
+
+
+def _snapshot_query_for_windows(
+    windows: Iterable[WindowRecord],
+    horizon: TemporalPoint,
+) -> WindowSnapshotQuery:
+    if horizon.axis is TemporalAxis.UNKNOWN:
+        msg = "Snapshot horizon must use a known temporal axis."
+        raise ValueError(msg)
+    records = tuple(
+        record
+        for window in windows
+        if (record := _snapshot_record(window, horizon)) is not None
+    )
+    return WindowSnapshotQuery(WindowHistorySnapshot(horizon, records))
+
+
+def _snapshot_record(
+    window: WindowRecord,
+    horizon: TemporalPoint,
+) -> WindowSnapshotRecord | None:
+    temporal_range = window.range_for_axis(horizon.axis, horizon=horizon)
+    if temporal_range is None:
+        return None
+    if temporal_range.start > horizon:
+        return None
+    end = temporal_range.require_end()
+    finality = (
+        _comparison_finality("FINAL")
+        if temporal_range.is_closed and end <= horizon
+        else _comparison_finality("PROVISIONAL")
+    )
+    if finality is _comparison_finality("FINAL"):
+        visible_range = temporal_range
+    else:
+        visible_range = TemporalRange.with_effective_end(
+            temporal_range.start,
+            horizon,
+            TemporalRangeEndStatus.OPEN_AT_HORIZON,
+        )
+    return WindowSnapshotRecord(window, visible_range, finality)
+
+
+def _comparison_finality(name: str) -> Any:
+    from spanfold.comparison import ComparisonFinality
+
+    return getattr(ComparisonFinality, name)
+
+
+def _window_sort_key(window: WindowRecord) -> tuple[str, str, str, str, int, int, str]:
+    return (
+        window.window_name,
+        _stable_value(window.key),
+        _stable_value(window.source),
+        _stable_value(window.partition),
+        window.start_position,
+        window.end_position if window.end_position is not None else 2**63 - 1,
+        window.id.value,
+    )
+
+
+def _stable_value(value: Any) -> str:
+    if value is None:
+        return "<null>"
+    type_name = f"{type(value).__module__}.{type(value).__qualname__}"
+    return f"{type_name}:{value}"
+
+
+def _same_scope(first: ClosedWindow, second: ClosedWindow) -> bool:
+    return (
+        first.window_name == second.window_name
+        and first.key == second.key
+        and first.partition == second.partition
+    )
+
+
+def _closed_windows_overlap(first: ClosedWindow, second: ClosedWindow) -> bool:
+    first_end = _closed_end_position(first)
+    second_end = _closed_end_position(second)
+    return first.start_position < second_end and second.start_position < first_end
+
+
+def _subtract_position_window(
+    segments: list[tuple[int, int]],
+    window: ClosedWindow,
+) -> list[tuple[int, int]]:
+    result: list[tuple[int, int]] = []
+    window_end = _closed_end_position(window)
+    for start, end in segments:
+        if window_end <= start or window.start_position >= end:
+            result.append((start, end))
+            continue
+        if start < window.start_position:
+            result.append((start, window.start_position))
+        if window_end < end:
+            result.append((window_end, end))
+    return result
+
+
+def _closed_end_position(window: ClosedWindow) -> int:
+    if window.end_position is None:
+        msg = "Closed windows must have an end position."
+        raise ValueError(msg)
+    return window.end_position

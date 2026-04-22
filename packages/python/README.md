@@ -105,6 +105,8 @@ Implemented now:
 - source-window rollups with nested rollups and segment projection
 - hierarchy comparison summaries
 - direct history queries
+- C#-compatible query aliases, snapshot records, and direct overlap/residual helpers
+- pipeline metadata for configured window and rollup names
 - annotations with known-at filtering
 - lane liveness and silence helpers
 - directional source matrix helper

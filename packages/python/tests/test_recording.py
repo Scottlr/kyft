@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import pytest
 
 from spanfold import (
+    ComparisonFinality,
     Spanfold,
     TemporalPoint,
     WindowBoundaryReason,
@@ -123,6 +124,67 @@ def test_direct_history_query_filters() -> None:
     assert pipeline.history.query().where_lane("provider-a").latest() == rows[0]
 
 
+def test_csharp_style_query_aliases_and_snapshot_records() -> None:
+    pipeline = _segmented_pipeline()
+
+    pipeline.ingest(DeviceStatus("device-1", False, "Incident"), source="lane-a")
+    pipeline.ingest(DeviceStatus("device-1", True, "Incident"), source="lane-a")
+    pipeline.ingest(DeviceStatus("device-2", False, "Incident"), source="lane-a")
+
+    closed = (
+        pipeline.history.query()
+        .window("DeviceOffline")
+        .lane("lane-a")
+        .closed_windows()
+    )
+    assert len(closed) == 1
+
+    snapshot = (
+        pipeline.history.query()
+        .window("DeviceOffline")
+        .lane("lane-a")
+        .windows_at(TemporalPoint.for_position(6))
+    )
+    assert [record.finality for record in snapshot] == [
+        ComparisonFinality.FINAL,
+        ComparisonFinality.PROVISIONAL,
+    ]
+    assert snapshot[1].range.position_length() == 3
+
+
+def test_direct_overlap_and_residual_helpers_match_csharp_surface() -> None:
+    history = _segmented_pipeline().history
+    history._closed.extend(  # noqa: SLF001 - direct fixture setup mirrors C# analysis tests.
+        [
+            history_fixture_window("SelectionSuspension", "selection-1", 1, 5, "provider-a"),
+            history_fixture_window("SelectionSuspension", "selection-1", 3, 6, "provider-b"),
+        ]
+    )
+
+    overlap = history.find_overlaps()[0]
+    assert overlap.first.source == "provider-a"
+    assert overlap.second.source == "provider-b"
+
+    residual = history.find_residuals("provider-a")[0]
+    assert residual.start_position == 1
+    assert residual.end_position == 3
+
+
+def test_pipeline_metadata_exposes_window_and_rollup_names() -> None:
+    pipeline = (
+        Spanfold.for_events()
+        .record_windows()
+        .track_window(
+            "DeviceOffline",
+            key=lambda event: event.device_id,
+            is_active=lambda event: not event.is_online,
+        )
+    )
+
+    assert pipeline.metadata.event_type is None
+    assert pipeline.metadata.windows[0].name == "DeviceOffline"
+
+
 def test_recorded_windows_can_be_summarized_by_segment() -> None:
     pipeline = _segmented_pipeline()
 
@@ -215,3 +277,15 @@ def _segmented_pipeline():
             tags=lambda event: {"fleet": "warehouse"},
         )
     )
+
+
+def history_fixture_window(
+    window_name: str,
+    key: str,
+    start: int,
+    end: int,
+    source: str,
+):
+    from spanfold import ClosedWindow
+
+    return ClosedWindow(window_name, key, start, end, source=source)

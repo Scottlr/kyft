@@ -249,7 +249,7 @@ pytest
 - [Public site](docs/index.html)
 - [Get started](docs/get-started.html)
 - [Use cases](docs/use-cases.html)
-- [Visualiser](docs/visualiser.html)
+- [Visual Auditing](docs/visualiser.html)
 - [API reference](docs/api.html)
 - [Comparator reference](docs/comparator-reference.md)
 - [Comparison guide](docs/comparison-guide.md)

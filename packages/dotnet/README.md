@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/spanfold-logo-readme-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/brand/spanfold-logo-readme-light.svg">
-    <img src="docs/assets/brand/spanfold-logo-readme-light.svg" alt="Spanfold" width="280">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Scottlr/Spanfold/main/docs/assets/brand/spanfold-logo-readme-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Scottlr/Spanfold/main/docs/assets/brand/spanfold-logo-readme-light.svg">
+    <img src="https://raw.githubusercontent.com/Scottlr/Spanfold/main/docs/assets/brand/spanfold-logo-readme-light.svg" alt="Spanfold" width="280">
   </picture>
 </p>
 
@@ -260,8 +260,8 @@ comparison logic.
 - `LeadLag(...)` measures transition timing drift.
 - `AsOf(...)` performs point-in-time lookup without future leakage.
 
-See [Comparator reference](docs/comparator-reference.md) for row shapes and
-details.
+See [Comparator reference](https://github.com/Scottlr/Spanfold/blob/main/docs/comparator-reference.md)
+for row shapes and details.
 
 ## Live Windows
 
@@ -476,8 +476,8 @@ analysis.
 
 ## More Detail
 
-- [Comparison guide](docs/comparison-guide.md)
-- [Comparator reference](docs/comparator-reference.md)
-- [Live finality and changelog](docs/live-finality-and-changelog.md)
-- [Fixture schema](docs/fixture-schema.md)
-- [Performance notes](docs/performance-notes.md)
+- [Comparison guide](https://github.com/Scottlr/Spanfold/blob/main/docs/comparison-guide.md)
+- [Comparator reference](https://github.com/Scottlr/Spanfold/blob/main/docs/comparator-reference.md)
+- [Live finality and changelog](https://github.com/Scottlr/Spanfold/blob/main/docs/live-finality-and-changelog.md)
+- [Fixture schema](https://github.com/Scottlr/Spanfold/blob/main/docs/fixture-schema.md)
+- [Performance notes](https://github.com/Scottlr/Spanfold/blob/main/docs/performance-notes.md)
