@@ -61,6 +61,7 @@ packages/
 pages/
   index.html
   assets/
+docs -> pages
 ```
 
 ## Language Packages
@@ -77,6 +78,8 @@ package metadata, tests, examples, and package-level README.
 
 The static documentation site lives in [pages](pages/index.html). GitHub Pages
 deploys that folder through [.github/workflows/pages.yml](.github/workflows/pages.yml).
+The root `docs` path is a compatibility symlink to `pages` for repositories that
+still have Pages configured to deploy from `/docs`.
 
 Package-local documentation remains with each implementation under
 `packages/<language>/docs`, while `pages/` is the root-level deploy target for
