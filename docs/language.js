@@ -23,5 +23,20 @@
         setLanguage(button.dataset.languageToggle);
       });
     });
+
+    const navToggle = document.querySelector(".nav-toggle");
+    const siteHeader = document.querySelector(".site-header");
+    if (navToggle && siteHeader) {
+      navToggle.addEventListener("click", () => {
+        const isOpen = siteHeader.classList.toggle("nav-open");
+        navToggle.setAttribute("aria-expanded", String(isOpen));
+      });
+      document.querySelectorAll(".nav a").forEach((link) => {
+        link.addEventListener("click", () => {
+          siteHeader.classList.remove("nav-open");
+          navToggle.setAttribute("aria-expanded", "false");
+        });
+      });
+    }
   });
 })();
