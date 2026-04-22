@@ -3,6 +3,7 @@
   --bg: #f2efe7;
   --surface: #fbfaf6;
   --surface-2: #ebe6dc;
+  --sidebar-bg: #e7e0d2;
   --ink: #161614;
   --muted: #706a5f;
   --line: #dcd5c8;
@@ -53,7 +54,8 @@ a {
   padding: 24px 18px;
   overflow-y: auto;
   border-right: 1px solid var(--line);
-  background: rgba(242, 239, 231, 0.98);
+  background: var(--sidebar-bg);
+  box-shadow: 10px 0 24px rgba(22, 22, 20, 0.06);
 }
 
 .brand {
@@ -86,6 +88,7 @@ a {
   padding: 6px 9px;
   border-radius: 6px;
   text-decoration: none;
+  transition: background 120ms ease, color 120ms ease;
 }
 
 .nav a:hover {
@@ -105,6 +108,14 @@ a {
 .nav-child {
   padding-left: 24px !important;
   font-size: 13px;
+}
+
+.nav-child::before {
+  display: inline-block;
+  width: 8px;
+  margin-right: 8px;
+  border-top: 1px solid var(--line-strong);
+  content: "";
 }
 
 .nav a:hover,
@@ -882,7 +893,7 @@ pre code {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 640px) {
   .site-header {
     position: static;
     width: auto;
