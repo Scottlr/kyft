@@ -11,23 +11,35 @@
 <body data-language="csharp">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
-    <div class="header-actions">
-      <nav class="nav" aria-label="Primary navigation">
-        <a href="index.html">Overview</a>
-        <a href="get-started.html">Get started</a>
-        <a href="use-cases.html">Use cases</a>
-        <a href="visualiser.html">Visualiser</a>
-        <a href="api.html">API</a>
-        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
-      </nav>
-      <div class="language-switcher" aria-label="Code language">
-        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
-        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
-      </div>
-    </div>
+    <nav class="nav" aria-label="Primary navigation">
+      <span class="nav-group-title">Start</span>
+      <a href="index.html">Overview</a>
+      <a href="get-started.html">Get started</a>
+      <span class="nav-group-title">Use Cases</span>
+      <a href="use-cases.html">All use cases</a>
+      <a class="nav-child" href="#monitoring">Monitoring</a>
+      <a class="nav-child" href="#industrial-telemetry">Industrial telemetry</a>
+      <a class="nav-child" href="#decision-audit">Decision audit</a>
+      <a class="nav-child" href="#logistics">Logistics</a>
+      <a class="nav-child" href="#distributed-systems">Distributed systems</a>
+      <a class="nav-child" href="#data-pipelines">Data pipelines</a>
+      <span class="nav-group-title">Reference</span>
+      <a href="visualiser.html">Visualiser</a>
+      <a href="api.html">API</a>
+      <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+    </nav>
   </header>
 
   <main>
+    <div class="content-header">
+      <div class="language-control">
+        <span>Language</span>
+        <div class="language-switcher" aria-label="Code language">
+          <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+          <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+        </div>
+      </div>
+    </div>
     <section class="page-hero compact">
       <p class="eyebrow">Use cases</p>
       <h1>Where temporal window analytics fits.</h1>
@@ -39,7 +51,7 @@
     </section>
 
     <section class="doc-section use-case-list">
-      <article>
+      <article id="monitoring">
         <div>
           <p class="eyebrow">Monitoring and incident management</p>
           <h2>Which provider saw the outage, and when?</h2>
@@ -56,7 +68,7 @@
         </div>
       </article>
 
-      <article>
+      <article id="industrial-telemetry">
         <div>
           <p class="eyebrow">IoT and industrial telemetry</p>
           <h2>When was a machine in a risky state?</h2>
@@ -73,7 +85,7 @@
         </div>
       </article>
 
-      <article>
+      <article id="decision-audit">
         <div>
           <p class="eyebrow">Payments and fraud</p>
           <h2>What was knowable when a decision was made?</h2>
@@ -90,7 +102,7 @@
         </div>
       </article>
 
-      <article>
+      <article id="logistics">
         <div>
           <p class="eyebrow">Logistics and shipment state</p>
           <h2>Where did status sources diverge?</h2>
@@ -107,7 +119,7 @@
         </div>
       </article>
 
-      <article>
+      <article id="distributed-systems">
         <div>
           <p class="eyebrow">Distributed systems</p>
           <h2>Did a quorum really observe the same state?</h2>
@@ -124,7 +136,7 @@
         </div>
       </article>
 
-      <article>
+      <article id="data-pipelines">
         <div>
           <p class="eyebrow">Data pipelines</p>
           <h2>Which stage introduced lag, gaps, or divergence?</h2>

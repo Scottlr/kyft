@@ -11,23 +11,31 @@
 <body data-language="csharp">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
-    <div class="header-actions">
-      <nav class="nav" aria-label="Primary navigation">
-        <a href="index.html">Overview</a>
-        <a href="get-started.html">Get started</a>
-        <a href="use-cases.html">Use cases</a>
-        <a href="visualiser.html">Visualiser</a>
-        <a href="api.html">API</a>
-        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
-      </nav>
-      <div class="language-switcher" aria-label="Code language">
-        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
-        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
-      </div>
-    </div>
+    <nav class="nav" aria-label="Primary navigation">
+      <span class="nav-group-title">Start</span>
+      <a href="index.html">Overview</a>
+      <a href="get-started.html">Get started</a>
+      <span class="nav-group-title">Explore</span>
+      <a href="use-cases.html">Use cases</a>
+      <a href="visualiser.html">Visualiser</a>
+      <a class="nav-child" href="#examples">Examples</a>
+      <a class="nav-child" href="#preview">Embedded preview</a>
+      <span class="nav-group-title">Reference</span>
+      <a href="api.html">API</a>
+      <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+    </nav>
   </header>
 
   <main>
+    <div class="content-header">
+      <div class="language-control">
+        <span>Language</span>
+        <div class="language-switcher" aria-label="Code language">
+          <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+          <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+        </div>
+      </div>
+    </div>
     <section class="page-hero compact">
       <p class="eyebrow">Debug visualiser</p>
       <h1>Inspect comparison results as timelines.</h1>
@@ -75,7 +83,7 @@ print(result.to_markdown())</code></pre>
       </div>
     </section>
 
-    <section class="doc-section">
+    <section class="doc-section" id="examples">
       <div class="section-heading">
         <p class="eyebrow">Examples</p>
         <h2>Generated static debug pages.</h2>
@@ -105,7 +113,7 @@ print(result.to_markdown())</code></pre>
       </div>
     </section>
 
-    <section class="doc-section">
+    <section class="doc-section" id="preview">
       <div class="section-heading">
         <p class="eyebrow">Embedded preview</p>
         <h2>Provider comparison.</h2>

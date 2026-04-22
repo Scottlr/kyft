@@ -11,23 +11,36 @@
 <body data-language="csharp">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
-    <div class="header-actions">
-      <nav class="nav" aria-label="Primary navigation">
-        <a href="index.html">Overview</a>
-        <a href="get-started.html">Get started</a>
-        <a href="use-cases.html">Use cases</a>
-        <a href="visualiser.html">Visualiser</a>
-        <a href="api.html">API</a>
-        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
-      </nav>
-      <div class="language-switcher" aria-label="Code language">
-        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
-        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
-      </div>
-    </div>
+    <nav class="nav" aria-label="Primary navigation">
+      <span class="nav-group-title">Start</span>
+      <a href="index.html">Overview</a>
+      <a href="get-started.html">Get started</a>
+      <span class="nav-group-title">Explore</span>
+      <a href="use-cases.html">Use cases</a>
+      <a class="nav-child" href="use-cases.html#monitoring">Monitoring</a>
+      <a class="nav-child" href="use-cases.html#decision-audit">Decision audit</a>
+      <a class="nav-child" href="use-cases.html#distributed-systems">Distributed systems</a>
+      <a href="visualiser.html">Visualiser</a>
+      <a class="nav-child" href="visualiser.html#examples">Examples</a>
+      <a class="nav-child" href="visualiser.html#preview">Preview</a>
+      <span class="nav-group-title">Reference</span>
+      <a href="api.html">API</a>
+      <a class="nav-child" href="api.html#WindowComparisonBuilder">Comparison</a>
+      <a class="nav-child" href="api.html#ComparisonComparatorBuilder">Comparators</a>
+      <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+    </nav>
   </header>
 
   <main>
+    <div class="content-header">
+      <div class="language-control">
+        <span>Language</span>
+        <div class="language-switcher" aria-label="Code language">
+          <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+          <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+        </div>
+      </div>
+    </div>
     <section class="page-hero hero-grid">
       <div>
         <p class="eyebrow">Spanfold</p>

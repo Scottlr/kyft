@@ -11,23 +11,35 @@
 <body data-language="csharp">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
-    <div class="header-actions">
-      <nav class="nav" aria-label="Primary navigation">
-        <a href="index.html">Overview</a>
-        <a href="get-started.html">Get started</a>
-        <a href="use-cases.html">Use cases</a>
-        <a href="visualiser.html">Visualiser</a>
-        <a href="api.html">API</a>
-        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
-      </nav>
-      <div class="language-switcher" aria-label="Code language">
-        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
-        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
-      </div>
-    </div>
+    <nav class="nav" aria-label="Primary navigation">
+      <span class="nav-group-title">Start</span>
+      <a href="index.html">Overview</a>
+      <a href="get-started.html">Get started</a>
+      <a class="nav-child" href="#install">Install</a>
+      <a class="nav-child" href="#minimal-implementation">Minimal implementation</a>
+      <a class="nav-child" href="#expected-output">Expected output</a>
+      <span class="nav-group-title">Explore</span>
+      <a href="use-cases.html">Use cases</a>
+      <a class="nav-child" href="use-cases.html#monitoring">Monitoring</a>
+      <a class="nav-child" href="use-cases.html#decision-audit">Decision audit</a>
+      <a class="nav-child" href="use-cases.html#distributed-systems">Distributed systems</a>
+      <a href="visualiser.html">Visualiser</a>
+      <span class="nav-group-title">Reference</span>
+      <a href="api.html">API</a>
+      <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+    </nav>
   </header>
 
   <main>
+    <div class="content-header">
+      <div class="language-control">
+        <span>Language</span>
+        <div class="language-switcher" aria-label="Code language">
+          <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+          <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+        </div>
+      </div>
+    </div>
     <section class="page-hero compact">
       <p class="eyebrow">Get started</p>
       <h1>Record two source histories, then compare what they saw.</h1>
@@ -38,7 +50,7 @@
       </p>
     </section>
 
-    <section class="doc-section">
+    <section class="doc-section" id="install">
       <div class="section-heading">
         <p class="eyebrow">Mental model</p>
         <h2>Spanfold starts with one question: when was this state active?</h2>
@@ -73,7 +85,7 @@
       </div>
     </section>
 
-    <section class="doc-section">
+    <section class="doc-section" id="minimal-implementation">
       <div class="section-heading">
         <p class="eyebrow">1. Install</p>
         <h2>Add the package to your project.</h2>
@@ -195,7 +207,7 @@ print(f"provider-b-only rows: {len(result.missing_rows)}")</code></pre>
       </div>
     </section>
 
-    <section class="doc-section two-col">
+    <section class="doc-section two-col" id="expected-output">
       <div>
         <p class="eyebrow">3. Expected output</p>
         <h2>The result should show one shared segment and two target-only segments.</h2>
