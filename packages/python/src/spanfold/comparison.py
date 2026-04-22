@@ -7,6 +7,7 @@ import json
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass, replace
+from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -434,6 +435,18 @@ class ComparatorSummary:
 
 
 @dataclass(frozen=True, slots=True)
+class CoverageSummary:
+    """Summarizes target coverage within one comparison scope."""
+
+    window_name: str
+    key: Any
+    partition: Any
+    target_magnitude: float
+    covered_magnitude: float
+    coverage_ratio: float
+
+
+@dataclass(frozen=True, slots=True)
 class ComparisonDiagnostic:
     """Structured diagnostic emitted while preparing or running a comparison."""
 
@@ -757,6 +770,7 @@ class ComparisonResult:
     lead_lag_summaries: tuple[LeadLagSummary, ...] = ()
     as_of_rows: tuple[AsOfRow, ...] = ()
     comparator_summaries: tuple[ComparatorSummary, ...] = ()
+    coverage_summaries: tuple[CoverageSummary, ...] = ()
     diagnostics: tuple[str, ...] = ()
     evaluation_horizon: TemporalPoint | None = None
     known_at: TemporalPoint | None = None
@@ -1495,23 +1509,25 @@ def _run_comparison(
         )
         for comparator in comparators
     )
+    coverage_summaries = _coverage_summaries(coverage_rows)
     return ComparisonResult(
-        name,
-        tuple(overlap_rows),
-        tuple(residual_rows),
-        tuple(missing_rows),
-        tuple(coverage_rows),
-        tuple(gap_rows),
-        tuple(symmetric_difference_rows),
-        tuple(containment_rows),
-        tuple(lead_lag_rows),
-        tuple(lead_lag_summaries),
-        tuple(as_of_rows),
-        summaries,
-        tuple(result_diagnostics),
-        evaluation_horizon,
-        known_at,
-        strict,
+        name=name,
+        overlap_rows=tuple(overlap_rows),
+        residual_rows=tuple(residual_rows),
+        missing_rows=tuple(missing_rows),
+        coverage_rows=tuple(coverage_rows),
+        gap_rows=tuple(gap_rows),
+        symmetric_difference_rows=tuple(symmetric_difference_rows),
+        containment_rows=tuple(containment_rows),
+        lead_lag_rows=tuple(lead_lag_rows),
+        lead_lag_summaries=tuple(lead_lag_summaries),
+        as_of_rows=tuple(as_of_rows),
+        comparator_summaries=summaries,
+        coverage_summaries=coverage_summaries,
+        diagnostics=tuple(result_diagnostics),
+        evaluation_horizon=evaluation_horizon,
+        known_at=known_at,
+        strict=strict,
     )
 
 
@@ -1672,6 +1688,33 @@ def build_hierarchy_comparison(
         tuple(rows),
         tuple(diagnostics),
     )
+
+
+def total_position_length(rows: Iterable[Any]) -> int:
+    """Return total processing-position length across rows with ranges."""
+
+    return sum(row.range.position_length() for row in rows)
+
+
+def total_time_duration(rows: Iterable[Any]) -> timedelta:
+    """Return total event-time duration across rows with ranges."""
+
+    total = timedelta()
+    for row in rows:
+        total += row.range.time_duration()
+    return total
+
+
+def total_target_magnitude(rows: Iterable[CoverageRow]) -> float:
+    """Return total target denominator magnitude across coverage rows."""
+
+    return sum(row.target_magnitude for row in rows)
+
+
+def total_covered_magnitude(rows: Iterable[CoverageRow]) -> float:
+    """Return total comparison-covered numerator magnitude across coverage rows."""
+
+    return sum(row.covered_magnitude for row in rows)
 
 
 def _hierarchy_rows_for_scope(
@@ -1888,6 +1931,28 @@ def _aggregate_coverage_ratio(rows: tuple[CoverageRow, ...]) -> float | None:
         return None
     covered = sum(row.covered_magnitude for row in rows)
     return covered / target
+
+
+def _coverage_summaries(rows: list[CoverageRow]) -> tuple[CoverageSummary, ...]:
+    groups: dict[tuple[str, Any, Any], list[CoverageRow]] = defaultdict(list)
+    for row in rows:
+        groups[(row.window_name, row.key, row.partition)].append(row)
+
+    summaries: list[CoverageSummary] = []
+    for scope, items in sorted(groups.items(), key=lambda item: tuple(map(repr, item[0]))):
+        target = total_target_magnitude(items)
+        covered = total_covered_magnitude(items)
+        summaries.append(
+            CoverageSummary(
+                scope[0],
+                scope[1],
+                scope[2],
+                target,
+                covered,
+                0.0 if target == 0 else covered / target,
+            )
+        )
+    return tuple(summaries)
 
 
 def _gap_rows(

@@ -17,11 +17,19 @@ from spanfold import (
     ComparisonRowFinality,
     ComparisonSide,
     ContainmentStatus,
+    CoverageRow,
     LeadLagDirection,
     LeadLagTransition,
+    MissingRow,
+    ResidualRow,
     Spanfold,
     TemporalAxis,
     TemporalPoint,
+    TemporalRange,
+    total_covered_magnitude,
+    total_position_length,
+    total_target_magnitude,
+    total_time_duration,
 )
 from spanfold.testing import WindowHistoryFixtureBuilder
 
@@ -82,8 +90,71 @@ def test_overlap_residual_missing_and_coverage() -> None:
     assert result.coverage_rows[0].target_magnitude == 4
     assert result.coverage_rows[0].covered_magnitude == 2
     assert result.coverage_rows[0].coverage_ratio == 0.5
+    assert result.coverage_summaries[0].target_magnitude == 4
+    assert result.coverage_summaries[0].covered_magnitude == 2
+    assert result.coverage_summaries[0].coverage_ratio == 0.5
     assert len(result.final_row_finalities()) == 4
     assert not result.provisional_row_finalities()
+
+
+def test_row_aggregation_helpers_sum_lengths_and_magnitudes() -> None:
+    start = datetime(2026, 4, 20, 10, tzinfo=UTC)
+    residual_rows = (
+        ResidualRow(
+            "DeviceOffline",
+            "device-1",
+            None,
+            TemporalRange.closed(TemporalPoint.for_position(1), TemporalPoint.for_position(4)),
+            (),
+        ),
+        ResidualRow(
+            "DeviceOffline",
+            "device-1",
+            None,
+            TemporalRange.closed(TemporalPoint.for_position(10), TemporalPoint.for_position(12)),
+            (),
+        ),
+    )
+    missing_rows = (
+        MissingRow(
+            "DeviceOffline",
+            "device-1",
+            None,
+            TemporalRange.closed(
+                TemporalPoint.for_timestamp(start),
+                TemporalPoint.for_timestamp(start + timedelta(minutes=7)),
+            ),
+            (),
+        ),
+    )
+    coverage_rows = (
+        CoverageRow(
+            "DeviceOffline",
+            "device-1",
+            None,
+            TemporalRange.closed(TemporalPoint.for_position(1), TemporalPoint.for_position(4)),
+            3,
+            2,
+            (),
+            (),
+        ),
+        CoverageRow(
+            "DeviceOffline",
+            "device-1",
+            None,
+            TemporalRange.closed(TemporalPoint.for_position(4), TemporalPoint.for_position(6)),
+            2,
+            1,
+            (),
+            (),
+        ),
+    )
+
+    assert total_position_length(residual_rows) == 5
+    assert total_time_duration(missing_rows) == timedelta(minutes=7)
+    assert total_position_length(coverage_rows) == 5
+    assert total_target_magnitude(coverage_rows) == 5
+    assert total_covered_magnitude(coverage_rows) == 3
 
 
 def test_open_windows_are_excluded_until_horizon_is_explicit() -> None:

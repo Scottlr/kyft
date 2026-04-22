@@ -25,6 +25,7 @@ from spanfold.comparison import (
     ContainmentRow,
     ContainmentStatus,
     CoverageRow,
+    CoverageSummary,
     GapRow,
     HierarchyComparisonResult,
     HierarchyComparisonRow,
@@ -39,6 +40,10 @@ from spanfold.comparison import (
     SourceMatrixCell,
     SourceMatrixResult,
     SymmetricDifferenceRow,
+    total_covered_magnitude,
+    total_position_length,
+    total_target_magnitude,
+    total_time_duration,
 )
 from spanfold.liveness import LaneLivenessSignal, LaneLivenessTracker
 from spanfold.pipeline import (
@@ -95,6 +100,7 @@ __all__ = [
     "ContainmentRow",
     "ContainmentStatus",
     "CoverageRow",
+    "CoverageSummary",
     "EventPipeline",
     "GapRow",
     "HierarchyComparisonResult",
@@ -114,6 +120,10 @@ __all__ = [
     "SourceMatrixCell",
     "SourceMatrixResult",
     "SymmetricDifferenceRow",
+    "total_covered_magnitude",
+    "total_position_length",
+    "total_target_magnitude",
+    "total_time_duration",
     "Spanfold",
     "TemporalAxis",
     "TemporalPoint",
