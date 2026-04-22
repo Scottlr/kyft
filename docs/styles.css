@@ -1,21 +1,19 @@
 :root {
   color-scheme: light;
-  --bg: #f2efe7;
-  --surface: #fbfaf5;
-  --surface-2: #e8dfd0;
-  --sidebar-bg: #e5dccd;
-  --ink: #181713;
-  --muted: #696257;
-  --muted-soft: #8f8678;
-  --line: #d8cebe;
-  --line-strong: #bcae99;
-  --green: #3f6b5b;
-  --blue: #4e6f8f;
-  --amber: #a8752a;
-  --red: #a55c55;
-  --overlap: #4f7b68;
-  --code-bg: #1b1915;
-  --code-ink: #f6f1e8;
+  --bg: #F0E9D6;
+  --bg-panel: #E8DFC6;
+  --bg-card: #F5EFE0;
+  --ink: #2B2A26;
+  --ink-muted: #6B6659;
+  --ink-faint: #9A9484;
+  --rule: #D9CFB4;
+  --code-bg: #1F1E1A;
+  --code-fg: #E8DFC6;
+  --code-comment: #9A9484;
+  --accent-rust: #B8742A;
+  --accent-forest: #3E6B5C;
+  --accent-slate: #5E7A9B;
+  --accent-amber: #C97A3A;
   --sidebar-width: 248px;
 }
 
@@ -54,8 +52,8 @@ a {
   width: var(--sidebar-width);
   padding: 24px 0;
   overflow-y: auto;
-  border-right: 1px solid var(--line);
-  background: var(--sidebar-bg);
+  border-right: 1px solid var(--rule);
+  background: var(--bg-panel);
 }
 
 .brand {
@@ -65,7 +63,7 @@ a {
   flex: 0 0 auto;
   width: 100%;
   padding: 0 18px 20px;
-  border-bottom: 1px solid rgba(188, 174, 153, 0.55);
+  border-bottom: 1px solid var(--rule);
   text-decoration: none;
 }
 
@@ -81,7 +79,7 @@ a {
   width: 100%;
   margin-top: 18px;
   gap: 16px;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 14px;
 }
 
@@ -92,10 +90,10 @@ a {
 
 .nav-title {
   padding: 0 18px 4px;
-  color: var(--muted-soft);
+  color: var(--ink-faint);
   font-size: 11px;
   font-weight: 760;
-  letter-spacing: 0;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -107,7 +105,7 @@ a {
   padding: 7px 18px;
   border-left: 3px solid transparent;
   border-radius: 0;
-  color: var(--muted);
+  color: var(--ink-muted);
   line-height: 1.25;
   text-decoration: none;
   transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
@@ -115,17 +113,16 @@ a {
 
 .nav a:hover,
 .nav a.active {
-  background: rgba(251, 250, 245, 0.42);
+  background: var(--bg-card);
   color: var(--ink);
 }
 
 .nav a.active {
-  border-left-color: var(--green);
-  box-shadow: none;
+  border-left-color: var(--accent-forest);
 }
 
 .summary-list a:hover strong {
-  color: var(--green);
+  color: var(--accent-forest);
 }
 
 main,
@@ -142,7 +139,7 @@ main,
   width: min(1120px, calc(100% - 44px));
   margin: 0 auto;
   padding: 12px 0 0;
-  background: linear-gradient(var(--bg) 76%, rgba(242, 239, 231, 0));
+  background: linear-gradient(var(--bg) 76%, transparent);
 }
 
 .language-control {
@@ -151,13 +148,13 @@ main,
   min-height: 34px;
   gap: 9px;
   padding: 3px 4px 3px 10px;
-  border: 1px solid rgba(188, 174, 153, 0.58);
+  border: 1px solid var(--rule);
   border-radius: 999px;
-  background: rgba(251, 250, 245, 0.72);
+  background: var(--bg-panel);
 }
 
 .language-control span {
-  color: var(--muted-soft);
+  color: var(--ink-faint);
   font-size: 12px;
   font-weight: 760;
   text-transform: uppercase;
@@ -180,7 +177,7 @@ main,
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--muted);
+  color: var(--ink-muted);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -189,8 +186,7 @@ main,
 
 .language-switcher button[aria-pressed="true"] {
   background: var(--ink);
-  color: var(--code-ink);
-  box-shadow: none;
+  color: var(--bg);
 }
 
 .language-panel {
@@ -233,9 +229,9 @@ body[data-language="python"] .language-panel[data-language="python"] {
 .hero-graph {
   min-width: 0;
   padding: 22px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--bg-card);
 }
 
 .hero-graph p {
@@ -246,18 +242,26 @@ body[data-language="python"] .language-panel[data-language="python"] {
 .install-card {
   min-width: 0;
   padding: 20px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  background: rgba(251, 250, 245, 0.78);
+  background: var(--bg-card);
 }
 
 .install-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 14px;
+}
+
+.install-card-header .language-control {
+  margin-left: auto;
 }
 
 .install-card h2 {
   margin-bottom: 0;
-  font-size: 25px;
 }
 
 .install-methods {
@@ -271,14 +275,14 @@ body[data-language="python"] .language-panel[data-language="python"] {
 
 .install-methods h3 {
   margin-bottom: 6px;
-  color: var(--muted-soft);
+  color: var(--ink-faint);
   font-size: 12px;
   font-weight: 780;
   text-transform: uppercase;
 }
 
 .install-methods pre {
-  border: 1px solid rgba(24, 23, 19, 0.1);
+  border: 1px solid var(--rule);
   border-radius: 6px;
 }
 
@@ -299,18 +303,18 @@ body[data-language="python"] .language-panel[data-language="python"] {
 }
 
 .graph-row span:first-child {
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
   font-weight: 800;
 }
 
 .eyebrow,
 .section-kicker {
-  margin: 0 0 10px;
-  color: var(--green);
+  margin: 0 0 8px;
+  color: var(--accent-forest);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -342,6 +346,17 @@ h3 {
   line-height: 1.25;
 }
 
+.install-card h2,
+.diagram-card h3,
+.card-grid article h3,
+.code-grid article h3,
+.wide-example h3,
+.comparison-list article h3 {
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 1.25;
+}
+
 p,
 li,
 .lead,
@@ -349,7 +364,7 @@ li,
 .api-member p,
 .member-table td,
 .use-case-list p {
-  color: var(--muted);
+  color: var(--ink-muted);
 }
 
 .lead {
@@ -370,7 +385,7 @@ li,
   justify-content: center;
   min-height: 42px;
   padding: 8px 15px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--rule);
   border-radius: 8px;
   font-weight: 750;
   text-decoration: none;
@@ -379,11 +394,11 @@ li,
 .button.primary {
   border-color: var(--ink);
   background: var(--ink);
-  color: #ffffff;
+  color: var(--bg);
 }
 
 .button.secondary {
-  background: var(--surface);
+  background: var(--bg-card);
 }
 
 .doc-section {
@@ -411,13 +426,13 @@ li,
 .use-case-list article,
 .api-tree,
 .api-member {
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--bg-card);
 }
 
 .diagram-card {
-  padding: 18px;
+  padding: 20px;
 }
 
 .card-grid {
@@ -430,7 +445,7 @@ li,
 }
 
 .card-grid article {
-  padding: 18px;
+  padding: 20px;
 }
 
 .state-diagram {
@@ -442,10 +457,10 @@ li,
 .quick-timeline {
   display: grid;
   gap: 14px;
-  padding: 18px;
-  border: 1px solid var(--line);
+  padding: 20px;
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--bg-card);
 }
 
 .quick-row {
@@ -462,7 +477,7 @@ li,
 
 .quick-row span:first-child,
 .quick-row span:last-child {
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -473,8 +488,8 @@ li,
   overflow: hidden;
   border-radius: 999px;
   background:
-    linear-gradient(90deg, rgba(22, 22, 20, 0.08) 1px, transparent 1px) 0 0 / 20% 100%,
-    var(--surface-2);
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 20% 100%,
+    var(--bg-panel);
 }
 
 .quick-window {
@@ -485,16 +500,16 @@ li,
 }
 
 .quick-window.target {
-  background: var(--blue);
+  background: var(--accent-slate);
 }
 
 .quick-window.compare,
 .quick-window.overlap {
-  background: var(--green);
+  background: var(--accent-forest);
 }
 
 .quick-window.residual {
-  background: var(--amber);
+  background: var(--accent-amber);
 }
 
 .quick-note {
@@ -502,11 +517,11 @@ li,
   top: 26px;
   z-index: 3;
   padding: 2px 5px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 4px;
-  background: rgba(251, 250, 245, 0.9);
-  color: var(--muted);
-  font-size: 10px;
+  background: var(--accent-amber);
+  color: var(--ink);
+  font-size: 0.75rem;
   font-weight: 780;
   line-height: 1.1;
   transform: translateX(-50%);
@@ -525,29 +540,29 @@ li,
 }
 
 .quick-note.note-residual {
-  color: var(--amber);
+  color: var(--ink);
 }
 
 .quick-note.note-overlap {
-  color: var(--overlap);
+  color: var(--ink);
 }
 
 .state-row {
   position: relative;
   display: grid;
-  grid-template-columns: 74px minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: 82px minmax(0, 1fr);
+  align-items: start;
   min-height: 24px;
   gap: 10px;
 }
 
 .state-row.annotated-row {
-  min-height: 46px;
+  min-height: 50px;
 }
 
 .row-label,
 .mini-graph .label {
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -555,52 +570,55 @@ li,
 .timeline {
   position: relative;
   height: 8px;
-  overflow: hidden;
+  align-self: start;
+  margin-top: 7px;
+  overflow: visible;
   border-radius: 999px;
   background:
-    linear-gradient(90deg, rgba(22, 22, 20, 0.08) 1px, transparent 1px) 0 0 / 25% 100%,
-    var(--surface-2);
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 25% 100%,
+    var(--bg-panel);
 }
 
+.lane-note,
 .timeline-note {
   position: absolute;
-  top: 24px;
+  top: calc(100% + 6px);
   z-index: 3;
-  max-width: 86px;
-  padding: 2px 5px;
-  border: 1px solid var(--line);
+  min-height: 16px;
+  padding: 2px 4px;
+  border: 1px solid var(--rule);
   border-radius: 4px;
-  background: rgba(251, 250, 245, 0.9);
-  color: var(--muted);
-  font-size: 10px;
+  background: var(--accent-amber);
+  color: var(--ink);
+  font-size: 0.75rem;
   font-weight: 780;
-  line-height: 1.15;
+  line-height: 1.05;
   text-align: center;
-  transform: translateX(-50%);
-  white-space: nowrap;
+  white-space: normal;
 }
 
+.lane-note::before,
 .timeline-note::before {
   position: absolute;
-  top: -11px;
+  top: -7px;
   left: 50%;
   width: 1px;
-  height: 10px;
+  height: 6px;
   background: currentColor;
   content: "";
   opacity: 0.45;
 }
 
 .timeline-note.note-residual {
-  color: var(--amber);
+  color: var(--ink);
 }
 
 .timeline-note.note-overlap {
-  color: var(--overlap);
+  color: var(--ink);
 }
 
 .timeline-note.note-missing {
-  color: var(--red);
+  color: var(--ink);
 }
 
 .window,
@@ -611,71 +629,74 @@ li,
 }
 
 .window {
-  top: 7px;
+  top: -1px;
   height: 10px;
   border-radius: 999px;
 }
 
 .window.target,
 .bar.target {
-  background: var(--blue);
+  background: var(--accent-slate);
 }
 
 .window.compare,
 .bar.compare {
-  background: var(--green);
+  background: var(--accent-forest);
 }
 
 .window.warn,
 .bar.residual {
-  background: var(--amber);
+  background: var(--accent-rust);
 }
 
 .window.residual {
-  background: var(--amber);
+  background: var(--accent-amber);
 }
 
 .window.overlap {
-  background: var(--overlap);
+  background: var(--accent-forest);
 }
 
 .bar.overlap {
-  background: var(--overlap);
+  background: var(--accent-forest);
 }
 
 .bar.hot {
-  background: var(--amber);
+  background: var(--accent-rust);
 }
 
 .window.missing,
 .bar.missing {
-  background: var(--red);
+  background: var(--accent-amber);
 }
 
 .window.dashed {
-  border: 2px dashed var(--blue);
-  background: rgba(82, 111, 159, 0.16);
+  border: 2px dashed var(--accent-slate);
+  background: color-mix(in srgb, var(--accent-slate) 16%, transparent);
 }
 
 .point {
-  top: 3px;
+  top: -4px;
   width: 16px;
   height: 16px;
-  border: 3px solid var(--surface);
+  border: 3px solid var(--bg-card);
   border-radius: 50%;
-  background: var(--amber);
+  background: var(--accent-rust);
 }
 
 .point.ok {
-  background: var(--green);
+  background: var(--accent-forest);
 }
 
 .horizon,
 .mini-graph .marker {
-  top: 0;
   width: 2px;
   height: 24px;
   background: var(--ink);
+}
+
+.horizon {
+  top: -8px;
 }
 
 .two-col {
@@ -698,7 +719,7 @@ li,
   display: grid;
   gap: 4px;
   min-width: 0;
-  padding: 16px;
+  padding: 20px;
   text-decoration: none;
 }
 
@@ -711,7 +732,7 @@ li,
 }
 
 .link-line a {
-  color: var(--green);
+  color: var(--accent-forest);
   font-weight: 800;
 }
 
@@ -724,7 +745,7 @@ li,
   display: grid;
   grid-template-columns: minmax(230px, 0.38fr) minmax(0, 1fr);
   gap: 18px;
-  padding: 16px;
+  padding: 20px;
 }
 
 .capability-list strong {
@@ -732,7 +753,7 @@ li,
 }
 
 .capability-list span {
-  color: var(--muted);
+  color: var(--ink-muted);
 }
 
 .code-strip {
@@ -752,7 +773,7 @@ li,
 .code-grid article,
 .wide-example {
   min-width: 0;
-  padding: 18px;
+  padding: 20px;
 }
 
 .wide-example {
@@ -770,7 +791,7 @@ pre {
   overflow-x: auto;
   border-radius: 8px;
   background: var(--code-bg);
-  color: var(--code-ink);
+  color: var(--code-fg);
 }
 
 code {
@@ -784,6 +805,11 @@ pre code {
   line-height: 1.55;
 }
 
+pre .comment,
+pre .hljs-comment {
+  color: var(--code-comment);
+}
+
 .use-case-list {
   display: grid;
   gap: 14px;
@@ -794,7 +820,7 @@ pre code {
   grid-template-columns: minmax(0, 0.85fr) minmax(360px, 1fr);
   gap: 22px;
   min-width: 0;
-  padding: 22px;
+  padding: 20px;
 }
 
 .use-case-list article > div {
@@ -805,14 +831,14 @@ pre code {
   display: grid;
   grid-template-columns: 108px minmax(0, 1fr);
   column-gap: 10px;
-  row-gap: 14px;
+  row-gap: 28px;
   align-self: center;
   width: 100%;
   min-width: 0;
-  padding: 16px;
-  border: 1px solid var(--line);
+  padding: 20px 20px 30px;
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--bg-card);
 }
 
 .mini-graph .label {
@@ -827,12 +853,12 @@ pre code {
   position: relative;
   min-width: 0;
   height: 24px;
-  overflow: hidden;
-  border: 1px solid rgba(197, 187, 170, 0.72);
+  overflow: visible;
+  border: 1px solid var(--rule);
   border-radius: 6px;
   background:
-    linear-gradient(90deg, rgba(22, 22, 20, 0.08) 1px, transparent 1px) 0 0 / 20% 100%,
-    linear-gradient(180deg, rgba(251, 250, 246, 0.72), rgba(235, 230, 220, 0.52));
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 20% 100%,
+    linear-gradient(180deg, var(--bg-card), var(--bg-panel));
 }
 
 .mini-track::before {
@@ -841,7 +867,7 @@ pre code {
   right: 8px;
   left: 8px;
   height: 1px;
-  background: rgba(22, 22, 20, 0.18);
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
   content: "";
 }
 
@@ -850,8 +876,12 @@ pre code {
   top: 4px;
   height: 14px;
   min-width: 8px;
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
   border-radius: 4px;
-  box-shadow: inset 0 0 0 1px rgba(22, 22, 20, 0.14);
+}
+
+.mini-track .lane-note {
+  top: 30px;
 }
 
 .mini-track .bar[data-label]::after {
@@ -860,13 +890,13 @@ pre code {
   left: 50%;
   max-width: calc(100% - 8px);
   overflow: hidden;
-  color: #ffffff;
+  color: var(--bg);
   content: attr(data-label);
   font-size: 10px;
   font-weight: 850;
   line-height: 1;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 1px rgba(22, 22, 20, 0.25);
+  text-shadow: 0 1px 1px color-mix(in srgb, var(--ink) 25%, transparent);
   transform: translate(-50%, -50%);
   white-space: nowrap;
 }
@@ -881,11 +911,11 @@ pre code {
 }
 
 .mini-graph .phase {
-  background: var(--line-strong);
+  background: var(--ink-faint);
 }
 
 .mini-graph .phase.alt {
-  background: var(--muted);
+  background: var(--ink-muted);
 }
 
 .comparison-list {
@@ -897,14 +927,14 @@ pre code {
   display: grid;
   grid-template-columns: minmax(220px, 0.34fr) minmax(0, 1fr);
   gap: 18px;
-  padding: 18px;
+  padding: 20px;
 }
 
 .visualiser-frame {
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--bg-card);
 }
 
 .visualiser-frame iframe {
@@ -913,7 +943,7 @@ pre code {
   height: clamp(880px, 92vh, 1100px);
   min-height: 880px;
   border: 0;
-  background: var(--surface);
+  background: var(--bg-card);
 }
 
 .site-footer {
@@ -923,8 +953,8 @@ pre code {
   gap: 16px;
   margin-top: 30px;
   padding: 24px max(22px, calc((100vw - 1120px) / 2));
-  border-top: 1px solid var(--line);
-  color: var(--muted);
+  border-top: 1px solid var(--rule);
+  color: var(--ink-muted);
 }
 
 .site-footer span {
@@ -938,7 +968,7 @@ pre code {
 
 .api-hero p {
   max-width: 780px;
-  color: var(--muted);
+  color: var(--ink-muted);
 }
 
 .api-hero pre {
@@ -964,14 +994,14 @@ pre code {
 
 .api-tree-title {
   margin-bottom: 10px;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
 }
 
 .api-tree details {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--rule);
   padding: 8px 0;
 }
 
@@ -987,14 +1017,14 @@ pre code {
 .api-tree a {
   display: block;
   padding: 5px 0 5px 16px;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 14px;
   overflow-wrap: anywhere;
   text-decoration: none;
 }
 
 .api-tree a:hover {
-  color: var(--green);
+  color: var(--accent-forest);
 }
 
 .api-tree .type-link {
@@ -1004,7 +1034,7 @@ pre code {
 
 .api-tree .member-link {
   padding-left: 30px;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 12px;
 }
@@ -1028,7 +1058,7 @@ pre code {
 
 .member-kind {
   margin-bottom: 6px;
-  color: var(--green) !important;
+  color: var(--accent-forest) !important;
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
@@ -1044,7 +1074,7 @@ pre code {
 .member-table th,
 .member-table td {
   padding: 10px 8px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--rule);
   text-align: left;
   vertical-align: top;
 }
@@ -1091,7 +1121,7 @@ pre code {
     align-items: flex-start;
     padding: 16px max(22px, calc((100vw - 1120px) / 2));
     border-right: 0;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--rule);
   }
 
   .nav {
@@ -1121,11 +1151,11 @@ pre code {
   .nav a {
     min-height: 32px;
     padding: 5px 8px;
-    background: var(--surface);
+    background: var(--bg-card);
   }
 
   .nav a.active {
-    box-shadow: inset 0 -2px 0 var(--green);
+    border-bottom: 2px solid var(--accent-forest);
   }
 
   main,
@@ -1166,11 +1196,11 @@ pre code {
 
   .mini-graph {
     grid-template-columns: 86px minmax(0, 1fr);
-    padding: 12px;
+    padding: 20px 20px 30px;
   }
 
   .use-case-list article {
-    padding: 16px;
+    padding: 20px;
   }
 
   .graph-row {
@@ -1209,7 +1239,7 @@ pre code {
   }
 
   .member-table tr {
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--rule);
     padding: 8px 0;
   }
 

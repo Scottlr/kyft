@@ -7,20 +7,20 @@
   <style>
 :root {
   color-scheme: light;
-  --bg: #f7f7f4;
-  --panel: #ffffff;
-  --ink: #17201b;
-  --muted: #5b645f;
-  --line: #d8ded9;
-  --soft: #eef2ef;
-  --target: #2563eb;
-  --against: #059669;
-  --overlap: #0f766e;
-  --residual: #c2410c;
-  --missing: #b91c1c;
-  --gap: #6b7280;
-  --warning: #b45309;
-  --error: #b91c1c;
+  --bg: #F0E9D6;
+  --bg-panel: #E8DFC6;
+  --bg-card: #F5EFE0;
+  --ink: #2B2A26;
+  --ink-muted: #6B6659;
+  --ink-faint: #9A9484;
+  --rule: #D9CFB4;
+  --code-bg: #1F1E1A;
+  --code-fg: #E8DFC6;
+  --code-comment: #9A9484;
+  --accent-rust: #B8742A;
+  --accent-forest: #3E6B5C;
+  --accent-slate: #5E7A9B;
+  --accent-amber: #C97A3A;
 }
 
 * { box-sizing: border-box; }
@@ -40,22 +40,21 @@ main {
 
 .hero,
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  box-shadow: 0 12px 34px rgba(23, 32, 27, 0.08);
 }
 
 .hero {
   padding: 28px;
-  border-top: 4px solid var(--overlap);
+  border-top: 4px solid var(--accent-forest);
 }
 
 .eyebrow {
-  color: var(--muted);
+  color: var(--accent-forest);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -84,7 +83,7 @@ h3 {
 .lead {
   max-width: 760px;
   margin-top: 14px;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 16px;
 }
 
@@ -100,16 +99,16 @@ h3 {
   align-items: center;
   min-height: 28px;
   padding: 4px 10px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  background: var(--soft);
+  background: var(--bg-panel);
   color: var(--ink);
   font-weight: 650;
 }
 
-.badge.valid { border-color: #86efac; background: #ecfdf3; color: #14532d; }
-.badge.invalid { border-color: #fecaca; background: #fef2f2; color: #7f1d1d; }
-.badge.live { border-color: #fed7aa; background: #fff7ed; color: #7c2d12; }
+.badge.valid { border-color: var(--accent-forest); background: color-mix(in srgb, var(--accent-forest) 12%, var(--bg-card)); color: var(--accent-forest); }
+.badge.invalid { border-color: var(--accent-rust); background: color-mix(in srgb, var(--accent-rust) 12%, var(--bg-card)); color: var(--accent-rust); }
+.badge.live { border-color: var(--accent-amber); background: color-mix(in srgb, var(--accent-amber) 14%, var(--bg-card)); color: var(--accent-rust); }
 
 .grid {
   display: grid;
@@ -121,9 +120,9 @@ h3 {
 .card {
   min-height: 86px;
   padding: 16px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  background: #fbfcfb;
+  background: var(--bg-card);
 }
 
 .card .value {
@@ -134,7 +133,7 @@ h3 {
 }
 
 .card .label {
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
@@ -156,7 +155,7 @@ h3 {
 
 .section-note {
   max-width: 680px;
-  color: var(--muted);
+  color: var(--ink-muted);
 }
 
 .timeline-tools {
@@ -165,7 +164,7 @@ h3 {
   align-items: center;
   gap: 10px;
   margin: 0 0 12px;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
   font-weight: 700;
 }
@@ -182,9 +181,9 @@ h3 {
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 8px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  background: #fbfcfb;
+  background: var(--bg-card);
 }
 
 .timeline-canvas {
@@ -212,7 +211,7 @@ h3 {
 
 .lane-meta {
   display: block;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
   font-weight: 500;
 }
@@ -221,11 +220,11 @@ h3 {
   position: relative;
   min-height: 34px;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 8px;
   background:
-    linear-gradient(90deg, rgba(23, 32, 27, 0.05) 1px, transparent 1px) 0 0 / 12.5% 100%,
-    #f9faf9;
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px) 0 0 / 12.5% 100%,
+    var(--bg-panel);
 }
 
 .bar {
@@ -237,13 +236,13 @@ h3 {
   opacity: 0.94;
 }
 
-.bar.target { background: var(--target); }
-.bar.against { background: var(--against); }
-.bar.overlap { background: var(--overlap); }
-.bar.residual { background: var(--residual); }
-.bar.missing { background: var(--missing); }
-.bar.gap { background: var(--gap); }
-.bar.open { outline: 2px dashed rgba(23, 32, 27, 0.46); outline-offset: 2px; }
+.bar.target { background: var(--accent-slate); }
+.bar.against { background: var(--accent-forest); }
+.bar.overlap { background: var(--accent-forest); }
+.bar.residual { background: var(--accent-rust); }
+.bar.missing { background: var(--accent-amber); }
+.bar.gap { background: var(--ink-faint); }
+.bar.open { outline: 2px dashed color-mix(in srgb, var(--ink) 46%, transparent); outline-offset: 2px; }
 
 .boundary-marker {
   position: absolute;
@@ -251,15 +250,14 @@ h3 {
   bottom: 2px;
   width: 3px;
   border-radius: 2px;
-  background: var(--warning);
-  box-shadow: 0 0 0 2px rgba(255, 247, 237, 0.92);
+  background: var(--accent-amber);
 }
 
 .axis {
   display: flex;
   justify-content: space-between;
   margin-top: 12px;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
 }
 
@@ -268,7 +266,7 @@ h3 {
   flex-wrap: wrap;
   gap: 8px 14px;
   margin-top: 12px;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
 }
 
@@ -300,9 +298,9 @@ h3 {
   position: relative;
   min-height: 36px;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 8px;
-  background: #f9faf9;
+  background: var(--bg-panel);
 }
 
 .band-segment {
@@ -312,9 +310,9 @@ h3 {
   min-width: 4px;
   overflow: hidden;
   padding: 2px 8px;
-  border: 1px solid rgba(23, 32, 27, 0.18);
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
   border-radius: 6px;
-  color: #111827;
+  color: var(--ink);
   font-size: 12px;
   font-weight: 700;
   line-height: 18px;
@@ -322,35 +320,35 @@ h3 {
   white-space: nowrap;
 }
 
-.band-segment.c0 { background: #dbeafe; }
-.band-segment.c1 { background: #dcfce7; }
-.band-segment.c2 { background: #fef3c7; }
-.band-segment.c3 { background: #fce7f3; }
-.band-segment.c4 { background: #ccfbf1; }
-.band-segment.c5 { background: #e5e7eb; }
+.band-segment.c0 { background: color-mix(in srgb, var(--accent-slate) 24%, var(--bg-card)); }
+.band-segment.c1 { background: color-mix(in srgb, var(--accent-forest) 22%, var(--bg-card)); }
+.band-segment.c2 { background: color-mix(in srgb, var(--accent-amber) 24%, var(--bg-card)); }
+.band-segment.c3 { background: color-mix(in srgb, var(--accent-rust) 20%, var(--bg-card)); }
+.band-segment.c4 { background: var(--bg-panel); }
+.band-segment.c5 { background: color-mix(in srgb, var(--ink-faint) 24%, var(--bg-card)); }
 
 .table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 8px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 th,
 td {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--rule);
   text-align: left;
   vertical-align: top;
 }
 
 th {
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0;
@@ -366,14 +364,14 @@ tr:last-child td { border-bottom: 0; }
 
 .empty {
   padding: 18px;
-  border: 1px dashed var(--line);
+  border: 1px dashed var(--rule);
   border-radius: 8px;
-  color: var(--muted);
-  background: #fbfcfb;
+  color: var(--ink-muted);
+  background: var(--bg-card);
 }
 
-.severity-error { color: var(--error); font-weight: 720; }
-.severity-warning { color: var(--warning); font-weight: 720; }
+.severity-error { color: var(--accent-rust); font-weight: 720; }
+.severity-warning { color: var(--accent-amber); font-weight: 720; }
 
 @media (max-width: 820px) {
   main { width: min(100% - 20px, 1220px); padding-top: 16px; }
@@ -490,8 +488,8 @@ tr:last-child td { border-bottom: 0; }
     </div>
   </div>
   <div class="legend">
-    <span class="legend-item"><span class="swatch" style="background:var(--target)"></span>Target window</span>
-    <span class="legend-item"><span class="swatch" style="background:var(--against)"></span>Comparison window</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--accent-slate)"></span>Target window</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--accent-forest)"></span>Comparison window</span>
   </div>
   <div class="table-wrap" style="margin-top:18px">
     <table>
@@ -566,12 +564,12 @@ tr:last-child td { border-bottom: 0; }
     </div>
   </div>
   <div class="legend">
-    <span class="legend-item"><span class="swatch" style="background:var(--target)"></span>Target window</span>
-    <span class="legend-item"><span class="swatch" style="background:var(--against)"></span>Comparison window</span>
-    <span class="legend-item"><span class="swatch" style="background:var(--overlap)"></span>Overlap</span>
-    <span class="legend-item"><span class="swatch" style="background:var(--residual)"></span>Target only</span>
-    <span class="legend-item"><span class="swatch" style="background:var(--missing)"></span>Comparison only</span>
-    <span class="legend-item"><span class="swatch" style="background:var(--gap)"></span>Gap</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--accent-slate)"></span>Target window</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--accent-forest)"></span>Comparison window</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--accent-forest)"></span>Overlap</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--accent-rust)"></span>Target only</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--accent-amber)"></span>Comparison only</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--ink-faint)"></span>Gap</span>
   </div>
   <div class="table-wrap" style="margin-top:18px">
     <table>

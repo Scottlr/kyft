@@ -1,6 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
   <title id="title">Spanfold icon</title>
   <desc id="desc">A minimal folded band forming an abstract S.</desc>
-  <rect width="64" height="64" rx="12" fill="#ffffff"/>
-  <path fill="#17211d" d="M17 15h30v7H17zM29 22h18L35 32H17zM17 32h18l12 9H29zM17 41h30v7H17z"/>
+  <style>
+    :root { --bg: #F0E9D6; --ink: #2B2A26; }
+  </style>
+  <rect width="64" height="64" rx="12" fill="var(--ink)"/>
+  <path fill="var(--bg)" d="M17 15h30v7H17zM29 22h18L35 32H17zM17 32h18l12 9H29zM17 41h30v7H17z"/>
 </svg>
