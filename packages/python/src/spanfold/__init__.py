@@ -50,12 +50,16 @@ from spanfold.records import (
     WindowAnnotationTarget,
     WindowBoundaryChange,
     WindowBoundaryReason,
+    WindowGroupKind,
+    WindowGroupSummary,
     WindowHistory,
     WindowRecord,
     WindowRecordId,
     WindowSegment,
     WindowTag,
     WindowTransitionKind,
+    summarize_by_segment,
+    summarize_by_tag,
 )
 from spanfold.temporal import TemporalAxis, TemporalPoint, TemporalRange, TemporalRangeEndStatus
 
@@ -110,10 +114,14 @@ __all__ = [
     "WindowBoundaryChange",
     "WindowBoundaryReason",
     "WindowEmission",
+    "WindowGroupKind",
+    "WindowGroupSummary",
     "WindowHistory",
     "WindowRecord",
     "WindowRecordId",
     "WindowSegment",
     "WindowTag",
     "WindowTransitionKind",
+    "summarize_by_segment",
+    "summarize_by_tag",
 ]

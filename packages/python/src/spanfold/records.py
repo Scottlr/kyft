@@ -6,7 +6,7 @@ import hashlib
 import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -25,6 +25,13 @@ class WindowBoundaryReason(Enum):
 
     ACTIVE_PREDICATE_ENDED = "active_predicate_ended"
     SEGMENT_CHANGED = "segment_changed"
+
+
+class WindowGroupKind(Enum):
+    """Identifies the metadata family used to group recorded windows."""
+
+    SEGMENT = "segment"
+    TAG = "tag"
 
 
 @dataclass(frozen=True, slots=True)
@@ -246,6 +253,22 @@ class WindowAnnotation:
 
 
 @dataclass(frozen=True, slots=True)
+class WindowGroupSummary:
+    """Summarizes recorded windows sharing one segment or tag value."""
+
+    group_kind: WindowGroupKind
+    name: str
+    value: Any
+    record_count: int
+    final_count: int
+    provisional_count: int
+    measured_position_count: int
+    total_position_length: int
+    measured_time_count: int
+    total_time_duration: timedelta
+
+
+@dataclass(frozen=True, slots=True)
 class WindowHistorySnapshot:
     """A read-only view of recorded history at a horizon."""
 
@@ -263,6 +286,11 @@ class WindowHistorySnapshot:
         """Return horizon-clipped windows that were still open."""
 
         return tuple(window for window in self.windows if not isinstance(window, ClosedWindow))
+
+    def query(self) -> WindowHistoryQuery:
+        """Start a direct read-only query over snapshot windows."""
+
+        return WindowHistoryQuery(self.windows)
 
 
 class WindowHistory:
@@ -557,8 +585,36 @@ class WindowHistoryQuery:
 
         return self._windows
 
+    def summarize_by_segment(self, name: str) -> tuple[WindowGroupSummary, ...]:
+        """Summarize matching windows by one segment dimension."""
+
+        return summarize_by_segment(self._windows, name)
+
+    def summarize_by_tag(self, name: str) -> tuple[WindowGroupSummary, ...]:
+        """Summarize matching windows by one tag."""
+
+        return summarize_by_tag(self._windows, name)
+
     def _filter(self, predicate: Any) -> WindowHistoryQuery:
         return WindowHistoryQuery(window for window in self._windows if predicate(window))
+
+
+def summarize_by_segment(
+    windows: Iterable[WindowRecord],
+    name: str,
+) -> tuple[WindowGroupSummary, ...]:
+    """Summarize recorded windows by one segment dimension."""
+
+    return _summarize_by_metadata(windows, WindowGroupKind.SEGMENT, name)
+
+
+def summarize_by_tag(
+    windows: Iterable[WindowRecord],
+    name: str,
+) -> tuple[WindowGroupSummary, ...]:
+    """Summarize recorded windows by one tag."""
+
+    return _summarize_by_metadata(windows, WindowGroupKind.TAG, name)
 
 
 def coerce_segments(
@@ -580,6 +636,90 @@ def coerce_tags(values: Mapping[str, Any] | Iterable[WindowTag] | None) -> tuple
         return ()
     if isinstance(values, Mapping):
         return tuple(WindowTag(name, value) for name, value in values.items())
+    return tuple(values)
+
+
+@dataclass(slots=True)
+class _WindowSummaryAccumulator:
+    group_kind: WindowGroupKind
+    name: str
+    value: Any
+    record_count: int = 0
+    final_count: int = 0
+    provisional_count: int = 0
+    measured_position_count: int = 0
+    total_position_length: int = 0
+    measured_time_count: int = 0
+    total_time_duration: timedelta = timedelta()
+
+    def add(self, window: WindowRecord) -> None:
+        self.record_count += 1
+        if isinstance(window, ClosedWindow):
+            self.final_count += 1
+        else:
+            self.provisional_count += 1
+
+        if window.end_position is not None:
+            self.measured_position_count += 1
+            self.total_position_length += window.end_position - window.start_position
+
+        if window.start_time is not None and window.end_time is not None:
+            self.measured_time_count += 1
+            self.total_time_duration += window.end_time - window.start_time
+
+    def to_summary(self) -> WindowGroupSummary:
+        return WindowGroupSummary(
+            self.group_kind,
+            self.name,
+            self.value,
+            self.record_count,
+            self.final_count,
+            self.provisional_count,
+            self.measured_position_count,
+            self.total_position_length,
+            self.measured_time_count,
+            self.total_time_duration,
+        )
+
+
+def _summarize_by_metadata(
+    windows: Iterable[WindowRecord],
+    group_kind: WindowGroupKind,
+    name: str,
+) -> tuple[WindowGroupSummary, ...]:
+    if not name or not name.strip():
+        msg = "Summary dimension name cannot be empty."
+        raise ValueError(msg)
+
+    groups: dict[tuple[str, str], _WindowSummaryAccumulator] = {}
+    for window in windows:
+        for value in _metadata_values(window, group_kind, name):
+            key = (type(value).__qualname__, repr(value))
+            accumulator = groups.get(key)
+            if accumulator is None:
+                accumulator = _WindowSummaryAccumulator(group_kind, name, value)
+                groups[key] = accumulator
+            accumulator.add(window)
+
+    return tuple(
+        accumulator.to_summary()
+        for _, accumulator in sorted(groups.items(), key=lambda item: item[0])
+    )
+
+
+def _metadata_values(
+    window: WindowRecord,
+    group_kind: WindowGroupKind,
+    name: str,
+) -> tuple[Any, ...]:
+    values: list[Any] = []
+    metadata: Iterable[WindowSegment | WindowTag] = (
+        window.segments if group_kind is WindowGroupKind.SEGMENT else window.tags
+    )
+    for item in metadata:
+        if item.name != name or item.value in values:
+            continue
+        values.append(item.value)
     return tuple(values)
 
 

@@ -1,6 +1,14 @@
 from dataclasses import dataclass
 
-from spanfold import Spanfold, WindowBoundaryReason, WindowTransitionKind
+import pytest
+
+from spanfold import (
+    Spanfold,
+    TemporalPoint,
+    WindowBoundaryReason,
+    WindowGroupKind,
+    WindowTransitionKind,
+)
 
 
 @dataclass(frozen=True)
@@ -113,3 +121,97 @@ def test_direct_history_query_filters() -> None:
     assert rows[0].source == "provider-a"
     assert rows[0].segments[0].value == "north"
     assert pipeline.history.query().where_lane("provider-a").latest() == rows[0]
+
+
+def test_recorded_windows_can_be_summarized_by_segment() -> None:
+    pipeline = _segmented_pipeline()
+
+    pipeline.ingest(DeviceStatus("device-1", False, "Incident"), source="lane-a")
+    pipeline.ingest(DeviceStatus("device-1", True, "Incident"), source="lane-a")
+    pipeline.ingest(DeviceStatus("device-2", False, "Incident"), source="lane-a")
+    pipeline.ingest(DeviceStatus("device-3", False, "Normal"), source="lane-b")
+    pipeline.ingest(DeviceStatus("device-3", True, "Normal"), source="lane-b")
+
+    summaries = (
+        pipeline.history.query()
+        .where_window("DeviceOffline")
+        .summarize_by_segment("lifecycle")
+    )
+
+    incident = next(summary for summary in summaries if summary.value == "Incident")
+    assert incident.group_kind is WindowGroupKind.SEGMENT
+    assert incident.name == "lifecycle"
+    assert incident.record_count == 2
+    assert incident.final_count == 1
+    assert incident.provisional_count == 1
+    assert incident.measured_position_count == 1
+    assert incident.total_position_length == 1
+
+    normal = next(summary for summary in summaries if summary.value == "Normal")
+    assert normal.record_count == 1
+    assert normal.final_count == 1
+    assert normal.provisional_count == 0
+    assert normal.total_position_length == 1
+
+
+def test_recorded_windows_can_be_summarized_by_tag() -> None:
+    pipeline = _segmented_pipeline()
+
+    pipeline.ingest(DeviceStatus("device-1", False, "Incident"), source="lane-a")
+    pipeline.ingest(DeviceStatus("device-1", True, "Incident"), source="lane-a")
+    pipeline.ingest(DeviceStatus("device-2", False, "Normal"), source="lane-b")
+
+    summaries = (
+        pipeline.history.query()
+        .where_window("DeviceOffline")
+        .summarize_by_tag("fleet")
+    )
+
+    warehouse = next(summary for summary in summaries if summary.value == "warehouse")
+    assert warehouse.group_kind is WindowGroupKind.TAG
+    assert warehouse.name == "fleet"
+    assert warehouse.record_count == 2
+    assert warehouse.final_count == 1
+    assert warehouse.provisional_count == 1
+    assert warehouse.total_position_length == 1
+
+
+def test_snapshot_windows_can_be_summarized_by_segment_with_horizon_length() -> None:
+    pipeline = _segmented_pipeline()
+
+    pipeline.ingest(DeviceStatus("device-1", False, "Incident"), source="lane-a")
+    pipeline.ingest(DeviceStatus("device-1", True, "Incident"), source="lane-a")
+    pipeline.ingest(DeviceStatus("device-2", False, "Incident"), source="lane-b")
+
+    summaries = (
+        pipeline.history.snapshot_at(TemporalPoint.for_position(6))
+        .query()
+        .where_window("DeviceOffline")
+        .summarize_by_segment("lifecycle")
+    )
+
+    incident = summaries[0]
+    assert incident.record_count == 2
+    assert incident.final_count == 1
+    assert incident.provisional_count == 1
+    assert incident.measured_position_count == 2
+    assert incident.total_position_length == 4
+
+
+def test_summary_rejects_missing_dimension_name() -> None:
+    with pytest.raises(ValueError, match="dimension name"):
+        Spanfold.for_events().record_windows().build().history.query().summarize_by_segment("")
+
+
+def _segmented_pipeline():
+    return (
+        Spanfold.for_events()
+        .record_windows()
+        .track_window(
+            "DeviceOffline",
+            key=lambda event: event.device_id,
+            is_active=lambda event: not event.is_online,
+            segments=lambda event: {"lifecycle": event.region},
+            tags=lambda event: {"fleet": "warehouse"},
+        )
+    )
