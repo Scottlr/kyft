@@ -14,7 +14,7 @@
   --overlap: #5f8062;
   --code-bg: #171613;
   --code-ink: #f4f1e8;
-  --sidebar-width: 286px;
+  --sidebar-width: 248px;
 }
 
 * {
@@ -857,6 +857,32 @@ pre code {
 }
 
 @media (max-width: 980px) {
+  .hero-grid,
+  .diagram-grid,
+  .card-grid.four,
+  .quick-row,
+  .two-col,
+  .code-strip,
+  .code-grid,
+  .capability-list div,
+  .comparison-list article,
+  .use-case-list article,
+  .summary-list.grid,
+  .api-reference-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .api-tree {
+    position: static;
+    max-height: none;
+  }
+
+  .quick-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
   .site-header {
     position: static;
     width: auto;
@@ -895,32 +921,6 @@ pre code {
     justify-content: flex-start;
   }
 
-  .hero-grid,
-  .diagram-grid,
-  .card-grid.four,
-  .quick-row,
-  .two-col,
-  .code-strip,
-  .code-grid,
-  .capability-list div,
-  .comparison-list article,
-  .use-case-list article,
-  .summary-list.grid,
-  .api-reference-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .api-tree {
-    position: static;
-    max-height: none;
-  }
-
-  .quick-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 680px) {
   .nav {
     justify-content: flex-start;
   }
