@@ -3,29 +3,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Spanfold is a C# library for recording temporal state windows and comparing them across sources, providers, or pipeline stages.">
-  <title>Spanfold - temporal state-window comparison for C#</title>
+  <meta name="description" content="Spanfold records temporal state windows and compares them across sources, providers, or pipeline stages.">
+  <title>Spanfold - temporal state-window comparison</title>
   <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-language="csharp">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
-    <nav class="nav" aria-label="Primary navigation">
-      <a href="index.html">Overview</a>
-      <a href="get-started.html">Get started</a>
-      <a href="use-cases.html">Use cases</a>
-      <a href="visualiser.html">Visualiser</a>
-      <a href="api.html">API</a>
-      <a href="https://github.com/Scottlr/spanfold">GitHub</a>
-    </nav>
+    <div class="header-actions">
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+        <a href="use-cases.html">Use cases</a>
+        <a href="visualiser.html">Visualiser</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </nav>
+      <div class="language-switcher" aria-label="Code language">
+        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+      </div>
+    </div>
   </header>
 
   <main>
     <section class="page-hero hero-grid">
       <div>
         <p class="eyebrow">Spanfold</p>
-        <h1>Temporal state-window recording and comparison for C#.</h1>
+        <h1>Temporal state-window recording and comparison.</h1>
         <p class="lead">
           Spanfold records when keyed state was active, then compares those windows
           across sources, providers, or pipeline stages. It is for questions
@@ -158,7 +164,7 @@
           point.
         </p>
         <p>
-          Spanfold keeps the temporal record as first-class data inside C# code. It
+          Spanfold keeps the temporal record as first-class data in application code. It
           does not replace your event pipeline, database, or dashboard; it gives
           the application a focused model for recorded state windows and
           source-aware comparison.
@@ -260,13 +266,21 @@
       <div class="code-grid">
         <article>
           <h3>Install</h3>
-          <pre><code>dotnet add package Spanfold
+          <div class="language-panel" data-language="csharp">
+            <pre><code>dotnet add package Spanfold
 dotnet add package Spanfold.Testing</code></pre>
-          <p>`Spanfold.Testing` is optional. It provides fixtures, snapshots, and assertions for consumer tests.</p>
+            <p>`Spanfold.Testing` is optional. It provides fixtures, snapshots, and assertions for consumer tests.</p>
+          </div>
+          <div class="language-panel" data-language="python">
+            <pre><code>cd packages/python
+python -m pip install -e ".[dev]"</code></pre>
+            <p class="language-note">The Python package is a partial port. Use it for early evaluation, not as the canonical API surface yet.</p>
+          </div>
         </article>
         <article>
           <h3>Record windows</h3>
-          <pre><code>using Spanfold;
+          <div class="language-panel" data-language="csharp">
+            <pre><code>using Spanfold;
 
 var pipeline = Spanfold.Spanfold
     .For&lt;DeviceSignal&gt;()
@@ -280,12 +294,40 @@ pipeline.Ingest(new DeviceSignal("device-17", false), source: "provider-a");
 pipeline.Ingest(new DeviceSignal("device-17", true), source: "provider-a");
 
 public sealed record DeviceSignal(string DeviceId, bool IsOnline);</code></pre>
+          </div>
+          <div class="language-panel" data-language="python">
+            <pre><code>from dataclasses import dataclass
+
+from spanfold import Spanfold
+
+
+@dataclass(frozen=True)
+class DeviceSignal:
+    device_id: str
+    is_online: bool
+
+
+pipeline = (
+    Spanfold.for_events()
+    .record_windows()
+    .track_window(
+        "DeviceOffline",
+        key=lambda signal: signal.device_id,
+        is_active=lambda signal: not signal.is_online,
+    )
+)
+
+pipeline.ingest(DeviceSignal("device-17", False), source="provider-a")
+pipeline.ingest(DeviceSignal("device-17", True), source="provider-a")</code></pre>
+            <p class="language-note">Python examples stay intentionally small until the port reaches feature parity.</p>
+          </div>
         </article>
       </div>
 
       <article class="wide-example">
         <h3>Compare recorded windows</h3>
-        <pre><code>var result = pipeline.History
+        <div class="language-panel" data-language="csharp">
+          <pre><code>var result = pipeline.History
     .Compare("Provider QA")
     .Target("provider-a", selector =&gt; selector.Source("provider-a"))
     .Against("provider-b", selector =&gt; selector.Source("provider-b"))
@@ -298,6 +340,20 @@ public sealed record DeviceSignal(string DeviceId, bool IsOnline);</code></pre>
     .Run();
 
 result.ExportDebugHtml("artifacts/provider-qa.html");</code></pre>
+        </div>
+        <div class="language-panel" data-language="python">
+          <pre><code>result = (
+    pipeline.history.compare("Provider QA")
+    .target("provider-a")
+    .against("provider-b")
+    .within(window_name="DeviceOffline")
+    .using("overlap", "residual", "missing")
+    .run()
+)
+
+print(result.to_markdown())</code></pre>
+          <p class="language-note">The complete comparison and export surface is currently defined by the C# package.</p>
+        </div>
       </article>
     </section>
 
@@ -335,5 +391,6 @@ result.ExportDebugHtml("artifacts/provider-qa.html");</code></pre>
     <span>Spanfold</span>
     <a href="https://github.com/Scottlr/spanfold">github.com/Scottlr/spanfold</a>
   </footer>
+  <script src="language.js"></script>
 </body>
 </html>

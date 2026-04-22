@@ -8,17 +8,23 @@
   <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-language="csharp">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
-    <nav class="nav" aria-label="Primary navigation">
-      <a href="index.html">Overview</a>
-      <a href="get-started.html">Get started</a>
-      <a href="use-cases.html">Use cases</a>
-      <a href="visualiser.html">Visualiser</a>
-      <a href="api.html">API</a>
-      <a href="https://github.com/Scottlr/spanfold">GitHub</a>
-    </nav>
+    <div class="header-actions">
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+        <a href="use-cases.html">Use cases</a>
+        <a href="visualiser.html">Visualiser</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </nav>
+      <div class="language-switcher" aria-label="Code language">
+        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+      </div>
+    </div>
   </header>
 
   <main>
@@ -70,9 +76,16 @@
     <section class="doc-section">
       <div class="section-heading">
         <p class="eyebrow">1. Install</p>
-        <h2>Add the package to a C# project.</h2>
+        <h2>Add the package to your project.</h2>
       </div>
-      <pre><code>dotnet add package Spanfold</code></pre>
+      <div class="language-panel" data-language="csharp">
+        <pre><code>dotnet add package Spanfold</code></pre>
+      </div>
+      <div class="language-panel" data-language="python">
+        <pre><code>cd packages/python
+python -m pip install -e ".[dev]"</code></pre>
+        <p class="language-note">The Python package is a partial port intended for early evaluation.</p>
+      </div>
     </section>
 
     <section class="doc-section">
@@ -87,7 +100,8 @@
       </div>
 
       <div class="wide-example">
-        <pre><code>using Spanfold;
+        <div class="language-panel" data-language="csharp">
+          <pre><code>using Spanfold;
 
 var pipeline = Spanfold.Spanfold
     .For&lt;DeviceStatus&gt;()
@@ -133,6 +147,51 @@ void Ingest(string source, bool isOnline)
 }
 
 public sealed record DeviceStatus(string DeviceId, bool IsOnline);</code></pre>
+        </div>
+        <div class="language-panel" data-language="python">
+          <pre><code>from dataclasses import dataclass
+
+from spanfold import Spanfold
+
+
+@dataclass(frozen=True)
+class DeviceStatus:
+    device_id: str
+    is_online: bool
+
+
+pipeline = (
+    Spanfold.for_events()
+    .record_windows()
+    .track_window(
+        "DeviceOffline",
+        key=lambda status: status.device_id,
+        is_active=lambda status: not status.is_online,
+    )
+)
+
+pipeline.ingest(DeviceStatus("device-17", True), source="provider-a")
+pipeline.ingest(DeviceStatus("device-17", True), source="provider-b")
+pipeline.ingest(DeviceStatus("device-17", False), source="provider-a")
+pipeline.ingest(DeviceStatus("device-17", False), source="provider-b")
+pipeline.ingest(DeviceStatus("device-17", True), source="provider-b")
+pipeline.ingest(DeviceStatus("device-17", True), source="provider-a")
+
+result = (
+    pipeline.history.compare("Provider comparison")
+    .target("provider-a")
+    .against("provider-b")
+    .within(window_name="DeviceOffline")
+    .using("overlap", "residual", "missing")
+    .run()
+)
+
+print(f"closed windows: {len(pipeline.history.closed_windows)}")
+print(f"overlap rows: {len(result.overlap_rows)}")
+print(f"provider-a-only rows: {len(result.residual_rows)}")
+print(f"provider-b-only rows: {len(result.missing_rows)}")</code></pre>
+          <p class="language-note">This mirrors the first slice of the Python port. Use C# docs for the full API surface.</p>
+        </div>
       </div>
     </section>
 
@@ -189,5 +248,6 @@ a-only device-17: 5..6</code></pre>
     <span>Spanfold</span>
     <a href="https://github.com/Scottlr/spanfold">GitHub repository</a>
   </footer>
+  <script src="language.js"></script>
 </body>
 </html>

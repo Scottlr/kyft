@@ -8,17 +8,23 @@
   <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-language="csharp">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
-    <nav class="nav" aria-label="Primary navigation">
-      <a href="index.html">Overview</a>
-      <a href="get-started.html">Get started</a>
-      <a href="use-cases.html">Use cases</a>
-      <a href="visualiser.html">Visualiser</a>
-      <a href="api.html">API</a>
-      <a href="https://github.com/Scottlr/spanfold">GitHub</a>
-    </nav>
+    <div class="header-actions">
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+        <a href="use-cases.html">Use cases</a>
+        <a href="visualiser.html">Visualiser</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </nav>
+      <div class="language-switcher" aria-label="Code language">
+        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+      </div>
+    </div>
   </header>
 
   <main>
@@ -141,5 +147,6 @@
     <span>Spanfold</span>
     <a href="https://github.com/Scottlr/spanfold">github.com/Scottlr/spanfold</a>
   </footer>
+  <script src="language.js"></script>
 </body>
 </html>

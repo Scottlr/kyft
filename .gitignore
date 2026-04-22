@@ -10,3 +10,14 @@ TestResults/
 *.rsuser
 
 .DS_Store
+
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.coverage
+dist/
+build/
+*.egg-info/

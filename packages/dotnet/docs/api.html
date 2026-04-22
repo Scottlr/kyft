@@ -8,17 +8,23 @@
   <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-language="csharp">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
-    <nav class="nav" aria-label="Primary navigation">
-      <a href="index.html">Overview</a>
-      <a href="get-started.html">Get started</a>
-      <a href="use-cases.html">Use cases</a>
-      <a href="visualiser.html">Visualiser</a>
-      <a href="api.html">API</a>
-      <a href="https://github.com/Scottlr/spanfold">GitHub</a>
-    </nav>
+    <div class="header-actions">
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+        <a href="use-cases.html">Use cases</a>
+        <a href="visualiser.html">Visualiser</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </nav>
+      <div class="language-switcher" aria-label="Code language">
+        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+      </div>
+    </div>
   </header>
 
   <main>
@@ -26,12 +32,19 @@
       <p class="eyebrow">API reference</p>
       <h1>Spanfold API reference.</h1>
       <p>
-        Static reference for the public package surface. The NuGet package also
-        ships XML documentation generated from the public comments; this page is
-        the GitHub Pages view for the APIs engineers use most often.
+        Static reference for the public package surface. The complete reference
+        currently tracks the C# package; the Python port is still partial and is
+        intentionally documented as a smaller first slice.
       </p>
-      <pre><code>dotnet add package Spanfold
+      <div class="language-panel" data-language="csharp">
+        <pre><code>dotnet add package Spanfold
 dotnet add package Spanfold.Testing</code></pre>
+      </div>
+      <div class="language-panel" data-language="python">
+        <pre><code>cd packages/python
+python -m pip install -e ".[dev]"</code></pre>
+        <p class="language-note">Use the Python package for early evaluation. C# remains the reference implementation for the full API.</p>
+      </div>
     </section>
 
     <section class="api-reference-layout">
@@ -320,13 +333,26 @@ dotnet add package Spanfold.Testing</code></pre>
           <p class="member-kind">sealed class</p>
           <h2>WindowComparisonBuilder</h2>
           <p>Staged comparison flow for target, against, scope, normalization, comparator selection, and execution.</p>
-          <pre><code>var result = pipeline.History
+          <div class="language-panel" data-language="csharp">
+            <pre><code>var result = pipeline.History
     .Compare("Provider QA")
     .Target("provider-a", s =&gt; s.Source("provider-a"))
     .Against("provider-b", s =&gt; s.Source("provider-b"))
     .Within(scope =&gt; scope.Window("DeviceOffline"))
     .Using(c =&gt; c.Overlap().Residual().Missing())
     .Run();</code></pre>
+          </div>
+          <div class="language-panel" data-language="python">
+            <pre><code>result = (
+    pipeline.history.compare("Provider QA")
+    .target("provider-a")
+    .against("provider-b")
+    .within(window_name="DeviceOffline")
+    .using("overlap", "residual", "missing")
+    .run()
+)</code></pre>
+            <p class="language-note">Python names and coverage may change while the port is incomplete.</p>
+          </div>
           <table class="member-table">
             <tr><th>Member</th><th>Purpose</th></tr>
             <tr><td><code>Target(...)</code>, <code>Against(...)</code></td><td>Select comparison sides.</td></tr>
@@ -505,5 +531,6 @@ dotnet add package Spanfold.Testing</code></pre>
     <span>Spanfold</span>
     <a href="https://github.com/Scottlr/spanfold">github.com/Scottlr/spanfold</a>
   </footer>
+  <script src="language.js"></script>
 </body>
 </html>
