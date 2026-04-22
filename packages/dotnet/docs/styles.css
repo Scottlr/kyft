@@ -270,7 +270,7 @@ body[data-language="python"] .language-panel[data-language="python"] {
 
 .graph-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 112px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
   min-height: 30px;
@@ -297,6 +297,7 @@ h2,
 h3,
 p {
   margin-top: 0;
+  overflow-wrap: anywhere;
 }
 
 h1 {
@@ -403,7 +404,7 @@ li,
 }
 
 .card-grid.four {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
 .card-grid article {
@@ -442,8 +443,11 @@ li,
 .quick-track {
   position: relative;
   height: 12px;
+  overflow: hidden;
   border-radius: 999px;
-  background: var(--surface-2);
+  background:
+    linear-gradient(90deg, rgba(22, 22, 20, 0.08) 1px, transparent 1px) 0 0 / 20% 100%,
+    var(--surface-2);
 }
 
 .quick-window {
@@ -485,8 +489,11 @@ li,
 .timeline {
   position: relative;
   height: 8px;
+  overflow: hidden;
   border-radius: 999px;
-  background: var(--surface-2);
+  background:
+    linear-gradient(90deg, rgba(22, 22, 20, 0.08) 1px, transparent 1px) 0 0 / 25% 100%,
+    var(--surface-2);
 }
 
 .window,
@@ -523,6 +530,14 @@ li,
 
 .window.overlap {
   background: var(--overlap);
+}
+
+.bar.overlap {
+  background: var(--overlap);
+}
+
+.bar.hot {
+  background: var(--amber);
 }
 
 .window.missing,
@@ -671,14 +686,21 @@ pre code {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(360px, 1fr);
   gap: 22px;
+  min-width: 0;
   padding: 22px;
+}
+
+.use-case-list article > div {
+  min-width: 0;
 }
 
 .mini-graph {
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
+  grid-template-columns: 108px minmax(0, 1fr);
+  column-gap: 10px;
   row-gap: 14px;
   align-self: center;
+  width: 100%;
   min-width: 0;
   padding: 16px;
   border: 1px solid var(--line);
@@ -688,31 +710,58 @@ pre code {
 
 .mini-graph .label {
   min-height: 20px;
+  align-self: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mini-track {
   position: relative;
   min-width: 0;
-  height: 20px;
-  border-radius: 999px;
+  height: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(197, 187, 170, 0.72);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(22, 22, 20, 0.08) 1px, transparent 1px) 0 0 / 20% 100%,
+    linear-gradient(180deg, rgba(251, 250, 246, 0.72), rgba(235, 230, 220, 0.52));
 }
 
 .mini-track::before {
   position: absolute;
-  top: 6px;
-  right: 0;
-  left: 0;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--surface-2);
+  top: 50%;
+  right: 8px;
+  left: 8px;
+  height: 1px;
+  background: rgba(22, 22, 20, 0.18);
   content: "";
 }
 
 .mini-track .bar {
   position: absolute;
   top: 4px;
-  height: 12px;
-  border-radius: 999px;
+  height: 14px;
+  min-width: 8px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(22, 22, 20, 0.14);
+}
+
+.mini-track .bar[data-label]::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: calc(100% - 8px);
+  overflow: hidden;
+  color: #ffffff;
+  content: attr(data-label);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 1px rgba(22, 22, 20, 0.25);
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
 }
 
 .mini-graph .marker {
@@ -980,7 +1029,7 @@ pre code {
   .doc-section,
   .api-hero,
   .api-reference-layout {
-    width: min(100% - 28px, 1120px);
+    width: min(1120px, calc(100% - 28px));
   }
 
   .page-hero {
@@ -1000,8 +1049,20 @@ pre code {
   }
 
   .mini-graph {
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: 86px minmax(0, 1fr);
     padding: 12px;
+  }
+
+  .use-case-list article {
+    padding: 16px;
+  }
+
+  .graph-row {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .mini-track .bar[data-label]::after {
+    font-size: 9px;
   }
 
   .visualiser-frame iframe {

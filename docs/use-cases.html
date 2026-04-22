@@ -22,6 +22,7 @@
         <a href="use-cases.html">All use cases</a>
         <a class="nav-child" href="#monitoring">Monitoring</a>
         <a class="nav-child" href="#industrial-telemetry">Industrial telemetry</a>
+        <a class="nav-child" href="#weather-data">Numeric thresholds</a>
         <a class="nav-child" href="#decision-audit">Decision audit</a>
         <a class="nav-child" href="#logistics">Logistics</a>
         <a class="nav-child" href="#distributed-systems">Distributed systems</a>
@@ -48,11 +49,10 @@
     </div>
     <section class="page-hero compact">
       <p class="eyebrow">Use cases</p>
-      <h1>Where temporal window analytics fits.</h1>
+      <h1>Interval use cases.</h1>
       <p class="lead">
-        Spanfold is useful when teams need to explain state over time across keys,
-        lanes, sources, phases, or pipeline stages. It is not a reporting
-        schema; it gives applications a reliable temporal evidence layer.
+        Use windows when you need to keep the shape of state over time: sources,
+        keys, phases, thresholds, and known-at boundaries.
       </p>
     </section>
 
@@ -68,9 +68,9 @@
           </p>
         </div>
         <div class="mini-graph" aria-label="Monitoring provider timeline">
-          <span class="label">primary</span><span class="mini-track"><span class="bar target" style="left:18%;width:48%"></span></span>
-          <span class="label">backup</span><span class="mini-track"><span class="bar compare" style="left:35%;width:42%"></span></span>
-          <span class="label">silent</span><span class="mini-track"><span class="bar missing" style="left:65%;width:18%"></span></span>
+          <span class="label">Primary</span><span class="mini-track"><span class="bar target" style="left:18%;width:48%" data-label="Alert"></span></span>
+          <span class="label">Backup</span><span class="mini-track"><span class="bar compare" style="left:35%;width:42%" data-label="Alert"></span></span>
+          <span class="label">Heartbeat</span><span class="mini-track"><span class="bar missing" style="left:65%;width:18%" data-label="Silent"></span></span>
         </div>
       </article>
 
@@ -85,9 +85,26 @@
           </p>
         </div>
         <div class="mini-graph" aria-label="IoT segmented timeline">
-          <span class="label">sensor A</span><span class="mini-track"><span class="bar target" style="left:12%;width:24%"></span><span class="bar target" style="left:60%;width:25%"></span></span>
-          <span class="label">sensor B</span><span class="mini-track"><span class="bar compare" style="left:18%;width:16%"></span><span class="bar compare" style="left:64%;width:17%"></span></span>
-          <span class="label">mode</span><span class="mini-track"><span class="bar phase" style="left:0;width:48%"></span><span class="bar phase alt" style="left:48%;width:52%"></span></span>
+          <span class="label">Sensor A</span><span class="mini-track"><span class="bar target" style="left:12%;width:24%" data-label="Hot"></span><span class="bar target" style="left:60%;width:25%" data-label="Hot"></span></span>
+          <span class="label">Sensor B</span><span class="mini-track"><span class="bar compare" style="left:18%;width:16%" data-label="Hot"></span><span class="bar compare" style="left:64%;width:17%" data-label="Hot"></span></span>
+          <span class="label">Mode</span><span class="mini-track"><span class="bar phase" style="left:0;width:48%" data-label="Idle"></span><span class="bar phase alt" style="left:48%;width:52%" data-label="Load"></span></span>
+        </div>
+      </article>
+
+      <article id="weather-data">
+        <div>
+          <p class="eyebrow">Weather and numeric thresholds</p>
+          <h2>When did a reading stay inside or outside a range?</h2>
+          <p>
+            Treat numeric values as window predicates: temperature above 23.5 C,
+            humidity inside a comfort band, wind gusts over a limit, or pressure
+            changes sustained for long enough to matter.
+          </p>
+        </div>
+        <div class="mini-graph" aria-label="Weather temperature timeline">
+          <span class="label">Station</span><span class="mini-track"><span class="bar target" style="left:14%;width:18%" data-label="23.4 C"></span><span class="bar target hot" style="left:32%;width:29%" data-label="23.8 C"></span><span class="bar target" style="left:61%;width:16%" data-label="23.5 C"></span></span>
+          <span class="label">Forecast</span><span class="mini-track"><span class="bar compare" style="left:25%;width:47%" data-label="23.6-24.1 C"></span></span>
+          <span class="label">Window</span><span class="mini-track"><span class="bar overlap" style="left:32%;width:29%" data-label="Above 23.5 C"></span></span>
         </div>
       </article>
 
@@ -102,9 +119,9 @@
           </p>
         </div>
         <div class="mini-graph" aria-label="Known-at decision timeline">
-          <span class="label">risk flag</span><span class="mini-track"><span class="bar target" style="left:20%;width:45%"></span></span>
-          <span class="label">annotation</span><span class="mini-track"><span class="bar compare" style="left:52%;width:20%"></span></span>
-          <span class="label">decision</span><span class="mini-track"><span class="marker" style="left:48%"></span></span>
+          <span class="label">Risk Flag</span><span class="mini-track"><span class="bar target" style="left:20%;width:45%" data-label="High"></span></span>
+          <span class="label">Annotation</span><span class="mini-track"><span class="bar compare" style="left:52%;width:20%" data-label="Late"></span></span>
+          <span class="label">Decision</span><span class="mini-track"><span class="marker" style="left:48%"></span></span>
         </div>
       </article>
 
@@ -119,9 +136,9 @@
           </p>
         </div>
         <div class="mini-graph" aria-label="Shipment state timeline">
-          <span class="label">carrier</span><span class="mini-track"><span class="bar target" style="left:10%;width:32%"></span></span>
-          <span class="label">warehouse</span><span class="mini-track"><span class="bar compare" style="left:26%;width:46%"></span></span>
-          <span class="label">customer</span><span class="mini-track"><span class="bar residual" style="left:50%;width:28%"></span></span>
+          <span class="label">Carrier</span><span class="mini-track"><span class="bar target" style="left:10%;width:32%" data-label="Held"></span></span>
+          <span class="label">Warehouse</span><span class="mini-track"><span class="bar compare" style="left:26%;width:46%" data-label="Exception"></span></span>
+          <span class="label">Portal</span><span class="mini-track"><span class="bar residual" style="left:50%;width:28%" data-label="Delayed"></span></span>
         </div>
       </article>
 
@@ -136,9 +153,9 @@
           </p>
         </div>
         <div class="mini-graph" aria-label="Distributed systems quorum timeline">
-          <span class="label">node 1</span><span class="mini-track"><span class="bar target" style="left:18%;width:52%"></span></span>
-          <span class="label">node 2</span><span class="mini-track"><span class="bar compare" style="left:22%;width:48%"></span></span>
-          <span class="label">node 3</span><span class="mini-track"><span class="bar compare" style="left:35%;width:42%"></span></span>
+          <span class="label">Node A</span><span class="mini-track"><span class="bar target" style="left:18%;width:52%" data-label="Leader"></span></span>
+          <span class="label">Node B</span><span class="mini-track"><span class="bar compare" style="left:22%;width:48%" data-label="Leader"></span></span>
+          <span class="label">Node C</span><span class="mini-track"><span class="bar compare" style="left:35%;width:42%" data-label="Leader"></span></span>
         </div>
       </article>
 
@@ -153,9 +170,9 @@
           </p>
         </div>
         <div class="mini-graph" aria-label="Pipeline stage timeline">
-          <span class="label">ingest</span><span class="mini-track"><span class="bar target" style="left:12%;width:55%"></span></span>
-          <span class="label">enrich</span><span class="mini-track"><span class="bar compare" style="left:24%;width:47%"></span></span>
-          <span class="label">publish</span><span class="mini-track"><span class="bar compare" style="left:38%;width:35%"></span></span>
+          <span class="label">Ingest</span><span class="mini-track"><span class="bar target" style="left:12%;width:55%" data-label="Active"></span></span>
+          <span class="label">Enrich</span><span class="mini-track"><span class="bar compare" style="left:24%;width:47%" data-label="Active"></span></span>
+          <span class="label">Publish</span><span class="mini-track"><span class="bar compare" style="left:38%;width:35%" data-label="Active"></span></span>
         </div>
       </article>
     </section>
