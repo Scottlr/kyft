@@ -240,6 +240,7 @@ body[data-language="python"] .language-panel[data-language="python"] {
 }
 
 .install-card {
+  position: relative;
   min-width: 0;
   padding: 20px;
   border: 1px solid var(--rule);
@@ -248,16 +249,16 @@ body[data-language="python"] .language-panel[data-language="python"] {
 }
 
 .install-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
+  display: block;
+  min-height: 34px;
+  padding-right: 220px;
   margin-bottom: 14px;
 }
 
 .install-card-header .language-control {
-  margin-left: auto;
+  position: absolute;
+  top: 20px;
+  right: 20px;
 }
 
 .install-card h2 {
@@ -582,18 +583,19 @@ li,
 .lane-note,
 .timeline-note {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   z-index: 3;
   min-height: 16px;
   max-width: min(138px, calc(100% - 10px));
-  padding: 3px 6px;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  background: var(--accent-amber);
-  color: var(--ink);
-  font-size: 0.75rem;
-  font-weight: 780;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 0.66rem;
+  font-weight: 680;
   line-height: 1.05;
+  opacity: 0.88;
   text-align: center;
   transform: translateX(-50%);
   white-space: nowrap;
@@ -601,7 +603,14 @@ li,
 
 .lane-note::before,
 .timeline-note::before {
-  content: none;
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 0;
+  height: 8px;
+  border-left: 1px dotted color-mix(in srgb, var(--ink-muted) 70%, transparent);
+  content: "";
+  transform: translateX(-50%);
 }
 
 .timeline-note.note-residual {
@@ -826,11 +835,11 @@ pre .hljs-comment {
   display: grid;
   grid-template-columns: 108px minmax(0, 1fr);
   column-gap: 10px;
-  row-gap: 28px;
+  row-gap: 44px;
   align-self: center;
   width: 100%;
   min-width: 0;
-  padding: 20px 20px 30px;
+  padding: 22px 20px 36px;
   border: 1px solid var(--rule);
   border-radius: 8px;
   background: var(--bg-card);
@@ -876,7 +885,14 @@ pre .hljs-comment {
 }
 
 .mini-track .lane-note {
-  top: 28px;
+  top: 30px;
+  max-width: min(160px, calc(100% - 14px));
+  pointer-events: none;
+}
+
+.mini-track .lane-note::before {
+  top: -8px;
+  height: 6px;
 }
 
 .mini-track .bar[data-label]::after {
@@ -1178,11 +1194,20 @@ pre .hljs-comment {
   }
 
   h1 {
-    font-size: 36px;
+    font-size: 32px;
   }
 
   h2 {
-    font-size: 27px;
+    font-size: 25px;
+  }
+
+  .install-card h2,
+  .diagram-card h3,
+  .card-grid article h3,
+  .code-grid article h3,
+  .wide-example h3,
+  .comparison-list article h3 {
+    font-size: 17px;
   }
 
   .state-row {
@@ -1191,7 +1216,17 @@ pre .hljs-comment {
 
   .mini-graph {
     grid-template-columns: 86px minmax(0, 1fr);
-    padding: 20px 20px 30px;
+    row-gap: 44px;
+    padding: 22px 16px 36px;
+  }
+
+  .install-card-header {
+    padding-right: 0;
+  }
+
+  .install-card-header .language-control {
+    position: static;
+    margin-top: 10px;
   }
 
   .use-case-list article {
