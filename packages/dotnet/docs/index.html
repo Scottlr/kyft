@@ -33,7 +33,7 @@
   <main>
     <div class="content-header">
       <div class="language-control">
-        <span>Language</span>
+        <span>Code</span>
         <div class="language-switcher" aria-label="Code language">
           <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
           <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
@@ -42,7 +42,6 @@
     </div>
     <section class="page-hero hero-grid">
       <div>
-        <p class="eyebrow">Temporal windows</p>
         <h1>Temporal state-window recording and comparison.</h1>
         <p class="lead">
           Record when keyed state was active, then compare those windows across
@@ -58,7 +57,7 @@
       <div class="install-card" aria-label="Install Spanfold">
         <div class="install-card-header">
           <p class="eyebrow">Install</p>
-          <h2>Pick your package entry point.</h2>
+          <h2>How to install</h2>
         </div>
         <div class="language-panel" data-language="csharp">
           <div class="install-methods">
@@ -136,22 +135,18 @@ python -m pip install -e ".[dev]"</code></pre>
         <article class="diagram-card">
           <h3>Sources disagree over time</h3>
           <div class="state-diagram" aria-label="Two source lanes with partial overlap">
-            <div class="state-row">
+            <div class="state-row annotated-row">
               <span class="row-label">Station</span>
               <span class="timeline"></span>
               <span class="window target" style="left: 16%; width: 50%"></span>
+              <span class="timeline-note note-residual" style="left: 17%">Station only</span>
+              <span class="timeline-note note-overlap" style="left: 39%">Overlap</span>
             </div>
-            <div class="state-row">
+            <div class="state-row annotated-row">
               <span class="row-label">Model</span>
               <span class="timeline"></span>
               <span class="window compare" style="left: 38%; width: 38%"></span>
-            </div>
-            <div class="state-row">
-              <span class="row-label">Rows</span>
-              <span class="timeline"></span>
-              <span class="window residual" style="left: 16%; width: 22%"></span>
-              <span class="window overlap" style="left: 38%; width: 28%"></span>
-              <span class="window missing" style="left: 66%; width: 10%"></span>
+              <span class="timeline-note note-missing" style="left: 67%">Model only</span>
             </div>
           </div>
           <p>

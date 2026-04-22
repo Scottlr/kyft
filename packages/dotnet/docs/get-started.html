@@ -33,7 +33,7 @@
   <main>
     <div class="content-header">
       <div class="language-control">
-        <span>Language</span>
+        <span>Code</span>
         <div class="language-switcher" aria-label="Code language">
           <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
           <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
@@ -61,24 +61,18 @@
       </div>
 
       <div class="quick-timeline" aria-label="Two source windows compared">
-        <div class="quick-row">
+        <div class="quick-row annotated-quick-row">
           <span>provider-a</span>
           <span class="quick-track"><span class="quick-window target" style="left: 24%; width: 48%"></span></span>
           <span>offline 3..6</span>
+          <span class="quick-note note-residual" style="left: 30%">a-only</span>
+          <span class="quick-note note-overlap" style="left: 48%">overlap</span>
         </div>
-        <div class="quick-row">
+        <div class="quick-row annotated-quick-row">
           <span>provider-b</span>
           <span class="quick-track"><span class="quick-window compare" style="left: 40%; width: 16%"></span></span>
           <span>offline 4..5</span>
-        </div>
-        <div class="quick-row">
-          <span>comparison</span>
-          <span class="quick-track">
-            <span class="quick-window residual" style="left: 24%; width: 16%"></span>
-            <span class="quick-window overlap" style="left: 40%; width: 16%"></span>
-            <span class="quick-window residual" style="left: 56%; width: 16%"></span>
-          </span>
-          <span>a-only, overlap, a-only</span>
+          <span class="quick-note note-residual" style="left: 62%">a-only</span>
         </div>
       </div>
     </section>
