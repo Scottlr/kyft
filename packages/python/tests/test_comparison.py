@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -507,6 +508,10 @@ def test_exports_are_deterministic() -> None:
     assert '"name": "Provider QA"' in result.to_json()
     assert '"row_finalities": [' in result.to_json()
     assert '"row_type": "overlap"' in result.to_json_lines()
+    json_lines = [json.loads(line) for line in result.to_json_lines().splitlines()]
+    assert json_lines[0]["artifact"] == "result-summary"
+    assert json_lines[1]["artifact"] == "result-row"
+    assert json_lines[1]["row_id"] == "overlap[0]"
     assert "| overlap | 1 |" in result.to_markdown()
     assert "<html" in result.to_debug_html()
     assert "# Comparison Explain: Provider QA" in result.explain()

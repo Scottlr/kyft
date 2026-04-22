@@ -882,9 +882,20 @@ class ComparisonResult:
         return not self.error_diagnostics()
 
     def to_json_lines(self, path: str | Path | None = None) -> str:
-        """Return deterministic JSON Lines, one row per comparison row."""
+        """Return deterministic JSON Lines for the summary and comparison rows."""
 
-        rows: list[dict[str, Any]] = []
+        rows: list[dict[str, Any]] = [
+            {
+                "artifact": "result-summary",
+                "name": self.name,
+                "comparator_summaries": _to_jsonable(self.comparator_summaries),
+                "coverage_summaries": _to_jsonable(self.coverage_summaries),
+                "diagnostic_rows": _to_jsonable(self.diagnostic_rows),
+                "row_finalities": _to_jsonable(self.row_finalities),
+                "extension_metadata": _to_jsonable(self.extension_metadata),
+                "is_valid": self.is_valid,
+            }
+        ]
         for kind, values in (
             ("overlap", self.overlap_rows),
             ("residual", self.residual_rows),
@@ -896,8 +907,10 @@ class ComparisonResult:
             ("lead_lag", self.lead_lag_rows),
             ("as_of", self.as_of_rows),
         ):
-            for row in values:
+            for index, row in enumerate(values):
                 payload = _to_jsonable(row)
+                payload["artifact"] = "result-row"
+                payload["row_id"] = f"{kind}[{index}]"
                 payload["row_type"] = kind
                 rows.append(payload)
         text = "\n".join(json.dumps(row, sort_keys=True) for row in rows)
