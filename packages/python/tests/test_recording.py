@@ -88,22 +88,28 @@ def test_direct_history_query_filters() -> None:
             "DeviceOffline",
             key=lambda event: event.device_id,
             is_active=lambda event: not event.is_online,
+            segments=lambda event: {"region": event.region},
             tags=lambda event: {"fleet": "warehouse"},
         )
     )
     pipeline.ingest(DeviceStatus("device-17", False), source="provider-a", partition="p1")
     pipeline.ingest(DeviceStatus("device-17", True), source="provider-a", partition="p1")
+    pipeline.ingest(DeviceStatus("device-17", False, "south"), source="provider-b", partition="p1")
+    pipeline.ingest(DeviceStatus("device-17", True, "south"), source="provider-b", partition="p1")
 
     rows = (
         pipeline.history.query()
         .where_window("DeviceOffline")
         .where_key("device-17")
-        .where_source("provider-a")
+        .where_lane("provider-a")
         .where_partition("p1")
+        .where_segment("region", "north")
         .where_tag("fleet", "warehouse")
         .closed()
         .all()
     )
 
     assert len(rows) == 1
-    assert pipeline.history.query().latest() == rows[0]
+    assert rows[0].source == "provider-a"
+    assert rows[0].segments[0].value == "north"
+    assert pipeline.history.query().where_lane("provider-a").latest() == rows[0]
