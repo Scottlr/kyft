@@ -52,20 +52,53 @@
         </div>
       </div>
 
-      <div class="hero-preview" aria-label="Spanfold visual comparison preview">
-        <a class="preview-image-link" href="examples/provider-comparison.html">
-          <img src="assets/previews/provider-comparison.png" alt="Provider comparison debug timeline preview" loading="eager">
-        </a>
-        <div class="preview-caption">
-          <div>
-            <span class="eyebrow">Generated debug HTML</span>
-            <h2>See temporal disagreements instead of reading interval tables.</h2>
+      <div class="install-card" aria-label="Install Spanfold">
+        <div class="install-card-header">
+          <h2>How to install</h2>
+          <div class="language-control">
+            <span>Code</span>
+            <div class="language-switcher" aria-label="Code language">
+              <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+              <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+            </div>
           </div>
-          <div class="preview-metrics" aria-label="Example comparison rows">
-            <span class="metric overlap">Overlap</span>
-            <span class="metric residual">Residual</span>
-            <span class="metric missing">Missing</span>
+        </div>
+        <div class="language-panel" data-language="csharp">
+          <div class="install-methods">
+            <article>
+              <h3>.NET CLI</h3>
+              <pre><code>dotnet add package Spanfold
+dotnet add package Spanfold.Testing</code></pre>
+            </article>
+            <article>
+              <h3>NuGet Package Manager</h3>
+              <pre><code>Install-Package Spanfold
+Install-Package Spanfold.Testing</code></pre>
+            </article>
+            <article>
+              <h3>Project file</h3>
+              <pre><code>&lt;PackageReference Include="Spanfold" Version="0.1.0" /&gt;
+&lt;PackageReference Include="Spanfold.Testing" Version="0.1.0" /&gt;</code></pre>
+            </article>
           </div>
+        </div>
+        <div class="language-panel" data-language="python">
+          <div class="install-methods">
+            <article>
+              <h3>Editable port</h3>
+              <pre><code>cd packages/python
+python -m pip install -e ".[dev]"</code></pre>
+            </article>
+            <article>
+              <h3>Local path</h3>
+              <pre><code>python -m pip install -e ./packages/python</code></pre>
+            </article>
+            <article>
+              <h3>requirements.txt</h3>
+              <pre><code>-e ./packages/python</code></pre>
+            </article>
+          </div>
+          <p class="language-note">Python is a partial port and not the reference API yet.</p>
         </div>
       </div>
     </section>
@@ -249,22 +282,22 @@
       </div>
       <div class="preview-card-grid">
         <a class="preview-card" href="examples/provider-comparison.html">
-          <img src="assets/previews/provider-comparison.png" alt="Provider comparison visualiser preview" loading="lazy">
+          <img src="assets/previews/provider-simple.svg" alt="Simplified provider comparison timeline preview" loading="lazy">
           <strong>Provider comparison</strong>
           <span>Six lanes with overlap, residual, missing, coverage, and live finality.</span>
         </a>
         <a class="preview-card" href="examples/multi-lane-overlap.html">
-          <img src="assets/previews/multi-lane-overlap.png" alt="Multi-lane overlap visualiser preview" loading="lazy">
+          <img src="assets/previews/multi-lane-simple.svg" alt="Simplified multi-lane overlap timeline preview" loading="lazy">
           <strong>Multi-lane overlap</strong>
           <span>Several gateways reporting staggered active windows.</span>
         </a>
         <a class="preview-card" href="examples/cohort-quorum.html">
-          <img src="assets/previews/cohort-quorum.png" alt="Cohort quorum visualiser preview" loading="lazy">
+          <img src="assets/previews/cohort-simple.svg" alt="Simplified cohort quorum timeline preview" loading="lazy">
           <strong>Cohort quorum</strong>
           <span>A primary lane compared against an at-least-two cohort.</span>
         </a>
         <a class="preview-card" href="examples/segmented-live.html">
-          <img src="assets/previews/segmented-live.png" alt="Segmented live windows visualiser preview" loading="lazy">
+          <img src="assets/previews/segmented-simple.svg" alt="Simplified segmented live windows timeline preview" loading="lazy">
           <strong>Segmented live windows</strong>
           <span>Phase and period segments with open windows clipped at a horizon.</span>
         </a>
