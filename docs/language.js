@@ -27,15 +27,30 @@
     const navToggle = document.querySelector(".nav-toggle");
     const siteHeader = document.querySelector(".site-header");
     if (navToggle && siteHeader) {
+      function closeNav() {
+        siteHeader.classList.remove("nav-open");
+        navToggle.setAttribute("aria-expanded", "false");
+      }
+
       navToggle.addEventListener("click", () => {
         const isOpen = siteHeader.classList.toggle("nav-open");
         navToggle.setAttribute("aria-expanded", String(isOpen));
       });
       document.querySelectorAll(".nav a").forEach((link) => {
-        link.addEventListener("click", () => {
-          siteHeader.classList.remove("nav-open");
-          navToggle.setAttribute("aria-expanded", "false");
-        });
+        link.addEventListener("click", closeNav);
+      });
+      document.addEventListener("click", (event) => {
+        if (!siteHeader.classList.contains("nav-open")) {
+          return;
+        }
+        if (!siteHeader.contains(event.target)) {
+          closeNav();
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeNav();
+        }
       });
     }
   });

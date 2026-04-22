@@ -8,170 +8,201 @@
 
 # Spanfold
 
-**Track when a predicate held. Compare those periods across sources.**
+**Temporal interval comparison for application state.**
 
-When you have multiple systems, providers, or pipeline stages reporting observations, Spanfold answers the questions a latest-value store cannot:
+When a predicate changes — a service goes down, a threshold is crossed, a status flips — Spanfold records that period as a window. When you have multiple sources reporting the same condition, Spanfold tells you exactly where they agreed, diverged, lagged, or left gaps.
 
-- **When** did each source think this condition was true — and for how long?
-- **Where** did two sources agree, diverge, or run out of sync?
-- **Who** saw a period that another missed, reported late, or recovered from early?
-- **What** was knowable at a specific point in time, without leaking future data?
+## Install
+
+```bash
+dotnet add package Spanfold
+```
+
+## Quick Start
+
+```csharp
+// 1. Define: what condition are you tracking, and for which key?
+var pipeline = Spanfold.Spanfold
+    .For<MonitorEvent>()
+    .RecordWindows()
+    .TrackWindow("Outage",
+        key:       e => e.ServiceId,
+        predicate: e => e.Status == "down");
+
+// 2. Ingest events from each source
+pipeline.Ingest(providerAEvents, source: "provider-a");
+pipeline.Ingest(providerBEvents, source: "provider-b");
+
+// 3. Compare: who saw what, when, and for how long?
+var result = pipeline.History
+    .Compare("Outage audit")
+    .Target("provider-a", s => s.Source("provider-a"))
+    .Against("provider-b", s => s.Source("provider-b"))
+    .Within(scope => scope.Window("Outage"))
+    .Using(c => c.Overlap().Residual().Missing().Coverage())
+    .Run();
+
+// result.OverlapRows   — periods both sources agreed on
+// result.ResidualRows  — periods A reported that B missed
+// result.MissingRows   — periods B reported that A missed
+```
 
 ---
 
-## How It Works
+## What It Solves
 
-Spanfold watches an event stream and converts predicate changes into recorded windows. A predicate can be anything — a boolean flag, a value crossing a threshold, a status code changing, or any other condition you define. When the predicate transitions, a window opens. When it transitions back, the window closes.
+You have multiple systems — monitoring providers, pipeline stages, model versions, detectors — all reporting observations about the same thing. You want to know:
 
+- **When** did each source think this condition was true, and for how long?
+- **Where** did sources agree, diverge, lag, or leave gaps?
+- **What** was knowable at a specific point in time, without leaking future data?
+
+A latest-value store tells you the current state. An event log tells you what happened. Spanfold tells you **when each source believed what, and where those beliefs differed**.
+
+---
+
+## Why Not SQL Interval Joins or Ad Hoc Code?
+
+Interval comparison looks simple until you account for partial overlaps, gaps within coverage, multiple windows on the same key, lead/lag timing, live windows, and known-at filtering. Each question adds another query or another special case.
+
+**SQL interval join — overlap only:**
+
+```sql
+SELECT a.service_id,
+       GREATEST(a.start, b.start) AS overlap_start,
+       LEAST(a.end,   b.end)   AS overlap_end
+FROM   outage_windows_a a
+JOIN   outage_windows_b b
+  ON   a.service_id = b.service_id
+ AND   a.start < b.end
+ AND   a.end   > b.start
+-- Residual (A-only) needs a NOT EXISTS query.
+-- Gap detection, lead/lag, coverage % each need another query.
+-- Known-at filtering (no future leakage) needs timestamp join bookkeeping.
+-- Live/provisional windows need finality state tracked separately.
 ```
-              open                                close
-               ↓                                   ↓
-Events:  ──────●───────────────────────────────────●──────────
-Window:        [══════════════  3m 40s  ═════════════]
+
+**Spanfold — all of the above in one comparison plan:**
+
+```csharp
+var result = pipeline.History
+    .Compare("Outage audit")
+    .Target("provider-a", s => s.Source("provider-a"))
+    .Against("provider-b", s => s.Source("provider-b"))
+    .Within(scope => scope.Window("Outage"))
+    .Using(c => c
+        .Overlap()   // both agreed
+        .Residual()  // A saw, B missed
+        .Missing()   // B saw, A missed
+        .Gap()       // empty periods inside observed scope
+        .LeadLag()   // transition timing drift between sources
+        .Coverage()) // magnitude and coverage percentage
+    .Run();
+// Known-at filtering and live horizons are built into the comparison model.
 ```
-
-Windows accumulate per source and key. The useful analysis begins when you compare them.
-
-```
-time  ───────────────────────────────────────────────────────►
-
-A     ──[════════════════════]───────────────────────────────
-B     ─────────[═══════════════════════]──────────────────────
-
-         [ ─A─][──────── overlap ──────][──────── B ────────]
-```
-
-Spanfold emits this as structured temporal evidence — overlap duration, residual, missing periods, gaps, lead/lag timing, coverage percentages — not a single aggregated number.
 
 ---
 
 ## Predicates Are Not Limited To Booleans
 
-A window opens when a predicate **changes**. The predicate itself can evaluate anything:
+A window opens when a predicate changes. The predicate can evaluate anything — the window tracks the period it held.
 
-| Predicate type     | Example                                            |
-|--------------------|----------------------------------------------------|
-| Boolean            | `isUp == true`                                     |
-| Threshold          | `cpuPercent > 80`                                  |
-| Enum / status      | `status == "degraded"`                             |
-| Numeric range      | `latencyMs >= 500 && latencyMs < 2000`             |
-| Any value change   | alert level changed, model output changed, annotation updated |
-
-Spanfold does not care about the raw value — it records the period where your predicate held, and closes it when the predicate no longer holds.
-
----
-
-## Core Flow
-
-```
-┌──────────────┐             ┌──────────────┐             ┌──────────────┐
-│   Events /   │  predicate  │   Recorded   │  comparison │   Temporal   │
-│ Observations │────────────►│   Windows    │────────────►│   Evidence   │
-└──────────────┘ transitions └──────────────┘    plan     └──────────────┘
-                                                                  │
-                                           ┌──────────────────────┼─────────────────────┐
-                                           ▼                      ▼                     ▼
-                                    Overlap · Residual      Gap · Coverage       Lead/Lag · As-of
-                                    Missing · Symmetric     Diagnostics           Explanations
-```
-
-1. Define when a keyed condition holds.
-2. Ingest events or observations.
-3. Record windows as the predicate opens and closes.
-4. Run a comparison plan across sources, lanes, or stages.
-5. Export rows, summaries, diagnostics, and explanations.
-
----
-
-## What Category Is This?
-
-Spanfold sits between event processing and analytics. It is not a general stream processor, metrics library, database abstraction, or dashboard.
-
-It records the periods where an interpreted condition held, then compares those periods as first-class temporal data. Narrower than a stream processor, more structured than hand-written interval joins.
-
----
-
-## Concrete Use Cases
-
-- **Multi-provider outage audit**: Compare monitoring providers and find where one reported a degraded period that another missed, reported late, or recovered from sooner.
-- **Backtesting and replays**: Filter to windows that were knowable at a decision point — no future leakage, even for still-open windows.
-- **Pipeline stage divergence**: Compare stages in a processing pipeline to see where state diverged, lagged, disappeared, or gained extra coverage.
-- **Detector evaluation**: Audit a classifier, detector, or rules engine against a ground-truth source using only data that was available at inference time.
-- **Consensus and quorum**: Analyze multi-source agreement, quorum behavior, lane silence, or source matrix coverage without hand-written joins.
-
----
-
-## Core Concepts
-
-### Windows
-
-A window is a half-open period where a predicate held for a key. Windows can be closed, still open, or clipped to an explicit live horizon.
-
-### Sources And Lanes
-
-Sources identify where an observation came from: providers, monitors, gateways, pipeline stages, model versions, or any other lane that can report observations.
-
-### Segments And Tags
-
-Segments split active windows when important analytical context changes. Tags attach descriptive metadata without splitting the window.
-
-### Comparisons
-
-A comparison chooses a target side, a comparison side, a scope, normalization rules, and one or more comparator families. The result is structured temporal evidence rather than a single pass/fail value.
-
-### Known-At Safety
-
-Known-at filtering separates when a state happened from when it was available to the system. That matters for backtests, audits, replays, and decision-point analysis.
-
-### Live Horizons
-
-Historical comparisons normally expect closed windows. Live comparisons use an explicit horizon to evaluate still-open windows and preserve provisional row metadata.
+| Predicate type   | Example                                           |
+|------------------|---------------------------------------------------|
+| Boolean          | `isUp == true`                                    |
+| Threshold        | `cpuPercent > 80`                                 |
+| Enum / status    | `status == "degraded"`                            |
+| Numeric range    | `latencyMs >= 500 && latencyMs < 2000`            |
+| Any value change | alert level changed, model output changed, annotation updated |
 
 ---
 
 ## Comparator Families
 
-| Comparator         | What it measures                                    |
-|--------------------|-----------------------------------------------------|
-| Overlap            | Duration where both sides agreed                    |
-| Residual           | Target-only duration (what the comparison side missed) |
-| Missing            | Comparison-only duration (what the target missed)   |
-| Coverage           | Magnitude and coverage percentage                   |
-| Gap                | Empty spaces inside an observed scope               |
-| Symmetric diff     | Disagreement in both directions                     |
-| Containment        | Whether one period stays inside another             |
-| Lead / Lag         | Transition timing drift between sources             |
-| As-of              | Point-in-time lookup without future leakage         |
+| Comparator     | What it measures                                       |
+|----------------|--------------------------------------------------------|
+| Overlap        | Duration where both sides agreed                       |
+| Residual       | Target-only duration (what the comparison side missed) |
+| Missing        | Comparison-only duration (what the target missed)      |
+| Coverage       | Magnitude and coverage percentage                      |
+| Gap            | Empty spaces inside an observed scope                  |
+| Symmetric diff | Disagreement in both directions                        |
+| Containment    | Whether one period stays inside another                |
+| Lead / Lag     | Transition timing drift between sources                |
+| As-of          | Point-in-time lookup without future leakage            |
 
-Full comparator documentation:
+→ [Comparator reference](docs/comparator-reference.md) · [Comparison guide](docs/comparison-guide.md)
 
-- [Reference package README](packages/dotnet/README.md)
-- [Comparator reference](docs/comparator-reference.md)
-- [Comparison guide](docs/comparison-guide.md)
+---
+
+## Use Cases
+
+### Monitoring provider outage comparison
+
+You have two or more monitoring providers watching the same service. When an outage occurs, each provider may report it at a slightly different time, recover at a different time, or miss it entirely. Spanfold records each provider's outage windows and emits structured rows showing exactly where they agreed, where one reported a period the other didn't, and how large each discrepancy was.
+
+→ [Provider outage comparison](docs/use-cases.html#provider-outage-comparison)
+
+### Pipeline stage divergence
+
+A processing pipeline passes events through multiple stages — ingestion, enrichment, classification, alerting. When a condition appears at one stage but not another, or arrives late, or disappears before the final stage, Spanfold records a window at each stage and compares them to show where state diverged, lagged, or dropped.
+
+→ [Pipeline stage divergence](docs/use-cases.html#pipeline-stage-divergence)
+
+### Backtesting without future leakage
+
+Auditing a past decision means using only what was knowable at the time — not data that arrived later. Spanfold's known-at filtering separates when a state was observed from when it was available to the system, so backtests, replays, and decision-point audits do not accidentally include future observations even when replaying historical data.
+
+→ [No-future-leakage backtesting](docs/use-cases.html#backtesting)
+
+---
+
+## Core Concepts
+
+**Windows** — a half-open period where a predicate held for a key. Can be closed, still open, or clipped to a live horizon.
+
+**Sources and lanes** — where an observation came from: providers, monitors, gateways, pipeline stages, model versions, or any other reporting lane.
+
+**Segments and tags** — segments split a window when analytical context changes; tags attach metadata without splitting.
+
+**Comparisons** — a staged plan: target side, comparison side, scope, normalization, and comparator families. Produces structured temporal evidence.
+
+**Known-at safety** — separates when a state happened from when it was observable. Prevents future leakage in backtests and replays.
+
+**Live horizons** — an explicit cutoff for evaluating still-open windows. Preserves provisional row metadata so live and final rows are distinguishable.
 
 ---
 
 ## Why Not Just X?
 
-### Latest-State Tracking
+**Latest-state tracking** — answers what is true now. Spanfold answers when it was true, who saw it, and whether another lane missed it.
 
-Latest-state tables answer what is true now. Spanfold answers when it was true, who saw it, and whether another lane missed it.
+**Event sourcing** — stores durable facts and rebuilds state. Spanfold analyzes the periods where that state held after those facts have been interpreted.
 
-### Event Sourcing
+**Stream processors** — handle online computation, routing, enrichment, and aggregation. Spanfold is narrower: it records interpreted state windows and compares their temporal evidence.
 
-Event sourcing stores durable facts and rebuilds state. Spanfold analyzes the periods where that state held after those facts have been interpreted.
+**Observability and metrics tools** — aggregate time into counters, histograms, and dashboards. Spanfold keeps individual windows and emits comparison rows with full temporal structure.
 
-### Stream Processors
+**A database with interval storage** — can persist windows, but will not provide staged comparison plans, normalization, live finality, known-at filtering, diagnostics, or deterministic exports.
 
-Stream processors handle online computation, routing, enrichment, and continuous aggregation. Spanfold stays narrower: record interpreted state windows, compare their temporal evidence.
+---
 
-### Observability And Metrics Tools
+## .NET Package
 
-Metrics tools aggregate time into counters, histograms, and dashboards. Spanfold keeps individual windows and emits comparison rows with full temporal structure.
+The .NET package is the reference implementation. It has the complete API surface, CLI, testing helpers, samples, benchmarks, and package documentation.
 
-### Storing Windows Directly In A Database
+```bash
+dotnet add package Spanfold         # core recording and comparison
+dotnet add package Spanfold.Testing # optional: fixtures, snapshots, assertions
+```
 
-A database can persist windows, but it will not provide staged comparison plans, source selectors, normalization, live finality, known-at filtering, diagnostics, or deterministic exports.
+→ [.NET package README](packages/dotnet/README.md)
+
+## Python Package
+
+An early typed port following the same behavioral model. Not yet the complete API surface.
+
+→ [Python package README](packages/python/README.md)
 
 ---
 
@@ -197,24 +228,9 @@ docs/
   assets/
 ```
 
-## Language Packages
-
-| Package | Status | Notes |
-|---|---|---|
-| [.NET / C#](packages/dotnet/README.md) | Reference implementation | Complete current API surface, CLI, testing helpers, samples, benchmarks, and package docs. |
-| [Python](packages/python/README.md) | Partial typed port | Early package port following the same behavioral model; not yet the canonical API surface. |
-
-Future language ports should live under `packages/<language>` with their own package metadata, tests, examples, and package-level README.
-
-## Website
-
-The static documentation site lives in [docs](docs/index.html). GitHub Pages deploys that folder through the repository Pages setting: deploy from branch, folder `/docs`.
-
-Package-local documentation remains with each implementation under `packages/<language>/docs`, while `docs/` is the root-level deploy target for the public site.
-
 ## Working With Packages
 
-Run the reference package tests:
+Run the .NET reference tests:
 
 ```bash
 dotnet test packages/dotnet/Spanfold.slnx
@@ -235,5 +251,5 @@ pytest
 - [Use cases](docs/use-cases.html)
 - [Visualiser](docs/visualiser.html)
 - [API reference](docs/api.html)
-- [.NET package README](packages/dotnet/README.md)
-- [Python package README](packages/python/README.md)
+- [Comparator reference](docs/comparator-reference.md)
+- [Comparison guide](docs/comparison-guide.md)
