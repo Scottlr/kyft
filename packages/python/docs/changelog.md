@@ -2,6 +2,13 @@
 
 ## 0.1.0 - Initial Python slice
 
+- Added cohort evidence extension metadata with typed evidence access.
+- Added extension descriptor and comparison extension metadata exports.
+- Added coverage summaries and row aggregation helpers.
+- Added window group summaries by segment and tag.
+- Added full normalization policy object parity with the C# plan surface.
+- Added comparison result query helpers for diagnostics and row finality.
+- Changed JSON Lines export to stream a summary artifact before row artifacts.
 - Added structured diagnostics and row finality snapshots to JSON exports.
 - Added structured comparison diagnostics and strict-mode warning promotion.
 - Added `run_live()` for first-class horizon-clipped live comparisons.
@@ -28,5 +35,4 @@
 
 ## Deferred parity
 
-- Advanced normalization policies and diagnostics.
 - Benchmarks and complete docs site.

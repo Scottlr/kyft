@@ -11,15 +11,19 @@
 - Source-window rollups, nested rollups, and rollup segment projection.
 - Parent/child hierarchy comparison summaries.
 - Direct history query API.
+- Window group summaries by segment and tag.
 - Known-at annotations.
 - Liveness helpers for heartbeat, silence, and stale lanes.
 - Directional source matrix helper.
 - Cohort comparison helpers with any/all/none/threshold activity rules.
+- Cohort evidence extension metadata and typed evidence access.
 - Staged comparison: overlap, residual, missing, coverage, gap, symmetric
   difference, containment, lead/lag, as-of.
+- Coverage summaries and row aggregation helpers.
 - Horizon clipping for live/open windows with provisional finality.
 - Row finality snapshots and deterministic changelog replay helpers.
-- JSON, JSON Lines, Markdown, and self-contained debug HTML exports.
+- JSON, summary-first JSON Lines, Markdown, explain text, and self-contained
+  debug HTML exports.
 - Testing helpers for fixtures, snapshots, assertions, and virtual clocks.
 - Comparison-level known-at filtering for processing-position availability.
 - Basic runtime diagnostics for as-of future-leakage risk.
@@ -29,6 +33,8 @@
 - `run_live()` live comparison shortcut for explicit horizon clipping.
 - Structured diagnostics with warning/error severity and strict-mode promotion.
 - JSON export includes structured diagnostics and row finality snapshots.
+- Extension descriptor and metadata surface.
+- Segment cohort safety and known-at cohort regression coverage.
 
 ## Implement Later
 
@@ -43,6 +49,4 @@
 
 ## Not Yet Understood
 
-- Full rollup lineage and child contribution semantics.
-- Segment cohort safety rules.
-- C# extension API surface.
+- None currently tracked.
