@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Get started with Spanfold by recording temporal windows, comparing two sources, and reading the expected output.">
+  <title>Get started with Spanfold</title>
+  <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-language="csharp">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
+    <div class="header-actions">
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+        <a href="use-cases.html">Use cases</a>
+        <a href="visualiser.html">Visualiser</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </nav>
+      <div class="language-switcher" aria-label="Code language">
+        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero compact">
+      <p class="eyebrow">Get started</p>
+      <h1>Record two source histories, then compare what they saw.</h1>
+      <p class="lead">
+        This page is the shortest useful path through Spanfold: define one
+        state window, ingest events from two sources, compare the recorded
+        windows, and inspect the output.
+      </p>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Mental model</p>
+        <h2>Spanfold starts with one question: when was this state active?</h2>
+        <p>
+          A window opens when your predicate becomes true for a key and source.
+          It closes when the predicate becomes false. Once those windows are
+          recorded, Spanfold can compare sources without hand-written interval
+          joins.
+        </p>
+      </div>
+
+      <div class="quick-timeline" aria-label="Two source windows compared">
+        <div class="quick-row">
+          <span>provider-a</span>
+          <span class="quick-track"><span class="quick-window target" style="left: 24%; width: 48%"></span></span>
+          <span>offline 3..6</span>
+        </div>
+        <div class="quick-row">
+          <span>provider-b</span>
+          <span class="quick-track"><span class="quick-window compare" style="left: 40%; width: 16%"></span></span>
+          <span>offline 4..5</span>
+        </div>
+        <div class="quick-row">
+          <span>comparison</span>
+          <span class="quick-track">
+            <span class="quick-window residual" style="left: 24%; width: 16%"></span>
+            <span class="quick-window overlap" style="left: 40%; width: 16%"></span>
+            <span class="quick-window residual" style="left: 56%; width: 16%"></span>
+          </span>
+          <span>a-only, overlap, a-only</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">1. Install</p>
+        <h2>Add the package to your project.</h2>
+      </div>
+      <div class="language-panel" data-language="csharp">
+        <pre><code>dotnet add package Spanfold</code></pre>
+      </div>
+      <div class="language-panel" data-language="python">
+        <pre><code>cd packages/python
+python -m pip install -e ".[dev]"</code></pre>
+        <p class="language-note">The Python package is a partial port intended for early evaluation.</p>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">2. Minimal implementation</p>
+        <h2>A complete first example.</h2>
+        <p>
+          This example uses processing positions rather than timestamps so the
+          output is easy to inspect. Position 1 is the first ingested event,
+          position 2 is the second, and so on.
+        </p>
+      </div>
+
+      <div class="wide-example">
+        <div class="language-panel" data-language="csharp">
+          <pre><code>using Spanfold;
+
+var pipeline = Spanfold.Spanfold
+    .For&lt;DeviceStatus&gt;()
+    .RecordWindows()
+    .TrackWindow(
+        "DeviceOffline",
+        key: status =&gt; status.DeviceId,
+        isActive: status =&gt; !status.IsOnline);
+
+Ingest("provider-a", isOnline: true);  // position 1
+Ingest("provider-b", isOnline: true);  // position 2
+Ingest("provider-a", isOnline: false); // position 3, provider-a opens
+Ingest("provider-b", isOnline: false); // position 4, provider-b opens
+Ingest("provider-b", isOnline: true);  // position 5, provider-b closes
+Ingest("provider-a", isOnline: true);  // position 6, provider-a closes
+
+var result = pipeline.History
+    .Compare("Provider comparison")
+    .Target("provider-a", selector =&gt; selector.Source("provider-a"))
+    .Against("provider-b", selector =&gt; selector.Source("provider-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(comparators =&gt; comparators.Overlap().Residual().Missing())
+    .Run();
+
+Console.WriteLine($"closed windows: {pipeline.History.ClosedWindows.Count}");
+Console.WriteLine($"overlap rows: {result.OverlapRows.Count}");
+Console.WriteLine($"provider-a-only rows: {result.ResidualRows.Count}");
+Console.WriteLine($"provider-b-only rows: {result.MissingRows.Count}");
+
+foreach (var row in result.OverlapRows)
+{
+    Console.WriteLine($"overlap {row.Key}: {row.Range.Start.Position}..{row.Range.End!.Value.Position}");
+}
+
+foreach (var row in result.ResidualRows)
+{
+    Console.WriteLine($"a-only {row.Key}: {row.Range.Start.Position}..{row.Range.End!.Value.Position}");
+}
+
+void Ingest(string source, bool isOnline)
+{
+    pipeline.Ingest(new DeviceStatus("device-17", isOnline), source);
+}
+
+public sealed record DeviceStatus(string DeviceId, bool IsOnline);</code></pre>
+        </div>
+        <div class="language-panel" data-language="python">
+          <pre><code>from dataclasses import dataclass
+
+from spanfold import Spanfold
+
+
+@dataclass(frozen=True)
+class DeviceStatus:
+    device_id: str
+    is_online: bool
+
+
+pipeline = (
+    Spanfold.for_events()
+    .record_windows()
+    .track_window(
+        "DeviceOffline",
+        key=lambda status: status.device_id,
+        is_active=lambda status: not status.is_online,
+    )
+)
+
+pipeline.ingest(DeviceStatus("device-17", True), source="provider-a")
+pipeline.ingest(DeviceStatus("device-17", True), source="provider-b")
+pipeline.ingest(DeviceStatus("device-17", False), source="provider-a")
+pipeline.ingest(DeviceStatus("device-17", False), source="provider-b")
+pipeline.ingest(DeviceStatus("device-17", True), source="provider-b")
+pipeline.ingest(DeviceStatus("device-17", True), source="provider-a")
+
+result = (
+    pipeline.history.compare("Provider comparison")
+    .target("provider-a")
+    .against("provider-b")
+    .within(window_name="DeviceOffline")
+    .using("overlap", "residual", "missing")
+    .run()
+)
+
+print(f"closed windows: {len(pipeline.history.closed_windows)}")
+print(f"overlap rows: {len(result.overlap_rows)}")
+print(f"provider-a-only rows: {len(result.residual_rows)}")
+print(f"provider-b-only rows: {len(result.missing_rows)}")</code></pre>
+          <p class="language-note">This mirrors the first slice of the Python port. Use C# docs for the full API surface.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">3. Expected output</p>
+        <h2>The result should show one shared segment and two target-only segments.</h2>
+      </div>
+      <div class="expected-output">
+        <pre><code>closed windows: 2
+overlap rows: 1
+provider-a-only rows: 2
+provider-b-only rows: 0
+overlap device-17: 4..5
+a-only device-17: 3..4
+a-only device-17: 5..6</code></pre>
+        <p>
+          Provider A reported the device offline from position 3 to 6. Provider B
+          reported it offline from position 4 to 5. Spanfold turns that into
+          structured comparison rows: A-only before B saw it, overlap while both
+          saw it, and A-only after B recovered.
+        </p>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">4. What to try next</p>
+        <h2>Move from the smallest case to useful diagnostics.</h2>
+      </div>
+
+      <div class="summary-list grid">
+        <a href="visualiser.html">
+          <strong>Open the visualiser examples</strong>
+          <span>See how the same overlap and residual rows look as timelines.</span>
+        </a>
+        <a href="use-cases.html">
+          <strong>Browse use cases</strong>
+          <span>Map temporal windows to monitoring, IoT, logistics, access audit, and pipelines.</span>
+        </a>
+        <a href="api.html">
+          <strong>Use the API reference</strong>
+          <span>Look up builders, comparison rows, exports, liveness, and testing helpers.</span>
+        </a>
+        <a href="https://github.com/Scottlr/spanfold/tree/main/samples">
+          <strong>Run the samples</strong>
+          <span>Start with simple device monitoring, then move into multi-lane scenarios.</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Spanfold</span>
+    <a href="https://github.com/Scottlr/spanfold">GitHub repository</a>
+  </footer>
+  <script src="language.js"></script>
+</body>
+</html>

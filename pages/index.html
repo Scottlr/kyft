@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spanfold records temporal state windows and compares them across sources, providers, or pipeline stages.">
+  <title>Spanfold - temporal state-window comparison</title>
+  <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-language="csharp">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
+    <div class="header-actions">
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+        <a href="use-cases.html">Use cases</a>
+        <a href="visualiser.html">Visualiser</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </nav>
+      <div class="language-switcher" aria-label="Code language">
+        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero hero-grid">
+      <div>
+        <p class="eyebrow">Spanfold</p>
+        <h1>Temporal state-window recording and comparison.</h1>
+        <p class="lead">
+          Spanfold records when keyed state was active, then compares those windows
+          across sources, providers, or pipeline stages. It is for questions
+          where the latest value is not enough.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/Scottlr/spanfold">GitHub repository</a>
+          <a class="button secondary" href="get-started.html">Get started</a>
+        </div>
+      </div>
+
+      <div class="hero-graph" aria-label="State windows compared across sources">
+        <div class="graph-row">
+          <span>source A</span>
+          <span class="mini-track"><span class="bar target" style="left: 12%; width: 54%"></span></span>
+        </div>
+        <div class="graph-row">
+          <span>source B</span>
+          <span class="mini-track"><span class="bar compare" style="left: 34%; width: 39%"></span></span>
+        </div>
+        <div class="graph-row">
+          <span>comparison</span>
+          <span class="mini-track">
+            <span class="bar residual" style="left: 12%; width: 22%"></span>
+            <span class="bar compare" style="left: 34%; width: 32%"></span>
+            <span class="bar missing" style="left: 66%; width: 7%"></span>
+          </span>
+        </div>
+        <p>
+          One state, two observed histories, three useful answers: target-only,
+          overlap, and comparison-only coverage.
+        </p>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">What it does</p>
+        <h2>Spanfold turns predicates into recorded temporal evidence.</h2>
+        <p>
+          A temporal window is a period where a predicate stayed true for a key.
+          Spanfold records those periods as open and closed windows, including the
+          source lane and context needed to inspect them later.
+        </p>
+      </div>
+
+      <div class="diagram-grid">
+        <article class="diagram-card">
+          <h3>Latest value loses the window</h3>
+          <div class="state-diagram" aria-label="Latest value loses previous active state">
+            <div class="state-row">
+              <span class="row-label">history</span>
+              <span class="timeline"></span>
+              <span class="window warn" style="left: 22%; width: 36%"></span>
+              <span class="point ok" style="left: 78%"></span>
+            </div>
+            <div class="state-row">
+              <span class="row-label">latest</span>
+              <span class="timeline"></span>
+              <span class="point ok" style="left: 78%"></span>
+            </div>
+          </div>
+          <p>
+            If the current value is healthy, a latest-state table cannot explain
+            that the same key was unhealthy earlier.
+          </p>
+        </article>
+
+        <article class="diagram-card">
+          <h3>Sources disagree over time</h3>
+          <div class="state-diagram" aria-label="Two source lanes with partial overlap">
+            <div class="state-row">
+              <span class="row-label">lane A</span>
+              <span class="timeline"></span>
+              <span class="window target" style="left: 16%; width: 50%"></span>
+            </div>
+            <div class="state-row">
+              <span class="row-label">lane B</span>
+              <span class="timeline"></span>
+              <span class="window compare" style="left: 38%; width: 38%"></span>
+            </div>
+            <div class="state-row">
+              <span class="row-label">rows</span>
+              <span class="timeline"></span>
+              <span class="window residual" style="left: 16%; width: 22%"></span>
+              <span class="window overlap" style="left: 38%; width: 28%"></span>
+              <span class="window missing" style="left: 66%; width: 10%"></span>
+            </div>
+          </div>
+          <p>
+            Spanfold compares histories and emits rows for overlap, residual,
+            missing, coverage, gap, containment, lead/lag, and as-of analysis.
+          </p>
+        </article>
+
+        <article class="diagram-card">
+          <h3>Open windows need a horizon</h3>
+          <div class="state-diagram" aria-label="Open window clipped by a live horizon">
+            <div class="state-row">
+              <span class="row-label">open</span>
+              <span class="timeline"></span>
+              <span class="window target dashed" style="left: 28%; width: 54%"></span>
+              <span class="horizon" style="left: 82%"></span>
+            </div>
+            <div class="state-row">
+              <span class="row-label">view</span>
+              <span class="timeline"></span>
+              <span class="window overlap" style="left: 28%; width: 54%"></span>
+              <span class="horizon" style="left: 82%"></span>
+            </div>
+          </div>
+          <p>
+            Live comparisons evaluate still-open windows at an explicit
+            processing position or timestamp and mark provisional rows.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Why it exists</p>
+        <h2>Ordinary state tracking throws away the evidence analysts need.</h2>
+      </div>
+      <div>
+        <p>
+          A current-state table can answer what is true now. It cannot answer
+          when a state became true, which source saw it first, whether another
+          source missed it, or what information was knowable at the decision
+          point.
+        </p>
+        <p>
+          Spanfold keeps the temporal record as first-class data in application code. It
+          does not replace your event pipeline, database, or dashboard; it gives
+          the application a focused model for recorded state windows and
+          source-aware comparison.
+        </p>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Concrete use cases</p>
+        <h2>Useful when correctness depends on time, source, and visibility.</h2>
+      </div>
+      <div class="card-grid four">
+        <article>
+          <h3>Monitoring provider comparison</h3>
+          <p>Find where one provider reported an outage that another missed, reported late, or recovered from sooner.</p>
+        </article>
+        <article>
+          <h3>Decision-point audit</h3>
+          <p>Evaluate only the windows and annotations that were knowable at a specific processing position or timestamp.</p>
+        </article>
+        <article>
+          <h3>Live/open-window analysis</h3>
+          <p>Include still-open windows at a live horizon while keeping provisional rows separate from final rows.</p>
+        </article>
+        <article>
+          <h3>Historical pipeline analysis</h3>
+          <p>Compare stages in a pipeline to see where state diverged, lagged, disappeared, or gained extra coverage.</p>
+        </article>
+      </div>
+      <p class="link-line"><a href="use-cases.html">Open the use-cases page</a></p>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Key capabilities</p>
+        <h2>Focused primitives for temporal state comparison.</h2>
+      </div>
+      <div class="capability-list">
+        <div>
+          <strong>Record windows and intervals</strong>
+          <span>Capture opened and closed state windows with key, source, partition, segment, and tag context.</span>
+        </div>
+        <div>
+          <strong>Compare overlap, residual, missing, and coverage</strong>
+          <span>Turn lane histories into structured rows instead of hand-written interval joins.</span>
+        </div>
+        <div>
+          <strong>Reason at a point in time</strong>
+          <span>Query windows and annotations at a horizon without leaking future knowledge into an audit.</span>
+        </div>
+        <div>
+          <strong>Separate live from final</strong>
+          <span>Clip open windows to a horizon and preserve whether rows depend on ongoing state.</span>
+        </div>
+        <div>
+          <strong>Export deterministic artifacts</strong>
+          <span>Produce JSON, JSON Lines, Markdown, and self-contained HTML debug output from comparison results.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Debug visualiser</p>
+        <h2>Inspect comparison behavior as a browser-readable timeline.</h2>
+        <p>
+          The HTML visualiser helps explain surprising rows: which windows were
+          selected, where sources overlapped, where gaps appeared, and whether
+          live rows are still provisional.
+        </p>
+      </div>
+      <div class="summary-list grid">
+        <a href="examples/provider-comparison.html">
+          <strong>Provider comparison</strong>
+          <span>Six lanes with overlap, residual, missing, coverage, and live finality.</span>
+        </a>
+        <a href="examples/multi-lane-overlap.html">
+          <strong>Multi-lane overlap</strong>
+          <span>Several gateways reporting staggered active windows.</span>
+        </a>
+        <a href="examples/cohort-quorum.html">
+          <strong>Cohort quorum</strong>
+          <span>A primary lane compared against an at-least-two cohort.</span>
+        </a>
+        <a href="examples/segmented-live.html">
+          <strong>Segmented live windows</strong>
+          <span>Phase and period segments with open windows clipped at a horizon.</span>
+        </a>
+      </div>
+      <p class="link-line"><a href="visualiser.html">Open the visualiser page</a></p>
+    </section>
+
+    <section class="doc-section" id="install">
+      <div class="section-heading">
+        <p class="eyebrow">Code examples</p>
+        <h2>Define the state once, then query or compare recorded history.</h2>
+      </div>
+      <div class="code-grid">
+        <article>
+          <h3>Install</h3>
+          <div class="language-panel" data-language="csharp">
+            <pre><code>dotnet add package Spanfold
+dotnet add package Spanfold.Testing</code></pre>
+            <p>`Spanfold.Testing` is optional. It provides fixtures, snapshots, and assertions for consumer tests.</p>
+          </div>
+          <div class="language-panel" data-language="python">
+            <pre><code>cd packages/python
+python -m pip install -e ".[dev]"</code></pre>
+            <p class="language-note">The Python package is a partial port. Use it for early evaluation, not as the canonical API surface yet.</p>
+          </div>
+        </article>
+        <article>
+          <h3>Record windows</h3>
+          <div class="language-panel" data-language="csharp">
+            <pre><code>using Spanfold;
+
+var pipeline = Spanfold.Spanfold
+    .For&lt;DeviceSignal&gt;()
+    .RecordWindows()
+    .TrackWindow(
+        "DeviceOffline",
+        key: signal =&gt; signal.DeviceId,
+        isActive: signal =&gt; !signal.IsOnline);
+
+pipeline.Ingest(new DeviceSignal("device-17", false), source: "provider-a");
+pipeline.Ingest(new DeviceSignal("device-17", true), source: "provider-a");
+
+public sealed record DeviceSignal(string DeviceId, bool IsOnline);</code></pre>
+          </div>
+          <div class="language-panel" data-language="python">
+            <pre><code>from dataclasses import dataclass
+
+from spanfold import Spanfold
+
+
+@dataclass(frozen=True)
+class DeviceSignal:
+    device_id: str
+    is_online: bool
+
+
+pipeline = (
+    Spanfold.for_events()
+    .record_windows()
+    .track_window(
+        "DeviceOffline",
+        key=lambda signal: signal.device_id,
+        is_active=lambda signal: not signal.is_online,
+    )
+)
+
+pipeline.ingest(DeviceSignal("device-17", False), source="provider-a")
+pipeline.ingest(DeviceSignal("device-17", True), source="provider-a")</code></pre>
+            <p class="language-note">Python examples stay intentionally small until the port reaches feature parity.</p>
+          </div>
+        </article>
+      </div>
+
+      <article class="wide-example">
+        <h3>Compare recorded windows</h3>
+        <div class="language-panel" data-language="csharp">
+          <pre><code>var result = pipeline.History
+    .Compare("Provider QA")
+    .Target("provider-a", selector =&gt; selector.Source("provider-a"))
+    .Against("provider-b", selector =&gt; selector.Source("provider-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(comparators =&gt; comparators
+        .Overlap()
+        .Residual()
+        .Missing()
+        .Coverage())
+    .Run();
+
+result.ExportDebugHtml("artifacts/provider-qa.html");</code></pre>
+        </div>
+        <div class="language-panel" data-language="python">
+          <pre><code>result = (
+    pipeline.history.compare("Provider QA")
+    .target("provider-a")
+    .against("provider-b")
+    .within(window_name="DeviceOffline")
+    .using("overlap", "residual", "missing")
+    .run()
+)
+
+print(result.to_markdown())</code></pre>
+          <p class="language-note">The complete comparison and export surface is currently defined by the C# package.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Why not just X?</p>
+        <h2>Spanfold is a narrow temporal evidence layer, not a platform replacement.</h2>
+      </div>
+      <div class="comparison-list">
+        <article>
+          <h3>Storing timestamps in a database</h3>
+          <p>A database can persist windows, but it will not give you staged comparison plans, selectors, normalization, live finality, diagnostics, or deterministic exports by itself.</p>
+        </article>
+        <article>
+          <h3>Latest-state tracking</h3>
+          <p>Latest-state tables answer what is true now. Spanfold answers when it was true, who saw it, and whether another lane missed it.</p>
+        </article>
+        <article>
+          <h3>Generic event processing</h3>
+          <p>Stream processors route and aggregate events. Spanfold stays smaller: it records interpreted state windows and compares their temporal evidence.</p>
+        </article>
+        <article>
+          <h3>Metrics dashboards</h3>
+          <p>Dashboards compress time into counters, rates, and charts. Spanfold keeps individual windows and emits rows that can be audited.</p>
+        </article>
+        <article>
+          <h3>Event sourcing</h3>
+          <p>Event sourcing preserves facts and rebuilds state. Spanfold analyzes the windows produced after those facts have been interpreted.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Spanfold</span>
+    <a href="https://github.com/Scottlr/spanfold">github.com/Scottlr/spanfold</a>
+  </footer>
+  <script src="language.js"></script>
+</body>
+</html>

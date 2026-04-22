@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spanfold debug visualiser examples for inspecting temporal windows, overlaps, gaps, and live horizons.">
+  <title>Spanfold debug visualiser</title>
+  <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-language="csharp">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
+    <div class="header-actions">
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+        <a href="use-cases.html">Use cases</a>
+        <a href="visualiser.html">Visualiser</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </nav>
+      <div class="language-switcher" aria-label="Code language">
+        <button type="button" data-language-toggle="csharp" aria-pressed="true">C#</button>
+        <button type="button" data-language-toggle="python" aria-pressed="false">Python</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero compact">
+      <p class="eyebrow">Debug visualiser</p>
+      <h1>Inspect comparison results as timelines.</h1>
+      <p class="lead">
+        Spanfold can export a self-contained HTML artifact from a comparison result.
+        It is meant for debugging: open the file, inspect selected windows,
+        aligned segments, row finality, and where each source overlapped or left
+        gaps.
+      </p>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <h2>Why visual output helps</h2>
+        <p>
+          Temporal comparison rows can be correct but hard to read in a table.
+          A visual timeline makes the reason visible: one source started earlier,
+          another ended sooner, a lane stayed open at the horizon, or a segment
+          boundary split the result.
+        </p>
+      </div>
+      <div class="language-panel" data-language="csharp">
+        <pre><code>var result = pipeline.History
+    .Compare("Source comparison")
+    .Target("source-a", s =&gt; s.Source("source-a"))
+    .Against("source-b", s =&gt; s.Source("source-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(c =&gt; c.Overlap().Residual().Missing())
+    .RunLive(TemporalPoint.ForPosition(40));
+
+result.ExportDebugHtml("artifacts/source-comparison.html");</code></pre>
+      </div>
+      <div class="language-panel" data-language="python">
+        <pre><code>result = (
+    pipeline.history.compare("Source comparison")
+    .target("source-a")
+    .against("source-b")
+    .within(window_name="DeviceOffline")
+    .using("overlap", "residual", "missing")
+    .run()
+)
+
+print(result.to_markdown())</code></pre>
+        <p class="language-note">The visualiser examples are generated from the reference C# package. Python support is currently limited to the partial port.</p>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Examples</p>
+        <h2>Generated static debug pages.</h2>
+        <p>
+          These pages are generated from the package exporter and copied into
+          GitHub Pages. Dense examples can be widened and scrolled horizontally.
+        </p>
+      </div>
+
+      <div class="summary-list grid">
+        <a href="examples/provider-comparison.html">
+          <strong>Provider comparison</strong>
+          <span>Six lanes with overlap, residual, missing, coverage, and live finality.</span>
+        </a>
+        <a href="examples/multi-lane-overlap.html">
+          <strong>Multi-lane overlap</strong>
+          <span>Several gateways reporting staggered active windows.</span>
+        </a>
+        <a href="examples/cohort-quorum.html">
+          <strong>Cohort quorum</strong>
+          <span>A primary lane compared against an at-least-two cohort.</span>
+        </a>
+        <a href="examples/segmented-live.html">
+          <strong>Segmented live windows</strong>
+          <span>Phase and period segments with open windows clipped at a horizon.</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Embedded preview</p>
+        <h2>Provider comparison.</h2>
+        <p>
+          The preview below uses the generated debug HTML directly. Open the
+          full page for more space when inspecting many lanes.
+        </p>
+      </div>
+      <div class="visualiser-frame">
+        <iframe
+          title="Spanfold provider comparison debug HTML example"
+          src="examples/provider-comparison.html"
+          loading="lazy"></iframe>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Spanfold</span>
+    <a href="https://github.com/Scottlr/spanfold">github.com/Scottlr/spanfold</a>
+  </footer>
+  <script src="language.js"></script>
+</body>
+</html>
