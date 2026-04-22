@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="pages/assets/brand/spanfold-logo-readme-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="pages/assets/brand/spanfold-logo-readme-light.svg">
-    <img src="pages/assets/brand/spanfold-logo-readme-light.svg" alt="Spanfold" width="280">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/spanfold-logo-readme-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/brand/spanfold-logo-readme-light.svg">
+    <img src="docs/assets/brand/spanfold-logo-readme-light.svg" alt="Spanfold" width="280">
   </picture>
 </p>
 
@@ -58,10 +58,9 @@ packages/
     samples/
     docs/
     pyproject.toml
-pages/
+docs/
   index.html
   assets/
-docs -> pages
 ```
 
 ## Language Packages
@@ -76,13 +75,12 @@ package metadata, tests, examples, and package-level README.
 
 ## Website
 
-The static documentation site lives in [pages](pages/index.html). GitHub Pages
-deploys that folder through [.github/workflows/pages.yml](.github/workflows/pages.yml).
-The root `docs` path is a compatibility symlink to `pages` for repositories that
-still have Pages configured to deploy from `/docs`.
+The static documentation site lives in [docs](docs/index.html). GitHub Pages
+deploys that folder through the repository Pages setting: deploy from branch,
+folder `/docs`.
 
 Package-local documentation remains with each implementation under
-`packages/<language>/docs`, while `pages/` is the root-level deploy target for
+`packages/<language>/docs`, while `docs/` is the root-level deploy target for
 the public site.
 
 ## Concrete Use Cases
@@ -149,8 +147,8 @@ The full comparator surface is currently documented in the reference package and
 the public site:
 
 - [Reference package README](packages/dotnet/README.md)
-- [Comparator reference](pages/comparator-reference.md)
-- [Comparison guide](pages/comparison-guide.md)
+- [Comparator reference](docs/comparator-reference.md)
+- [Comparison guide](docs/comparison-guide.md)
 
 ## Why Not Just X?
 
@@ -201,10 +199,10 @@ pytest
 
 ## Documentation
 
-- [Public site](pages/index.html)
-- [Get started](pages/get-started.html)
-- [Use cases](pages/use-cases.html)
-- [Visualiser](pages/visualiser.html)
-- [API reference](pages/api.html)
+- [Public site](docs/index.html)
+- [Get started](docs/get-started.html)
+- [Use cases](docs/use-cases.html)
+- [Visualiser](docs/visualiser.html)
+- [API reference](docs/api.html)
 - [.NET package README](packages/dotnet/README.md)
 - [Python package README](packages/python/README.md)
