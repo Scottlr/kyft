@@ -814,6 +814,53 @@ pre .hljs-comment {
   color: var(--code-comment);
 }
 
+.hljs-keyword,
+.hljs-built_in,
+.hljs-type,
+.hljs-literal {
+  color: #F1C27D;
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-title.class_,
+.hljs-name,
+.hljs-selector-tag {
+  color: #9CCFD8;
+}
+
+.hljs-string,
+.hljs-attr,
+.hljs-attribute,
+.hljs-meta .hljs-string {
+  color: #B7D29A;
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-variable,
+.hljs-template-variable {
+  color: #D8A0A6;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.hljs-meta,
+.hljs-tag,
+.hljs-punctuation {
+  color: #CFC6AA;
+}
+
+.hljs-params,
+.hljs-property,
+.hljs-subst {
+  color: var(--code-fg);
+}
+
 .use-case-list {
   display: grid;
   gap: 14px;
