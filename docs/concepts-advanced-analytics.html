@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spanfold advanced analytics concepts for coverage, gap, containment, lead-lag, as-of, live finality, and row aggregation.">
+  <title>Spanfold advanced analytics concepts</title>
+  <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-language="csharp">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+    <nav class="nav" aria-label="Primary navigation">
+      <div class="nav-section">
+        <span class="nav-title">Start</span>
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Docs</span>
+        <a href="use-cases.html">Use cases</a>
+        <a href="visualiser.html">Visualiser</a>
+        <a href="llm-context.html">LLM context</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Concepts</span>
+        <a href="concepts.html">Overview</a>
+        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
+        <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item active" href="concepts-advanced-analytics.html">Advanced analytics</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Reference</span>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero compact">
+      <p class="eyebrow">Concepts</p>
+      <h1>Ask deeper interval questions.</h1>
+      <p class="lead">
+        Once windows are aligned, Spanfold can measure agreement, divergence,
+        timing, containment, coverage, point-in-time matches, and live finality
+        without hand-written interval joins.
+      </p>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <h2>Compose comparator rows.</h2>
+        <p>
+          Start with overlap and residual, then add the rows needed for the
+          incident, audit, or quality report. Each row keeps record ids and
+          temporal ranges so the result can be exported and inspected later.
+        </p>
+      </div>
+      <div>
+        <pre><code>var result = pipeline.History
+    .Compare("Provider QA")
+    .Target("provider-a", selector =&gt; selector.Source("provider-a"))
+    .Against("provider-b", selector =&gt; selector.Source("provider-b"))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(comparators =&gt; comparators
+        .Overlap()
+        .Residual()
+        .Missing()
+        .Coverage()
+        .Gap()
+        .Containment()
+        .Declaration("lead-lag:Start:ProcessingPosition:5"))
+    .Run();</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Analytics</p>
+        <h2>Choose the result family that matches the decision.</h2>
+      </div>
+      <div class="comparison-list">
+        <article><h3>Coverage and gaps</h3><p>Measure how much target activity was covered and where expected coverage disappeared.</p></article>
+        <article><h3>Containment</h3><p>Classify whether one side fully contains, partly contains, or misses the other side's active windows.</p></article>
+        <article><h3>Lead and lag</h3><p>Compare start or end transitions and summarize whether the target led or lagged the comparison side.</p></article>
+        <article><h3>As-of</h3><p>Evaluate what matched at a specific decision point without leaking future evidence into the answer.</p></article>
+        <article><h3>Live finality</h3><p>Clip open windows to a horizon and keep provisional rows separate from final rows.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Spanfold</span>
+    <a href="concepts.html">Concepts overview</a>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+  <script src="syntax.js"></script>
+  <script src="language.js"></script>
+</body>
+</html>

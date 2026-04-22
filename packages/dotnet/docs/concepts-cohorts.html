@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spanfold cohort concepts for comparing one target source against a group of sources as a derived lane.">
+  <title>Spanfold cohort concepts</title>
+  <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-language="csharp">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+    <nav class="nav" aria-label="Primary navigation">
+      <div class="nav-section">
+        <span class="nav-title">Start</span>
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Docs</span>
+        <a href="use-cases.html">Use cases</a>
+        <a href="visualiser.html">Visualiser</a>
+        <a href="llm-context.html">LLM context</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Concepts</span>
+        <a href="concepts.html">Overview</a>
+        <a class="nav-sub-item" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item active" href="concepts-cohorts.html">Cohorts</a>
+        <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Reference</span>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero compact">
+      <p class="eyebrow">Concepts</p>
+      <h1>Compare one source against a group.</h1>
+      <p class="lead">
+        Cohorts turn many member sources into one derived comparison lane before
+        comparators run. That avoids overcounting pairwise residuals when the
+        real question is whether the group covered the target.
+      </p>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <h2>Use cohort activity rules.</h2>
+        <p>
+          The cohort lane is active when the configured rule is satisfied over
+          an aligned segment. Evidence metadata records the rule, active count,
+          active sources, and whether the cohort covered that segment.
+        </p>
+      </div>
+      <div>
+        <pre><code>var result = pipeline.History
+    .Compare("Source A vs quorum")
+    .Target("source-a", selector =&gt; selector.Source("source-a"))
+    .AgainstCohort("quorum", cohort =&gt; cohort
+        .Sources("source-b", "source-c", "source-d")
+        .Activity(CohortActivity.AtLeast(2)))
+    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Using(comparators =&gt; comparators.Residual().Coverage())
+    .Run();
+
+var uncovered = result
+    .CohortEvidence()
+    .Where(evidence =&gt; !evidence.IsActive);</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Rules</p>
+        <h2>Model the group explicitly.</h2>
+      </div>
+      <div class="card-grid four">
+        <article><h3>Any</h3><p>At least one member source makes the cohort active.</p></article>
+        <article><h3>All</h3><p>Every declared member must be active.</p></article>
+        <article><h3>At least</h3><p>A quorum-style minimum active count.</p></article>
+        <article><h3>Exactly</h3><p>A precise active count for strict agreement rules.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Spanfold</span>
+    <a href="concepts.html">Concepts overview</a>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+  <script src="syntax.js"></script>
+  <script src="language.js"></script>
+</body>
+</html>

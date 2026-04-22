@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spanfold roll-up concepts for aggregating child temporal windows into parent state windows with segment projection.">
+  <title>Spanfold roll-up concepts</title>
+  <link rel="icon" href="assets/brand/spanfold-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-language="csharp">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+    <nav class="nav" aria-label="Primary navigation">
+      <div class="nav-section">
+        <span class="nav-title">Start</span>
+        <a href="index.html">Overview</a>
+        <a href="get-started.html">Get started</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Docs</span>
+        <a href="use-cases.html">Use cases</a>
+        <a href="visualiser.html">Visualiser</a>
+        <a href="llm-context.html">LLM context</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Concepts</span>
+        <a href="concepts.html">Overview</a>
+        <a class="nav-sub-item active" href="concepts-rollups.html">Roll-ups</a>
+        <a class="nav-sub-item" href="concepts-cohorts.html">Cohorts</a>
+        <a class="nav-sub-item" href="concepts-source-matrix.html">Source matrix</a>
+        <a class="nav-sub-item" href="concepts-advanced-analytics.html">Advanced analytics</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-title">Reference</span>
+        <a href="api.html">API</a>
+        <a href="https://github.com/Scottlr/spanfold">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero compact">
+      <p class="eyebrow">Concepts</p>
+      <h1>Roll child windows up to parent state.</h1>
+      <p class="lead">
+        Roll-ups aggregate many child keys into a parent key, such as devices to
+        zones or zones to regions. Parent windows can then be queried, compared,
+        exported, or explained like any other window.
+      </p>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <h2>When to use a roll-up</h2>
+        <p>
+          Use roll-ups when the parent state is defined by child activity: any
+          device offline makes a zone offline, all checks passing makes a stage
+          healthy, or two replicas active make a service available.
+        </p>
+      </div>
+      <div>
+        <pre><code>var pipeline = Spanfold.Spanfold
+    .For&lt;DeviceStateChanged&gt;()
+    .RecordWindows()
+    .Window("DeviceOffline", window =&gt; window
+        .Key(update =&gt; update.DeviceId)
+        .ActiveWhen(update =&gt; update.IsOffline)
+        .Segment("lifecycle", segment =&gt; segment.Value(update =&gt; update.Lifecycle)))
+    .RollUp(
+        "ZoneOffline",
+        update =&gt; update.ZoneId,
+        children =&gt; children.ActiveCount &gt; 0,
+        segments =&gt; segments.Preserve("lifecycle"))
+    .RollUp(
+        "RegionOffline",
+        update =&gt; update.RegionId,
+        children =&gt; children.ActiveCount &gt; 0)
+    .Build();</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Segment projection</p>
+        <h2>Choose which child context survives at parent level.</h2>
+      </div>
+      <div class="capability-list">
+        <div>
+          <strong>Preserve</strong>
+          <span>Keep a child segment dimension when it still defines meaningful parent boundaries.</span>
+        </div>
+        <div>
+          <strong>Drop</strong>
+          <span>Ignore a child detail when it would create noise or over-split the parent window.</span>
+        </div>
+        <div>
+          <strong>Rename</strong>
+          <span>Project child terminology into a parent-level vocabulary.</span>
+        </div>
+        <div>
+          <strong>Transform</strong>
+          <span>Normalize segment values before they are emitted on the parent roll-up.</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Spanfold</span>
+    <a href="concepts.html">Concepts overview</a>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+  <script src="syntax.js"></script>
+  <script src="language.js"></script>
+</body>
+</html>
