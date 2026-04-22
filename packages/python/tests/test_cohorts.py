@@ -74,6 +74,68 @@ def test_threshold_cohort_uses_required_active_count() -> None:
     assert not result.residual_rows
 
 
+def test_cohort_result_includes_segment_evidence_metadata() -> None:
+    history = (
+        WindowHistoryFixtureBuilder()
+        .add_closed_window("SelectionPriced", "selection-1", 1, 11, source="source-a")
+        .add_closed_window("SelectionPriced", "selection-1", 1, 6, source="source-b")
+        .build()
+    )
+
+    result = (
+        history.compare("Source A vs cohort evidence")
+        .target("source-a")
+        .against_cohort(
+            "cohort",
+            sources=("source-b", "source-c"),
+            activity=CohortActivity.at_least(2),
+        )
+        .within(window_name="SelectionPriced")
+        .using("residual")
+        .run()
+    )
+
+    assert any(
+        metadata.extension_id == "spanfold.cohort"
+        and "required=2" in metadata.value
+        and "isActive=false" in metadata.value
+        for metadata in result.extension_metadata
+    )
+
+
+def test_cohort_evidence_metadata_can_be_queried_as_typed_values() -> None:
+    history = (
+        WindowHistoryFixtureBuilder()
+        .add_closed_window("SelectionPriced", "selection-1", 1, 11, source="source-a")
+        .add_closed_window("SelectionPriced", "selection-1", 1, 6, source="source-b")
+        .build()
+    )
+
+    result = (
+        history.compare("Source A vs typed cohort evidence")
+        .target("source-a")
+        .against_cohort(
+            "cohort",
+            sources=("source-b", "source-c"),
+            activity=CohortActivity.at_least(2),
+        )
+        .within(window_name="SelectionPriced")
+        .using("residual")
+        .run()
+    )
+
+    inactive = next(
+        evidence
+        for evidence in result.cohort_evidence()
+        if not evidence.is_active and evidence.active_count == 1
+    )
+
+    assert inactive.rule == "at-least"
+    assert inactive.required_count == 2
+    assert "source-b" in inactive.active_sources
+    assert "spanfold.cohort" in result.to_debug_html()
+
+
 def test_none_cohort_requires_no_active_members() -> None:
     history = (
         WindowHistoryFixtureBuilder()

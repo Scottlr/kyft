@@ -492,6 +492,19 @@ class ComparisonExtensionMetadata:
     value: str
 
 
+@dataclass(frozen=True, slots=True)
+class CohortEvidenceMetadata:
+    """Parsed evidence for one cohort-aligned segment."""
+
+    segment_index: int
+    rule: str
+    required_count: int
+    active_count: int
+    is_active: bool
+    active_sources: tuple[str, ...]
+    raw_value: str
+
+
 class ComparisonExtensionBuilder:
     """Builds comparison extension descriptors."""
 
@@ -850,6 +863,18 @@ class ComparisonResult:
             if diagnostic.severity is ComparisonDiagnosticSeverity.ERROR
         )
 
+    def cohort_evidence(self) -> tuple[CohortEvidenceMetadata, ...]:
+        """Return parsed cohort evidence metadata emitted by this result."""
+
+        evidence: list[CohortEvidenceMetadata] = []
+        for metadata in self.extension_metadata:
+            if metadata.extension_id != "spanfold.cohort":
+                continue
+            parsed = _parse_cohort_evidence(metadata)
+            if parsed is not None:
+                evidence.append(parsed)
+        return tuple(evidence)
+
     @property
     def is_valid(self) -> bool:
         """Return whether this result has no blocking diagnostics."""
@@ -944,6 +969,16 @@ class ComparisonResult:
             f"<td>{summary.row_count}</td></tr>"
             for summary in self.comparator_summaries
         )
+        extension_rows = "".join(
+            f"<li>{html.escape(metadata.extension_id)} "
+            f"{html.escape(metadata.key)}={html.escape(metadata.value)}</li>"
+            for metadata in self.extension_metadata
+        )
+        extension_block = (
+            f"<h2>Extension metadata</h2><ul>{extension_rows}</ul>"
+            if extension_rows
+            else ""
+        )
         text = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -972,6 +1007,7 @@ body {{ font-family: system-ui, sans-serif; margin: 2rem; color: #17202a; }}
 <table class="summary"><tr><th>Comparator</th><th>Rows</th></tr>
 {summary_rows}
 </table>
+{extension_block}
 {body}
 </body>
 </html>
@@ -1067,6 +1103,7 @@ class WindowComparisonBuilder:
         self._coalesce_adjacent = False
         self._duplicate_windows = "preserve"
         self._strict = False
+        self._extension_metadata: list[ComparisonExtensionMetadata] = []
 
     def target(
         self,
@@ -1208,8 +1245,11 @@ class WindowComparisonBuilder:
             for index, selector in enumerate(self._against)
             for item in self._select(selector, f"against-{index + 1}", diagnostics)
         ]
+        self._extension_metadata = []
         for cohort in self._cohorts:
-            against_windows.extend(self._select_cohort(cohort, target_windows, diagnostics))
+            cohort_windows, metadata = self._select_cohort(cohort, target_windows, diagnostics)
+            against_windows.extend(cohort_windows)
+            self._extension_metadata.extend(metadata)
         target_windows = self._postprocess_normalized(target_windows, diagnostics)
         against_windows = self._postprocess_normalized(against_windows, diagnostics)
         return _run_comparison(
@@ -1221,6 +1261,7 @@ class WindowComparisonBuilder:
             known_at=self._known_at,
             diagnostics=diagnostics,
             strict=self._strict,
+            extension_metadata=tuple(self._extension_metadata),
         )
 
     def run_live(self, horizon: TemporalPoint) -> ComparisonResult:
@@ -1272,7 +1313,7 @@ class WindowComparisonBuilder:
         cohort: _CohortDefinition,
         targets: list[_NormalizedWindow],
         diagnostics: list[str],
-    ) -> list[_NormalizedWindow]:
+    ) -> tuple[list[_NormalizedWindow], tuple[ComparisonExtensionMetadata, ...]]:
         member_windows = self._select(
             lambda window: window.source in cohort.sources,
             cohort.name,
@@ -1340,6 +1381,7 @@ def _run_comparison(
     known_at: TemporalPoint | None = None,
     diagnostics: Iterable[str] = (),
     strict: bool = False,
+    extension_metadata: tuple[ComparisonExtensionMetadata, ...] = (),
 ) -> ComparisonResult:
     target_groups = _group(targets)
     against_groups = _group(against)
@@ -1528,6 +1570,7 @@ def _run_comparison(
         evaluation_horizon=evaluation_horizon,
         known_at=known_at,
         strict=strict,
+        extension_metadata=extension_metadata,
     )
 
 
@@ -1535,10 +1578,12 @@ def _materialize_cohort(
     cohort: _CohortDefinition,
     members: list[_NormalizedWindow],
     targets: list[_NormalizedWindow],
-) -> list[_NormalizedWindow]:
+) -> tuple[list[_NormalizedWindow], tuple[ComparisonExtensionMetadata, ...]]:
     grouped = _group(members)
     target_groups = _group(targets)
     materialized: list[_NormalizedWindow] = []
+    metadata: list[ComparisonExtensionMetadata] = []
+    segment_index = 0
     for scope in sorted(set(grouped) | set(target_groups), key=lambda item: tuple(map(repr, item))):
         window_name, key, partition = scope
         items = grouped.get(scope, [])
@@ -1559,7 +1604,20 @@ def _materialize_cohort(
                 if item.range.start <= start and end <= item.range.require_end()
             ]
             active_sources = {item.window.source for item in active_items}
-            if not cohort.activity.is_active(len(active_sources), len(cohort.sources)):
+            is_active = cohort.activity.is_active(len(active_sources), len(cohort.sources))
+            if active_items or any(
+                item.range.start <= start and end <= item.range.require_end()
+                for item in scope_targets
+            ):
+                metadata.append(
+                    ComparisonExtensionMetadata(
+                        "spanfold.cohort",
+                        f"segment[{segment_index}]",
+                        _cohort_evidence_value(cohort, active_sources, is_active),
+                    )
+                )
+                segment_index += 1
+            if not is_active:
                 continue
             record = ClosedWindow(
                 window_name,
@@ -1580,9 +1638,25 @@ def _materialize_cohort(
                         for item in active_items
                     )
                     else ComparisonFinality.FINAL,
+                    tuple(item.window.id for item in active_items),
                 )
             )
-    return materialized
+    return materialized, tuple(metadata)
+
+
+def _cohort_evidence_value(
+    cohort: _CohortDefinition,
+    active_sources: Iterable[Any],
+    is_active: bool,
+) -> str:
+    ordered_sources = sorted((str(source) for source in active_sources), key=repr)
+    return (
+        f"rule={cohort.activity.name.replace('_', '-')}; "
+        f"required={cohort.activity.required_count(len(cohort.sources))}; "
+        f"activeCount={len(ordered_sources)}; "
+        f"isActive={'true' if is_active else 'false'}; "
+        f"activeSources={','.join(ordered_sources)}"
+    )
 
 
 def build_source_matrix(
@@ -2637,6 +2711,50 @@ def _row_record_ids(row: Any) -> tuple[WindowRecordId, ...]:
         if record_id is not None:
             ids.append(record_id)
     return tuple(ids)
+
+
+def _parse_cohort_evidence(
+    metadata: ComparisonExtensionMetadata,
+) -> CohortEvidenceMetadata | None:
+    prefix = "segment["
+    if not metadata.key.startswith(prefix) or not metadata.key.endswith("]"):
+        return None
+    try:
+        segment_index = int(metadata.key[len(prefix) : -1])
+    except ValueError:
+        return None
+    fields = _parse_metadata_fields(metadata.value)
+    try:
+        rule = fields["rule"]
+        required_count = int(fields["required"])
+        active_count = int(fields["activeCount"])
+        is_active = fields["isActive"].lower() == "true"
+    except (KeyError, ValueError):
+        return None
+    active_sources = tuple(
+        source
+        for source in fields.get("activeSources", "").split(",")
+        if source
+    )
+    return CohortEvidenceMetadata(
+        segment_index,
+        rule,
+        required_count,
+        active_count,
+        is_active,
+        active_sources,
+        metadata.value,
+    )
+
+
+def _parse_metadata_fields(value: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for part in value.split(";"):
+        key, separator, field_value = part.strip().partition("=")
+        if not separator or not key:
+            continue
+        fields[key] = field_value
+    return fields
 
 
 def _to_jsonable(value: Any) -> Any:
