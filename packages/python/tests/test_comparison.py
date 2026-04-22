@@ -7,10 +7,13 @@ from spanfold import (
     ComparisonChangelog,
     ComparisonDiagnosticSeverity,
     ComparisonDuplicateWindowPolicy,
+    ComparisonExtensionBuilder,
+    ComparisonExtensionMetadata,
     ComparisonFinality,
     ComparisonNormalizationPolicy,
     ComparisonNullTimestampPolicy,
     ComparisonOpenWindowPolicy,
+    ComparisonResult,
     ComparisonRowFinality,
     ComparisonSide,
     ContainmentStatus,
@@ -435,6 +438,37 @@ def test_exports_are_deterministic() -> None:
     assert '"row_type": "overlap"' in result.to_json_lines()
     assert "| overlap | 1 |" in result.to_markdown()
     assert "<html" in result.to_debug_html()
+    assert "# Comparison Explain: Provider QA" in result.explain()
+    assert str(result.overlap_rows[0].target_record_ids[0]) in result.explain()
+
+
+def test_comparison_extension_descriptor_builder() -> None:
+    descriptor = (
+        ComparisonExtensionBuilder("experimental-quality", "Experimental Quality")
+        .add_selector("region", "Selects a region-scoped window.")
+        .add_comparator("quality:drift", "Compares quality drift windows.")
+        .add_metadata_key("driftThreshold")
+        .build()
+    )
+
+    assert descriptor.id == "experimental-quality"
+    assert descriptor.selectors[0].name == "region"
+    assert descriptor.comparators[0].declaration == "quality:drift"
+    assert descriptor.metadata_keys == ("driftThreshold",)
+
+
+def test_result_export_and_explain_include_extension_metadata() -> None:
+    result = ComparisonResult(
+        "Extension QA",
+        extension_metadata=(
+            ComparisonExtensionMetadata("experimental-quality", "driftThreshold", "0.025"),
+        ),
+    )
+
+    assert '"extension_metadata": [' in result.to_json()
+    assert "experimental-quality" in result.to_json()
+    assert "extensionMetadata[0]: experimental-quality.driftThreshold=0.025" in result.explain()
+    assert result.explain(markdown=False).startswith("Comparison Explain: Extension QA")
 
 
 def test_gap_detects_internal_uncovered_space() -> None:

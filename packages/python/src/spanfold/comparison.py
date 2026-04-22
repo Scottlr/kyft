@@ -444,6 +444,111 @@ class ComparisonDiagnostic:
 
 
 @dataclass(frozen=True, slots=True)
+class ComparisonExtensionSelector:
+    """Selector declaration exposed by a comparison extension."""
+
+    name: str
+    description: str
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonExtensionComparator:
+    """Comparator declaration exposed by a comparison extension."""
+
+    declaration: str
+    description: str
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonExtensionDescriptor:
+    """Describes selectors, comparators, and metadata keys exposed by an extension."""
+
+    id: str
+    display_name: str
+    selectors: tuple[ComparisonExtensionSelector, ...] = ()
+    comparators: tuple[ComparisonExtensionComparator, ...] = ()
+    metadata_keys: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonExtensionMetadata:
+    """Serializable metadata emitted by a comparison extension."""
+
+    extension_id: str
+    key: str
+    value: str
+
+
+class ComparisonExtensionBuilder:
+    """Builds comparison extension descriptors."""
+
+    def __init__(self, extension_id: str, display_name: str) -> None:
+        if not extension_id or not extension_id.strip():
+            msg = "Extension id cannot be empty."
+            raise ValueError(msg)
+        if not display_name or not display_name.strip():
+            msg = "Extension display name cannot be empty."
+            raise ValueError(msg)
+        self._id = extension_id
+        self._display_name = display_name
+        self._selectors: list[ComparisonExtensionSelector] = []
+        self._comparators: list[ComparisonExtensionComparator] = []
+        self._metadata_keys: list[str] = []
+
+    def add_selector(
+        self,
+        name: str,
+        description: str,
+    ) -> ComparisonExtensionBuilder:
+        """Register a selector descriptor exposed by the extension."""
+
+        if not name or not name.strip():
+            msg = "Selector name cannot be empty."
+            raise ValueError(msg)
+        if not description or not description.strip():
+            msg = "Selector description cannot be empty."
+            raise ValueError(msg)
+        self._selectors.append(ComparisonExtensionSelector(name, description))
+        return self
+
+    def add_comparator(
+        self,
+        declaration: str,
+        description: str,
+    ) -> ComparisonExtensionBuilder:
+        """Register a comparator declaration exposed by the extension."""
+
+        if not declaration or not declaration.strip():
+            msg = "Comparator declaration cannot be empty."
+            raise ValueError(msg)
+        if not description or not description.strip():
+            msg = "Comparator description cannot be empty."
+            raise ValueError(msg)
+        self._comparators.append(ComparisonExtensionComparator(declaration, description))
+        return self
+
+    def add_metadata_key(self, key: str) -> ComparisonExtensionBuilder:
+        """Register a metadata key emitted by the extension."""
+
+        if not key or not key.strip():
+            msg = "Metadata key cannot be empty."
+            raise ValueError(msg)
+        self._metadata_keys.append(key)
+        return self
+
+    def build(self) -> ComparisonExtensionDescriptor:
+        """Build the immutable extension descriptor."""
+
+        return ComparisonExtensionDescriptor(
+            self._id,
+            self._display_name,
+            tuple(self._selectors),
+            tuple(self._comparators),
+            tuple(self._metadata_keys),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class ComparisonRowFinality:
     """Finality metadata for a materialized comparison row."""
 
@@ -656,6 +761,7 @@ class ComparisonResult:
     evaluation_horizon: TemporalPoint | None = None
     known_at: TemporalPoint | None = None
     strict: bool = False
+    extension_metadata: tuple[ComparisonExtensionMetadata, ...] = ()
 
     def to_json(self, path: str | Path | None = None) -> str:
         """Return a deterministic JSON representation and optionally write it."""
@@ -856,6 +962,44 @@ body {{ font-family: system-ui, sans-serif; margin: 2rem; color: #17202a; }}
 </body>
 </html>
 """
+        if path is not None:
+            Path(path).write_text(text, encoding="utf-8")
+        return text
+
+    def explain(self, *, markdown: bool = True, path: str | Path | None = None) -> str:
+        """Return deterministic human-readable comparison output."""
+
+        prefix = "# " if markdown else ""
+        lines = [f"{prefix}Comparison Explain: {self.name}", ""]
+        if self.diagnostic_rows:
+            lines.append("## Diagnostics" if markdown else "Diagnostics")
+            for index, diagnostic in enumerate(self.diagnostic_rows):
+                lines.append(
+                    f"- diagnostic[{index}]: {diagnostic.severity.value} "
+                    f"{diagnostic.code} path={diagnostic.path}"
+                )
+            lines.append("")
+        if self.extension_metadata:
+            lines.append("## Extension Metadata" if markdown else "Extension Metadata")
+            for index, metadata in enumerate(self.extension_metadata):
+                lines.append(
+                    f"- extensionMetadata[{index}]: "
+                    f"{metadata.extension_id}.{metadata.key}={metadata.value}"
+                )
+            lines.append("")
+        if self.comparator_summaries:
+            lines.append("## Summaries" if markdown else "Summaries")
+            for summary in self.comparator_summaries:
+                lines.append(f"- comparator: {summary.comparator}; rows={summary.row_count}")
+            lines.append("")
+        for row_type, values in _result_row_groups(self):
+            for index, row in enumerate(values):
+                record_ids = _row_record_ids(row)
+                lines.append(
+                    f"- {row_type}[{index}]: {_row_range_or_point(row)}; "
+                    f"records={','.join(str(record_id) for record_id in record_ids)}"
+                )
+        text = "\n".join(lines).rstrip() + "\n"
         if path is not None:
             Path(path).write_text(text, encoding="utf-8")
         return text
@@ -2411,6 +2555,23 @@ def _row_range_or_point(row: Any) -> str:
     if isinstance(row, LeadLagRow | AsOfRow):
         return _point_label(row.target_point)
     return _range_label(row.range)
+
+
+def _row_record_ids(row: Any) -> tuple[WindowRecordId, ...]:
+    ids: list[WindowRecordId] = []
+    for name in (
+        "target_record_ids",
+        "against_record_ids",
+        "container_record_ids",
+        "parent_record_ids",
+        "child_record_ids",
+    ):
+        ids.extend(getattr(row, name, ()))
+    for name in ("target_record_id", "comparison_record_id", "matched_record_id"):
+        record_id = getattr(row, name, None)
+        if record_id is not None:
+            ids.append(record_id)
+    return tuple(ids)
 
 
 def _to_jsonable(value: Any) -> Any:
