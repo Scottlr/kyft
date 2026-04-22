@@ -81,7 +81,52 @@ a {
   font-size: 14px;
 }
 
-.nav a {
+.nav-group {
+  border-top: 1px solid rgba(197, 187, 170, 0.7);
+  padding: 7px 0;
+}
+
+.nav-group:first-child {
+  border-top: 0;
+}
+
+.nav-group summary {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0;
+  list-style: none;
+  text-transform: uppercase;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.nav-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-group summary::after {
+  margin-left: auto;
+  color: var(--muted);
+  content: "+";
+  font-size: 16px;
+  line-height: 1;
+}
+
+.nav-group[open] summary::after {
+  content: "-";
+}
+
+.nav-group summary:hover {
+  background: var(--surface);
+}
+
+.nav-group a {
   display: flex;
   align-items: center;
   min-height: 34px;
@@ -91,18 +136,8 @@ a {
   transition: background 120ms ease, color 120ms ease;
 }
 
-.nav a:hover {
+.nav-group a:hover {
   background: var(--surface);
-}
-
-.nav-group-title {
-  margin: 18px 0 5px;
-  padding: 0 9px;
-  color: var(--green);
-  font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .nav-child {
@@ -118,7 +153,7 @@ a {
   content: "";
 }
 
-.nav a:hover,
+.nav-group a:hover,
 .summary-list a:hover strong {
   color: var(--green);
 }
@@ -915,12 +950,17 @@ pre code {
     background: var(--surface);
   }
 
-  .nav-group-title {
-    display: none;
+  .nav-group {
+    border-top: 0;
+    padding: 0;
   }
 
-  .nav-child {
-    padding-left: 8px !important;
+  .nav-group summary {
+    background: var(--surface);
+  }
+
+  .nav-group[open] {
+    flex-basis: 100%;
   }
 
   main,
