@@ -690,20 +690,51 @@ class ComparisonResult:
 
         return any(row.finality is ComparisonFinality.PROVISIONAL for row in self.row_finalities)
 
+    def provisional_row_finalities(self) -> tuple[ComparisonRowFinality, ...]:
+        """Return row-finality metadata for provisional rows."""
+
+        return tuple(
+            row
+            for row in self.row_finalities
+            if row.finality is ComparisonFinality.PROVISIONAL
+        )
+
+    def final_row_finalities(self) -> tuple[ComparisonRowFinality, ...]:
+        """Return row-finality metadata for final rows."""
+
+        return tuple(
+            row for row in self.row_finalities if row.finality is ComparisonFinality.FINAL
+        )
+
     @property
     def diagnostic_rows(self) -> tuple[ComparisonDiagnostic, ...]:
         """Return structured diagnostics for this result."""
 
         return tuple(_diagnostic_from_code(code, strict=self.strict) for code in self.diagnostics)
 
+    def warning_diagnostics(self) -> tuple[ComparisonDiagnostic, ...]:
+        """Return diagnostics with warning severity."""
+
+        return tuple(
+            diagnostic
+            for diagnostic in self.diagnostic_rows
+            if diagnostic.severity is ComparisonDiagnosticSeverity.WARNING
+        )
+
+    def error_diagnostics(self) -> tuple[ComparisonDiagnostic, ...]:
+        """Return diagnostics with error severity."""
+
+        return tuple(
+            diagnostic
+            for diagnostic in self.diagnostic_rows
+            if diagnostic.severity is ComparisonDiagnosticSeverity.ERROR
+        )
+
     @property
     def is_valid(self) -> bool:
         """Return whether this result has no blocking diagnostics."""
 
-        return not any(
-            diagnostic.severity is ComparisonDiagnosticSeverity.ERROR
-            for diagnostic in self.diagnostic_rows
-        )
+        return not self.error_diagnostics()
 
     def to_json_lines(self, path: str | Path | None = None) -> str:
         """Return deterministic JSON Lines, one row per comparison row."""

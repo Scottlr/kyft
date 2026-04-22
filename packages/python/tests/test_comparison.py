@@ -79,6 +79,8 @@ def test_overlap_residual_missing_and_coverage() -> None:
     assert result.coverage_rows[0].target_magnitude == 4
     assert result.coverage_rows[0].covered_magnitude == 2
     assert result.coverage_rows[0].coverage_ratio == 0.5
+    assert len(result.final_row_finalities()) == 4
+    assert not result.provisional_row_finalities()
 
 
 def test_open_windows_are_excluded_until_horizon_is_explicit() -> None:
@@ -146,6 +148,8 @@ def test_result_exposes_row_finality_snapshot() -> None:
 
     finalities = result.row_finalities
     assert result.has_provisional_rows()
+    assert len(result.provisional_row_finalities()) == 1
+    assert not result.final_row_finalities()
     assert [(row.row_type, row.row_id, row.finality) for row in finalities] == [
         ("overlap", "overlap[0]", ComparisonFinality.PROVISIONAL)
     ]
@@ -783,9 +787,12 @@ def test_diagnostics_expose_structured_severity_and_strict_promotion() -> None:
     assert result.is_valid
     assert result.diagnostic_rows[0].code == "future_leakage_risk"
     assert result.diagnostic_rows[0].severity is ComparisonDiagnosticSeverity.WARNING
+    assert [row.code for row in result.warning_diagnostics()] == ["future_leakage_risk"]
+    assert not result.error_diagnostics()
     assert '"diagnostic_rows": [' in result.to_json()
     assert not strict.is_valid
     assert strict.diagnostic_rows[0].severity is ComparisonDiagnosticSeverity.ERROR
+    assert [row.code for row in strict.error_diagnostics()] == ["future_leakage_risk"]
 
 
 def _ranges(rows) -> list[tuple[int, int]]:  # type: ignore[no-untyped-def]
