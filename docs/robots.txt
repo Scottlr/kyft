@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://scottlr.github.io/Spanfold/sitemap.xml

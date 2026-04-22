@@ -1,0 +1,36 @@
+# Spanfold
+
+> Temporal interval comparison for application state. Records when a predicate held for a key, then compares those periods across sources, providers, and pipeline stages.
+
+Spanfold is a library for recording state windows — half-open intervals where a defined condition held — and running structured temporal comparisons across multiple sources. A predicate can be any condition: a boolean flag, a threshold crossing, a status code change, or any value transition. Spanfold tracks the period it held and closes the window when it no longer does.
+
+It is designed for problems where the question is not "what is the current value?" but "when did each source believe this condition was true, and where did they differ?"
+
+## Core problems it solves
+
+- **Multi-provider outage comparison**: which monitoring provider reported a degraded period that another missed, reported late, or recovered from early?
+- **Pipeline stage divergence**: where did a condition appear at one processing stage but not another, arrive late, or drop before the final stage?
+- **No-future-leakage backtesting**: auditing past decisions using only data that was observable at the time, without accidentally including observations that arrived later.
+
+## Comparators
+
+Overlap, Residual (target-only), Missing (comparison-only), Gap, Coverage, Symmetric difference, Containment, Lead/Lag, As-of.
+
+## Docs
+
+- [Overview](https://scottlr.github.io/Spanfold/index.html)
+- [Get started](https://scottlr.github.io/Spanfold/get-started.html)
+- [Use cases](https://scottlr.github.io/Spanfold/use-cases.html)
+- [API reference](https://scottlr.github.io/Spanfold/api.html)
+- [Visualiser](https://scottlr.github.io/Spanfold/visualiser.html)
+- [Comparator reference](https://github.com/Scottlr/Spanfold/blob/main/docs/comparator-reference.md)
+- [Comparison guide](https://github.com/Scottlr/Spanfold/blob/main/docs/comparison-guide.md)
+
+## Packages
+
+- [.NET / C# — reference implementation](https://github.com/Scottlr/Spanfold/blob/main/packages/dotnet/README.md): complete API surface, CLI, testing helpers, samples, benchmarks
+- [Python — partial port](https://github.com/Scottlr/Spanfold/blob/main/packages/python/README.md): early typed port following the same behavioral model
+
+## Repository
+
+https://github.com/Scottlr/Spanfold
