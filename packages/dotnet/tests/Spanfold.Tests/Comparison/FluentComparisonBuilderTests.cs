@@ -153,5 +153,43 @@ public sealed class FluentComparisonBuilderTests
         }
     }
 
+    [Fact]
+    public void RunCanWriteLlmContextWhenConfigured()
+    {
+        var pipeline = Spanfold
+            .For<DeviceSignal>()
+            .RecordWindows()
+            .TrackWindow("DeviceOffline", signal => signal.DeviceId, signal => !signal.IsOnline);
+        var directory = Path.Combine(Path.GetTempPath(), "spanfold-run-llm-" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "provider-qa.llm.json");
+
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-a");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: false), source: "provider-b");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-b");
+        pipeline.Ingest(new DeviceSignal("device-1", IsOnline: true), source: "provider-a");
+
+        try
+        {
+            var result = pipeline.History
+                .Compare("Provider QA")
+                .Target("provider-a", selector => selector.Source("provider-a"))
+                .Against("provider-b", selector => selector.Source("provider-b"))
+                .Within(scope => scope.Window("DeviceOffline"))
+                .Using(comparators => comparators.Overlap().Residual())
+                .Run(ComparisonLlmContextOptions.ToFile(path));
+
+            Assert.True(result.IsValid);
+            Assert.True(File.Exists(path));
+            Assert.Contains("spanfold.comparison.llm-context", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
     private sealed record DeviceSignal(string DeviceId, bool IsOnline);
 }

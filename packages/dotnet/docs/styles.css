@@ -923,6 +923,10 @@ li,
   gap: 14px;
 }
 
+.stacked-code {
+  margin-top: 14px;
+}
+
 pre {
   max-width: 100%;
   margin: 0;

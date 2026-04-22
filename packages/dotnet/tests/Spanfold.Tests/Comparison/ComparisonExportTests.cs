@@ -143,6 +143,53 @@ public sealed class ComparisonExportTests
         }
     }
 
+    [Fact]
+    public void ResultLlmContextExportProducesStableAgentDocument()
+    {
+        var result = CreateResult();
+
+        var first = result.ExportLlmContext();
+        var second = result.ExportLlmContext();
+
+        Assert.Equal(first, second);
+        using var document = JsonDocument.Parse(first);
+        var root = document.RootElement;
+
+        Assert.Equal("spanfold.comparison.llm-context", root.GetProperty("schema").GetString());
+        Assert.Equal("llm-context", root.GetProperty("artifact").GetString());
+        Assert.Contains("fullResult", root.GetProperty("analysisInstructions")[0].GetString());
+        Assert.Equal("Provider QA", root.GetProperty("summary").GetProperty("planName").GetString());
+        Assert.Equal(1, root.GetProperty("summary").GetProperty("rowCounts").GetProperty("overlap").GetInt32());
+        Assert.Contains("overlap rows: 1", root.GetProperty("resultMarkdown").GetString());
+        Assert.Equal("spanfold.comparison.result", root.GetProperty("fullResult").GetProperty("schema").GetString());
+        Assert.Equal(2, root.GetProperty("rowDocuments").GetArrayLength());
+        Assert.Equal("result-summary", root.GetProperty("rowDocuments")[0].GetProperty("artifact").GetString());
+        Assert.Equal("overlap[0]", root.GetProperty("rowDocuments")[1].GetProperty("rowId").GetString());
+    }
+
+    [Fact]
+    public void ResultLlmContextExportWritesFileAndCreatesDirectory()
+    {
+        var result = CreateResult();
+        var directory = Path.Combine(Path.GetTempPath(), "spanfold-llm-" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "comparison.llm.json");
+
+        try
+        {
+            result.ExportLlmContext(path);
+
+            Assert.True(File.Exists(path));
+            Assert.Contains("spanfold.comparison.llm-context", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
     private static ComparisonPlan CreatePlan()
     {
         return new ComparisonPlan(

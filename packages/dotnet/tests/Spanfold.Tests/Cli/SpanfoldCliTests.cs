@@ -29,6 +29,18 @@ public sealed class SpanfoldCliTests
     }
 
     [Fact]
+    public void CompareRunsFixtureAndWritesLlmContext()
+    {
+        var (exitCode, output, error) = Run("compare", FixturePath("basic-overlap.json"), "--format", "llm-context");
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(string.Empty, error);
+        using var document = JsonDocument.Parse(output);
+        Assert.Equal("spanfold.comparison.llm-context", document.RootElement.GetProperty("schema").GetString());
+        Assert.Equal("spanfold.comparison.result", document.RootElement.GetProperty("fullResult").GetProperty("schema").GetString());
+    }
+
+    [Fact]
     public void CompareRunsSegmentedFixtureWithCohortPlan()
     {
         var (exitCode, output, error) = Run("compare", FixturePath("cohort-any-residual.json"), "--format", "json");

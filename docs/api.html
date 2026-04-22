@@ -28,6 +28,7 @@
         <span class="nav-title">Docs</span>
         <a href="use-cases.html">Use cases</a>
         <a href="visualiser.html">Visualiser</a>
+        <a href="llm-context.html">LLM context</a>
       </div>
       <div class="nav-section">
         <span class="nav-title">Reference</span>
@@ -464,7 +465,9 @@ python -m pip install -e ".[dev]"</code></pre>
             <tr><td><code>ExportJsonLines()</code></td><td>Lazy JSON Lines for result rows.</td></tr>
             <tr><td><code>ExportMarkdown()</code></td><td>Deterministic Markdown explanation.</td></tr>
             <tr><td><code>ExportDebugHtml()</code></td><td>Self-contained visual comparison document.</td></tr>
+            <tr><td><code>ExportLlmContext()</code></td><td>Agent-readable JSON with instructions, summary, Markdown orientation, full result data, and row documents.</td></tr>
             <tr><td><code>ComparisonDebugHtmlOptions.ToFile(...)</code></td><td>Configuration-driven debug output from `Run()` or `RunLive()`.</td></tr>
+            <tr><td><code>ComparisonLlmContextOptions.ToFile(...)</code></td><td>Configuration-driven LLM context output from `Run()` or `RunLive()`.</td></tr>
           </table>
         </section>
 

@@ -295,7 +295,9 @@ var explanation = prepared.Explain(); // Render deterministic diagnostic text.
 `ExportJson()` returns deterministic JSON for CI artifacts, issue reports, and
 tooling workflows. `ExportJsonLines()` streams result rows for larger outputs.
 `ExportDebugHtml()` writes a standalone visual artifact for browser-based
-debugging.
+debugging. `ExportLlmContext()` writes one JSON artifact for LLMs and agents:
+analysis instructions, a concise summary, Markdown orientation, the full result
+JSON, and row documents that can be chunked.
 
 ```csharp
 var result = pipeline.History // Start from recorded windows.
@@ -307,13 +309,15 @@ var result = pipeline.History // Start from recorded windows.
     .Run(); // Execute the comparison.
 
 result.ExportDebugHtml("artifacts/provider-qa.html"); // Write a self-contained HTML graph for debugging.
+result.ExportLlmContext("artifacts/provider-qa.llm.json"); // Write agent-readable context and full data.
 ```
 
-When configuration should control whether a run writes a debug artifact, pass
+When configuration should control whether a run writes an artifact, pass
 options to `Run()` or `RunLive()`:
 
 ```csharp
 var debugHtml = ComparisonDebugHtmlOptions.ToFile("artifacts/provider-qa.html"); // Enable a visual artifact for this run.
+var llmContext = ComparisonLlmContextOptions.ToFile("artifacts/provider-qa.llm.json"); // Enable an agent context artifact.
 var resultWithDebug = pipeline.History // Start from recorded windows.
     .Compare("Provider QA") // Name the comparison.
     .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
@@ -321,11 +325,20 @@ var resultWithDebug = pipeline.History // Start from recorded windows.
     .Within(scope => scope.Window("DeviceOffline")) // Limit the scope to one window family.
     .Using(comparators => comparators.Overlap().Residual()) // Request agreement and target-only rows.
     .Run(debugHtml); // Execute and write the debug file.
+
+var resultWithContext = pipeline.History // Start from recorded windows.
+    .Compare("Provider QA") // Name the comparison.
+    .Target("provider-a", selector => selector.Source("provider-a")) // Select the target source.
+    .Against("provider-b", selector => selector.Source("provider-b")) // Select the comparison source.
+    .Within(scope => scope.Window("DeviceOffline")) // Limit the scope to one window family.
+    .Using(comparators => comparators.Overlap().Residual()) // Request agreement and target-only rows.
+    .Run(llmContext); // Execute and write the LLM context file.
 ```
 
 Use debug HTML at workflow boundaries, test failure boundaries, notebook
 boundaries, incident handoff boundaries, or support handoff boundaries. Avoid
-writing it on every ingestion event.
+writing it on every ingestion event. Use LLM context when an agent needs the
+complete evidence graph, exact row data, and a compact orientation in one file.
 
 Use `ErrorDiagnostics()`, `WarningDiagnostics()`,
 `ProvisionalRowFinalities()`, and `FinalRowFinalities()` when a consumer only

@@ -17,7 +17,7 @@ public static class SpanfoldCli
         {
             if (args.Length < 2)
             {
-                WriteError(stderr, "Usage: spanfold <validate-plan|compare|explain> <fixture.json> [--format json|markdown]");
+                WriteError(stderr, "Usage: spanfold <validate-plan|compare|explain> <fixture.json> [--format json|markdown|llm-context]");
                 return 2;
             }
 
@@ -42,7 +42,12 @@ public static class SpanfoldCli
 
             if (string.Equals(command, "compare", StringComparison.Ordinal))
             {
-                stdout.Write(format == "markdown" ? result.ExportMarkdown() : result.ExportJson());
+                stdout.Write(format switch
+                {
+                    "markdown" => result.ExportMarkdown(),
+                    "llm-context" => result.ExportLlmContext(),
+                    _ => result.ExportJson()
+                });
                 return result.IsValid ? 0 : 1;
             }
 
@@ -76,7 +81,8 @@ public static class SpanfoldCli
             {
                 var format = args[i + 1];
                 if (string.Equals(format, "json", StringComparison.Ordinal)
-                    || string.Equals(format, "markdown", StringComparison.Ordinal))
+                    || string.Equals(format, "markdown", StringComparison.Ordinal)
+                    || string.Equals(format, "llm-context", StringComparison.Ordinal))
                 {
                     return format;
                 }

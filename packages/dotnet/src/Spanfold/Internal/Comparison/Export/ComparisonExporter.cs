@@ -11,6 +11,7 @@ internal static class ComparisonExporter
     private const string PlanSchema = "spanfold.comparison.plan";
     private const string ResultSchema = "spanfold.comparison.result";
     private const string RowSchema = "spanfold.comparison.result-row";
+    private const string LlmContextSchema = "spanfold.comparison.llm-context";
     private const int SchemaVersion = 0;
 
     internal static string ExportJson(ComparisonPlan plan)
@@ -150,6 +151,19 @@ internal static class ComparisonExporter
         return ComparisonDebugHtmlExporter.Export(result);
     }
 
+    internal static string ExportLlmContext(ComparisonResult result)
+    {
+        EnsureExportable(result.Plan);
+
+        using var stream = new MemoryStream();
+        using (var writer = CreateWriter(stream, indented: true))
+        {
+            WriteLlmContextEnvelope(writer, result);
+        }
+
+        return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
     private static void EnsureExportable(ComparisonPlan plan)
     {
         if (plan.IsSerializable)
@@ -259,6 +273,63 @@ internal static class ComparisonExporter
         writer.WriteNumber("containmentRowCount", result.ContainmentRows.Count);
         writer.WriteNumber("leadLagRowCount", result.LeadLagRows.Count);
         writer.WriteNumber("asOfRowCount", result.AsOfRows.Count);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteLlmContextEnvelope(Utf8JsonWriter writer, ComparisonResult result)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("schema", LlmContextSchema);
+        writer.WriteNumber("schemaVersion", SchemaVersion);
+        writer.WriteString("artifact", "llm-context");
+        writer.WriteString("purpose", "Portable comparison context for LLMs, coding agents, CI triage, and support handoff.");
+        writer.WriteStartArray("analysisInstructions");
+        writer.WriteStringValue("Treat fullResult as the source of truth for exact fields, ranges, windows, segments, tags, diagnostics, summaries, and row evidence.");
+        writer.WriteStringValue("Use resultMarkdown for a concise natural-language orientation before drilling into fullResult.");
+        writer.WriteStringValue("Use rowDocuments when chunking or streaming row-level analysis; rowDocuments[0] is the result summary and later entries are individual comparison rows.");
+        writer.WriteStringValue("Preserve rowId, recordIds, window ids, temporal ranges, knownAt, evaluationHorizon, and finality metadata when citing evidence.");
+        writer.WriteStringValue("Do not infer missing source data from absence alone; check diagnostics, normalization, excluded windows, and row finalities first.");
+        writer.WriteEndArray();
+        writer.WriteStartObject("summary");
+        WriteLlmSummaryFields(writer, result);
+        writer.WriteEndObject();
+        writer.WriteString("resultMarkdown", result.Explain(ComparisonExplanationFormat.Markdown));
+        writer.WritePropertyName("fullResult");
+        WriteResultEnvelope(writer, result);
+        writer.WriteStartArray("rowDocuments");
+        foreach (var line in ExportJsonLines(result))
+        {
+            using var document = JsonDocument.Parse(line);
+            document.RootElement.WriteTo(writer);
+        }
+
+        writer.WriteEndArray();
+        writer.WriteEndObject();
+    }
+
+    private static void WriteLlmSummaryFields(Utf8JsonWriter writer, ComparisonResult result)
+    {
+        writer.WriteString("planName", result.Plan.Name);
+        writer.WriteBoolean("isValid", result.IsValid);
+        writer.WritePropertyName("knownAt");
+        WritePoint(writer, result.KnownAt);
+        writer.WritePropertyName("evaluationHorizon");
+        WritePoint(writer, result.EvaluationHorizon);
+        writer.WriteNumber("diagnosticCount", result.Diagnostics.Count);
+        writer.WriteNumber("selectedWindowCount", result.Prepared?.SelectedWindows.Count ?? 0);
+        writer.WriteNumber("excludedWindowCount", result.Prepared?.ExcludedWindows.Count ?? 0);
+        writer.WriteNumber("normalizedWindowCount", result.Prepared?.NormalizedWindows.Count ?? 0);
+        writer.WriteNumber("alignedSegmentCount", result.Aligned?.Segments.Count ?? 0);
+        writer.WriteStartObject("rowCounts");
+        writer.WriteNumber("overlap", result.OverlapRows.Count);
+        writer.WriteNumber("residual", result.ResidualRows.Count);
+        writer.WriteNumber("missing", result.MissingRows.Count);
+        writer.WriteNumber("coverage", result.CoverageRows.Count);
+        writer.WriteNumber("gap", result.GapRows.Count);
+        writer.WriteNumber("symmetricDifference", result.SymmetricDifferenceRows.Count);
+        writer.WriteNumber("containment", result.ContainmentRows.Count);
+        writer.WriteNumber("leadLag", result.LeadLagRows.Count);
+        writer.WriteNumber("asOf", result.AsOfRows.Count);
         writer.WriteEndObject();
     }
 

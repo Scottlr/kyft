@@ -28,6 +28,7 @@
         <span class="nav-title">Docs</span>
         <a href="use-cases.html">Use cases</a>
         <a href="visualiser.html">Visualiser</a>
+        <a href="llm-context.html">LLM context</a>
       </div>
       <div class="nav-section">
         <span class="nav-title">Reference</span>
@@ -266,7 +267,7 @@ python -m pip install -e ".[dev]"</code></pre>
         </div>
         <div>
           <strong>Export deterministic artifacts</strong>
-          <span>Produce JSON, JSON Lines, Markdown, and self-contained HTML debug output from comparison results.</span>
+          <span>Produce JSON, JSON Lines, Markdown, LLM context JSON, and self-contained HTML debug output from comparison results.</span>
         </div>
       </div>
     </section>
@@ -302,7 +303,7 @@ python -m pip install -e ".[dev]"</code></pre>
           <span>Phase and period segments with open windows clipped at a horizon.</span>
         </a>
       </div>
-      <p class="link-line"><a href="visualiser.html">Open the visualiser page</a></p>
+      <p class="link-line"><a href="visualiser.html">Open the visualiser page</a> | <a href="llm-context.html">Open the LLM context page</a></p>
     </section>
 
     <section class="doc-section" id="install">
@@ -386,7 +387,8 @@ pipeline.ingest(DeviceSignal("device-17", True), source="provider-a")</code></pr
         .Coverage())
     .Run();
 
-result.ExportDebugHtml("artifacts/provider-qa.html");</code></pre>
+result.ExportDebugHtml("artifacts/provider-qa.html");
+result.ExportLlmContext("artifacts/provider-qa.llm.json");</code></pre>
         </div>
         <div class="language-panel" data-language="python">
           <pre><code>result = (

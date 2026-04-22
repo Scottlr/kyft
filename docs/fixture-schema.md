@@ -84,6 +84,7 @@ Historical runs keep Spanfold's normal safety behavior. Live fixture runs should
 ```bash
 dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- validate-plan fixture.json # Validate the fixture plan.
 dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- compare fixture.json --format json # Execute and export JSON.
+dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- compare fixture.json --format llm-context # Execute and export agent-readable context.
 dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- explain fixture.json # Execute and export Markdown.
 ```
 

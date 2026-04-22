@@ -103,6 +103,27 @@ public static class ComparisonExportExtensions
     }
 
     /// <summary>
+    /// Exports a comparison result as deterministic LLM context JSON.
+    /// </summary>
+    /// <remarks>
+    /// The artifact combines a concise analysis contract, summary fields,
+    /// Markdown orientation, the full deterministic result JSON, and row-level
+    /// documents that can be chunked or streamed into agents.
+    /// </remarks>
+    /// <param name="result">The result to export.</param>
+    /// <returns>Deterministic JSON shaped for LLM and agent analysis.</returns>
+    /// <exception cref="ComparisonExportException">
+    /// Thrown when the result's plan contains runtime-only selectors that
+    /// cannot be exported as portable data.
+    /// </exception>
+    public static string ExportLlmContext(this ComparisonResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        return ComparisonExporter.ExportLlmContext(result);
+    }
+
+    /// <summary>
     /// Writes a comparison result as a self-contained debug HTML document.
     /// </summary>
     /// <remarks>
@@ -126,5 +147,31 @@ public static class ComparisonExportExtensions
         }
 
         File.WriteAllText(fullPath, result.ExportDebugHtml());
+    }
+
+    /// <summary>
+    /// Writes a comparison result as deterministic LLM context JSON.
+    /// </summary>
+    /// <remarks>
+    /// Parent directories are created automatically. The resulting file is
+    /// intended for LLMs, coding agents, CI triage, issue reports, and support
+    /// handoff rather than ingestion hot paths.
+    /// </remarks>
+    /// <param name="result">The result to export.</param>
+    /// <param name="path">The destination JSON file path.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="path" /> is empty.</exception>
+    public static void ExportLlmContext(this ComparisonResult result, string path)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        var fullPath = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        File.WriteAllText(fullPath, result.ExportLlmContext());
     }
 }

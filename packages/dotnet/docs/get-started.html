@@ -11,6 +11,13 @@
 <body data-language="csharp">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="Spanfold home"><img src="assets/brand/spanfold-logo.svg" alt="Spanfold"></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+        <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
     <nav class="nav" aria-label="Primary navigation">
       <div class="nav-section">
         <span class="nav-title">Start</span>
@@ -21,6 +28,7 @@
         <span class="nav-title">Docs</span>
         <a href="use-cases.html">Use cases</a>
         <a href="visualiser.html">Visualiser</a>
+        <a href="llm-context.html">LLM context</a>
       </div>
       <div class="nav-section">
         <span class="nav-title">Reference</span>
@@ -235,6 +243,10 @@ a-only device-17: 5..6</code></pre>
         <a href="visualiser.html">
           <strong>Open the visualiser examples</strong>
           <span>See how the same overlap and residual rows look as timelines.</span>
+        </a>
+        <a href="llm-context.html">
+          <strong>Export LLM context</strong>
+          <span>Generate agent-readable JSON with full result data and row evidence.</span>
         </a>
         <a href="use-cases.html">
           <strong>Browse use cases</strong>
