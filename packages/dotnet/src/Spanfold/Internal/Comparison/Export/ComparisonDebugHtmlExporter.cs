@@ -230,18 +230,18 @@ h3 {
 
 .timeline-canvas {
   min-width: var(--timeline-width, 1100px);
-  padding: 16px;
+  padding: 12px;
 }
 
 .timeline {
   display: grid;
-  gap: 14px;
+  gap: 8px;
 }
 
 .lane {
   display: grid;
   grid-template-columns: minmax(180px, 250px) minmax(280px, 1fr);
-  gap: 12px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -260,10 +260,10 @@ h3 {
 
 .track {
   position: relative;
-  min-height: 34px;
+  min-height: 28px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
-  border-radius: 8px;
+  border-radius: 0;
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 12.5% 100%,
     linear-gradient(90deg, transparent 0 99%, color-mix(in srgb, var(--ink) 13%, transparent) 99% 100%) 0 0 / 6.25% 100%,
@@ -285,15 +285,13 @@ h3 {
 
 .bar {
   position: absolute;
-  top: 6px;
+  top: 4px;
   height: 20px;
   min-width: 3px;
   border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
-  border-radius: 6px;
-  opacity: 0.94;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 20%, transparent),
-    0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius: 0;
+  opacity: 1;
+  box-shadow: none;
 }
 
 .bar.target { background: var(--accent-slate); }
@@ -316,7 +314,7 @@ h3 {
   bottom: 4px;
   z-index: 3;
   width: 2px;
-  border-radius: 999px;
+  border-radius: 0;
   background: color-mix(in srgb, var(--accent-amber) 78%, var(--ink));
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--bg-card) 72%, transparent),
@@ -355,7 +353,7 @@ h3 {
 .band-lane {
   display: grid;
   grid-template-columns: minmax(180px, 250px) minmax(280px, 1fr);
-  gap: 12px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -366,10 +364,10 @@ h3 {
 
 .band-track {
   position: relative;
-  min-height: 36px;
+  min-height: 32px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--rule) 84%, var(--ink));
-  border-radius: 8px;
+  border-radius: 0;
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px) 0 0 / 12.5% 100%,
     linear-gradient(180deg, var(--bg-card), var(--bg-panel));
@@ -380,22 +378,20 @@ h3 {
 
 .band-segment {
   position: absolute;
-  top: 5px;
-  height: 24px;
+  top: 4px;
+  height: 22px;
   min-width: 4px;
   overflow: hidden;
   padding: 2px 8px;
   border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--ink);
   font-size: 12px;
   font-weight: 700;
   line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 24%, transparent),
-    0 1px 2px color-mix(in srgb, var(--ink) 10%, transparent);
+  box-shadow: none;
 }
 
 .band-segment.c0 { background: color-mix(in srgb, var(--accent-slate) 24%, var(--bg-card)); }

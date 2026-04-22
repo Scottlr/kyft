@@ -20,9 +20,9 @@
     <text x="52" y="203">Cohort</text>
     <text x="52" y="259">Quorum</text>
   </g>
-  <rect x="226" y="132" width="212" height="20" rx="6" fill="#735C9D"/>
-  <rect x="188" y="188" width="126" height="20" rx="6" fill="#5E7A9B"/>
-  <rect x="292" y="188" width="190" height="20" rx="6" fill="#3E6B5C"/>
-  <rect x="292" y="244" width="146" height="20" rx="6" fill="#B85D6A"/>
+  <rect x="226" y="132" width="212" height="20" fill="#735C9D"/>
+  <rect x="188" y="188" width="126" height="20" fill="#5E7A9B"/>
+  <rect x="292" y="188" width="190" height="20" fill="#3E6B5C"/>
+  <rect x="292" y="244" width="146" height="20" fill="#B85D6A"/>
   <text x="306" y="300" fill="#B85D6A" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="13" font-weight="760">quorum window</text>
 </svg>

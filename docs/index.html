@@ -133,11 +133,25 @@ python -m pip install -e ".[dev]"</code></pre>
         </p>
       </div>
 
-      <div class="diagram-grid timeline-diagram-set">
+      <div class="diagram-grid">
         <article class="diagram-card">
           <h3>Latest value loses the window</h3>
-          <div class="timeline-diagram-scroll">
-            <img class="timeline-diagram" src="assets/diagrams/latest-state-window.svg" alt="Shared position axis showing an unhealthy window from pos 5 to pos 12 that is absent from a latest-value row.">
+          <div class="state-diagram" aria-label="Latest value loses previous active state">
+            <div class="state-row annotated-row">
+              <span class="row-label">History</span>
+              <span class="timeline">
+                <span class="window warn" style="left: 22%; width: 36%"></span>
+                <span class="point ok" style="left: 78%"></span>
+                <span class="lane-note" style="left: 40%">Unhealthy</span>
+              </span>
+            </div>
+            <div class="state-row annotated-row">
+              <span class="row-label">Latest</span>
+              <span class="timeline">
+                <span class="point ok" style="left: 78%"></span>
+                <span class="lane-note" style="left: 78%">Healthy</span>
+              </span>
+            </div>
           </div>
           <p>
             If the current value is healthy, a latest-state table cannot explain
@@ -147,8 +161,22 @@ python -m pip install -e ".[dev]"</code></pre>
 
         <article class="diagram-card">
           <h3>Sources disagree over time</h3>
-          <div class="timeline-diagram-scroll">
-            <img class="timeline-diagram" src="assets/diagrams/source-overlap-segments.svg" alt="Station and Model windows split into station-only, overlap, and model-only aligned segments.">
+          <div class="state-diagram" aria-label="Two source lanes with partial overlap">
+            <div class="state-row annotated-row">
+              <span class="row-label">Station</span>
+              <span class="timeline">
+                <span class="window target" style="left: 16%; width: 50%"></span>
+                <span class="lane-note" style="left: 27%">Station only</span>
+                <span class="lane-note" style="left: 52%">Overlap</span>
+              </span>
+            </div>
+            <div class="state-row annotated-row">
+              <span class="row-label">Model</span>
+              <span class="timeline">
+                <span class="window compare" style="left: 38%; width: 38%"></span>
+                <span class="lane-note" style="left: 71%">Model only</span>
+              </span>
+            </div>
           </div>
           <p>
             Comparators emit overlap, residual, missing, coverage, gap,
@@ -158,8 +186,23 @@ python -m pip install -e ".[dev]"</code></pre>
 
         <article class="diagram-card">
           <h3>Open windows need a horizon</h3>
-          <div class="timeline-diagram-scroll">
-            <img class="timeline-diagram" src="assets/diagrams/live-horizon-split.svg" alt="Open window from pos 6 onward split into final and provisional portions at live horizon pos 18.">
+          <div class="state-diagram" aria-label="Open window clipped by a live horizon">
+            <div class="state-row annotated-row">
+              <span class="row-label">Open</span>
+              <span class="timeline">
+                <span class="window target dashed" style="left: 28%; width: 54%"></span>
+                <span class="horizon" style="left: 82%"></span>
+                <span class="lane-note" style="left: 55%">Still open</span>
+              </span>
+            </div>
+            <div class="state-row annotated-row">
+              <span class="row-label">View</span>
+              <span class="timeline">
+                <span class="window overlap" style="left: 28%; width: 54%"></span>
+                <span class="horizon" style="left: 82%"></span>
+                <span class="lane-note" style="left: 55%">Live view</span>
+              </span>
+            </div>
           </div>
           <p>
             Live comparisons evaluate still-open windows at an explicit

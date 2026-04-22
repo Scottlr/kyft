@@ -5,7 +5,7 @@
   <rect x="28" y="28" width="504" height="304" rx="8" fill="#F0E9D6" stroke="#D9CFB4"/>
   <text x="52" y="68" fill="#2B2A26" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="24" font-weight="760">Multi-lane overlap</text>
   <text x="52" y="96" fill="#6B6659" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="13">Several gateways reporting the same condition.</text>
-  <rect x="306" y="116" width="92" height="190" rx="6" fill="#2F7D8C" opacity=".14"/>
+  <rect x="306" y="116" width="92" height="190" fill="#2F7D8C" opacity=".14"/>
   <g stroke="#D9CFB4" stroke-width="1">
     <line x1="156" y1="136" x2="500" y2="136"/>
     <line x1="156" y1="184" x2="500" y2="184"/>
@@ -22,9 +22,9 @@
     <text x="52" y="237">Gateway 3</text>
     <text x="52" y="285">Gateway 4</text>
   </g>
-  <rect x="218" y="126" width="180" height="20" rx="6" fill="#5E7A9B"/>
-  <rect x="250" y="174" width="198" height="20" rx="6" fill="#3E6B5C"/>
-  <rect x="306" y="222" width="132" height="20" rx="6" fill="#C97A3A"/>
-  <rect x="176" y="270" width="206" height="20" rx="6" fill="#735C9D"/>
+  <rect x="218" y="126" width="180" height="20" fill="#5E7A9B"/>
+  <rect x="250" y="174" width="198" height="20" fill="#3E6B5C"/>
+  <rect x="306" y="222" width="132" height="20" fill="#C97A3A"/>
+  <rect x="176" y="270" width="206" height="20" fill="#735C9D"/>
   <text x="315" y="326" fill="#2F7D8C" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="13" font-weight="760">shared overlap</text>
 </svg>

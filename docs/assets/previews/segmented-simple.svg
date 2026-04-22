@@ -21,8 +21,8 @@
     <text x="52" y="161">Open</text>
     <text x="52" y="231">Live view</text>
   </g>
-  <rect x="248" y="146" width="204" height="20" rx="6" fill="#5E7A9B" opacity=".24" stroke="#5E7A9B" stroke-dasharray="5 4" stroke-width="2"/>
-  <rect x="248" y="216" width="204" height="20" rx="6" fill="#3E6B5C"/>
+  <rect x="248" y="146" width="204" height="20" fill="#5E7A9B" opacity=".24" stroke="#5E7A9B" stroke-dasharray="5 4" stroke-width="2"/>
+  <rect x="248" y="216" width="204" height="20" fill="#3E6B5C"/>
   <text x="404" y="100" fill="#2B2A26" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12" font-weight="760">horizon</text>
   <text x="184" y="318" fill="#6B6659" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12">phase A</text>
   <text x="284" y="318" fill="#6B6659" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12">phase B</text>
