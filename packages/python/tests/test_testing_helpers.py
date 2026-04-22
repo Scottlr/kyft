@@ -4,6 +4,7 @@ from spanfold import TemporalPoint, WindowSegment, WindowTag
 from spanfold.testing import (
     SpanfoldAssert,
     SpanfoldAssertionError,
+    SpanfoldAssertionException,
     SpanfoldSnapshot,
     VirtualComparisonClock,
     WindowHistoryFixtureBuilder,
@@ -114,3 +115,23 @@ def test_assert_helpers_raise_framework_neutral_error() -> None:
 
     with pytest.raises(SpanfoldAssertionError):
         SpanfoldAssert.has_row_count(result, "residual", 2)
+
+
+def test_assert_helpers_can_find_diagnostics_and_exception_alias() -> None:
+    history = (
+        WindowHistoryFixtureBuilder()
+        .add_closed_window("DeviceOffline", "device-1", 1, 5, source="provider-a")
+        .build()
+    )
+    result = (
+        history.compare("Provider QA")
+        .target("provider-a")
+        .against("provider-b")
+        .within(window_name="DeviceOffline")
+        .using("unknown-comparator")
+        .run()
+    )
+
+    diagnostic = SpanfoldAssert.has_diagnostic(result, "unknown_comparator")
+    assert diagnostic.code == "unknown_comparator"
+    assert SpanfoldAssertionException is SpanfoldAssertionError

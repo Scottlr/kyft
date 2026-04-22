@@ -11,9 +11,8 @@ It helps answer:
 - where sources overlapped, diverged, or left gaps
 - what was still open at an explicit point in time
 
-This package is the Python package `spanfold`. It is being built from the
-behavioral model of the reference C# Spanfold library, while keeping the Python
-API idiomatic and typed.
+This package is the Python package `spanfold`. It tracks the core C# Spanfold
+library surface while keeping the Python API idiomatic, typed, and snake-case.
 
 ## Install for Development
 
@@ -71,6 +70,8 @@ result = (
 )
 
 print(result.to_markdown())
+result.export_debug_html("artifacts/provider-qa.html")
+result.export_llm_context("artifacts/provider-qa.llm.json")
 ```
 
 Open windows are excluded from comparisons by default. To include live windows,
@@ -92,7 +93,7 @@ live = (
 
 Rows that depend on horizon-clipped open windows are marked `provisional`.
 
-## First Slice Feature Parity
+## Feature Parity
 
 Implemented now:
 
@@ -114,13 +115,22 @@ Implemented now:
 - comparison rows: overlap, residual, missing, coverage, gap, symmetric
   difference, containment, lead/lag, as-of
 - horizon-based live/open-window comparison metadata
-- deterministic JSON, JSON Lines, Markdown, and self-contained debug HTML export
+- comparison plans, prepared comparisons, deterministic alignment, comparator
+  catalog, explain formats, and structured plan diagnostics
+- deterministic JSON, JSON Lines, Markdown, self-contained debug HTML, and LLM
+  context exports
+- configured debug HTML and LLM context export options for `run()` and
+  `run_live()`
+- fixture CLI with `validate-plan`, `compare`, and `explain`
 - testing helpers for fixtures, snapshots, assertions, and virtual clocks
+- benchmark harness covering ingestion, comparison preparation/alignment,
+  comparator execution, live residuals, exports, and segment/cohort scenarios
 
-Still planned:
+Run benchmark smoke coverage with:
 
-- richer normalization diagnostics and changelog/finality aggregation
-- benchmark suite and full documentation site
+```bash
+python benchmarks/spanfold_benchmarks.py --smoke
+```
 
 ## Terminology
 

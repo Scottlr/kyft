@@ -99,9 +99,16 @@ result.ExportDebugHtml("artifacts/provider-qa.html");
 result.ExportLlmContext("artifacts/provider-qa.llm.json");</code></pre>
       </div>
       <div class="language-panel" data-language="python">
-        <pre><code># The LLM context exporter is part of the reference C# package.
-# Python can still consume the generated .llm.json artifact as normal JSON.</code></pre>
-        <p class="language-note">Python support is currently a partial port; this exporter is defined by the C# package.</p>
+        <pre><code>result = (
+    pipeline.history.compare("Provider QA")
+    .target("provider-a")
+    .against("provider-b")
+    .within(window_name="DeviceOffline")
+    .using("overlap", "residual", "coverage")
+    .run()
+)
+
+result.export_llm_context("artifacts/provider-qa.llm.json")</code></pre>
       </div>
     </section>
 

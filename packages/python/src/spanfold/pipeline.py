@@ -76,6 +76,44 @@ class IngestionResult:
         return bool(self.emissions)
 
 
+class WindowOptions:
+    """Configures optional callbacks for one source window or rollup."""
+
+    def __init__(self) -> None:
+        self._opened: list[Callable[[WindowEmission], None]] = []
+        self._closed: list[Callable[[WindowEmission], None]] = []
+
+    def on_opened(self, callback: Callable[[WindowEmission], None]) -> WindowOptions:
+        """Register a callback invoked when this window opens."""
+
+        if callback is None:
+            msg = "Opened callback is required."
+            raise ValueError(msg)
+        self._opened.append(callback)
+        return self
+
+    def on_closed(self, callback: Callable[[WindowEmission], None]) -> WindowOptions:
+        """Register a callback invoked when this window closes."""
+
+        if callback is None:
+            msg = "Closed callback is required."
+            raise ValueError(msg)
+        self._closed.append(callback)
+        return self
+
+    @property
+    def opened_callbacks(self) -> tuple[Callable[[WindowEmission], None], ...]:
+        """Return configured open callbacks."""
+
+        return tuple(self._opened)
+
+    @property
+    def closed_callbacks(self) -> tuple[Callable[[WindowEmission], None], ...]:
+        """Return configured close callbacks."""
+
+        return tuple(self._closed)
+
+
 @dataclass(slots=True)
 class _RollUpDefinition:
     name: str
@@ -86,6 +124,8 @@ class _RollUpDefinition:
     rename_segments: Mapping[str, str] = field(default_factory=dict)
     transform_segments: Mapping[str, SegmentTransform] = field(default_factory=dict)
     rollups: list[_RollUpDefinition] = field(default_factory=list)
+    opened_callbacks: tuple[Callable[[WindowEmission], None], ...] = ()
+    closed_callbacks: tuple[Callable[[WindowEmission], None], ...] = ()
 
 
 @dataclass(slots=True)
@@ -96,6 +136,8 @@ class _WindowDefinition:
     segments: SegmentSelector | None = None
     tags: TagSelector | None = None
     rollups: list[_RollUpDefinition] = field(default_factory=list)
+    opened_callbacks: tuple[Callable[[WindowEmission], None], ...] = ()
+    closed_callbacks: tuple[Callable[[WindowEmission], None], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,6 +179,10 @@ class EventPipeline:
         self._position = 0
         self._event_time = event_time
         self._callbacks = tuple(on_emission)
+        self._window_callbacks = {
+            name: (opened, closed)
+            for name, opened, closed in _window_callback_entries(self._windows)
+        }
         self.history = WindowHistory(enabled=record_windows)
         self.metadata = EventPipelineMetadata(
             event_type=None,
@@ -161,6 +207,14 @@ class EventPipeline:
 
         result = IngestionResult(tuple(emissions))
         for emission in result.emissions:
+            opened, closed = self._window_callbacks.get(emission.window_name, ((), ()))
+            selected_callbacks = (
+                opened
+                if emission.kind is WindowTransitionKind.OPENED
+                else closed
+            )
+            for callback in selected_callbacks:
+                callback(emission)
             for callback in self._callbacks:
                 callback(emission)
         return result
@@ -532,6 +586,9 @@ class EventPipelineBuilder:
     def on_emission(self, callback: Callable[[WindowEmission], None]) -> EventPipelineBuilder:
         """Register a callback invoked for each emitted transition."""
 
+        if callback is None:
+            msg = "Emission callback is required."
+            raise ValueError(msg)
         self._callbacks.append(callback)
         return self
 
@@ -543,10 +600,21 @@ class EventPipelineBuilder:
         is_active: Predicate,
         segments: SegmentSelector | None = None,
         tags: TagSelector | None = None,
+        configure: Callable[[WindowOptions], None] | None = None,
+        on_opened: Callable[[WindowEmission], None] | None = None,
+        on_closed: Callable[[WindowEmission], None] | None = None,
     ) -> EventPipelineBuilder:
         """Add a state-driven source window and keep configuring the pipeline."""
 
-        self._current_node = self._add_window(name, key, is_active, segments, tags)
+        options = _build_window_options(configure, on_opened, on_closed)
+        self._current_node = self._add_window(
+            name,
+            key,
+            is_active,
+            segments,
+            tags,
+            options,
+        )
         return self
 
     def roll_up(
@@ -559,6 +627,9 @@ class EventPipelineBuilder:
         drop_segments: Iterable[str] = (),
         rename_segments: Mapping[str, str] | None = None,
         transform_segments: Mapping[str, SegmentTransform] | None = None,
+        configure: Callable[[WindowOptions], None] | None = None,
+        on_opened: Callable[[WindowEmission], None] | None = None,
+        on_closed: Callable[[WindowEmission], None] | None = None,
     ) -> EventPipelineBuilder:
         """Add a parent rollup for the current source window or rollup."""
 
@@ -566,6 +637,7 @@ class EventPipelineBuilder:
             msg = "A source window must be configured before adding a rollup."
             raise ValueError(msg)
         self._validate_name(name)
+        options = _build_window_options(configure, on_opened, on_closed)
         definition = _RollUpDefinition(
             name,
             key,
@@ -574,6 +646,8 @@ class EventPipelineBuilder:
             tuple(drop_segments),
             dict(rename_segments or {}),
             dict(transform_segments or {}),
+            opened_callbacks=options.opened_callbacks,
+            closed_callbacks=options.closed_callbacks,
         )
         self._names.add(name)
         self._current_node.rollups.append(definition)
@@ -588,10 +662,14 @@ class EventPipelineBuilder:
         is_active: Predicate,
         segments: SegmentSelector | None = None,
         tags: TagSelector | None = None,
+        configure: Callable[[WindowOptions], None] | None = None,
+        on_opened: Callable[[WindowEmission], None] | None = None,
+        on_closed: Callable[[WindowEmission], None] | None = None,
     ) -> EventPipeline:
         """Build a pipeline for one state-driven source window."""
 
-        self._current_node = self._add_window(name, key, is_active, segments, tags)
+        options = _build_window_options(configure, on_opened, on_closed)
+        self._current_node = self._add_window(name, key, is_active, segments, tags, options)
         return self.build()
 
     def build(self) -> EventPipeline:
@@ -611,9 +689,18 @@ class EventPipelineBuilder:
         is_active: Predicate,
         segments: SegmentSelector | None,
         tags: TagSelector | None,
+        options: WindowOptions,
     ) -> _WindowDefinition:
         self._validate_name(name)
-        definition = _WindowDefinition(name, key, is_active, segments, tags)
+        definition = _WindowDefinition(
+            name,
+            key,
+            is_active,
+            segments,
+            tags,
+            opened_callbacks=options.opened_callbacks,
+            closed_callbacks=options.closed_callbacks,
+        )
         self._names.add(name)
         self._windows.append(definition)
         return definition
@@ -649,11 +736,44 @@ def _select_tags(definition: _WindowDefinition, event: Any) -> tuple[WindowTag, 
     return coerce_tags(definition.tags(event))
 
 
+def _build_window_options(
+    configure: Callable[[WindowOptions], None] | None,
+    on_opened: Callable[[WindowEmission], None] | None,
+    on_closed: Callable[[WindowEmission], None] | None,
+) -> WindowOptions:
+    options = WindowOptions()
+    if configure is not None:
+        configure(options)
+    if on_opened is not None:
+        options.on_opened(on_opened)
+    if on_closed is not None:
+        options.on_closed(on_closed)
+    return options
+
+
 def _window_metadata(definition: _WindowDefinition | _RollUpDefinition) -> WindowMetadata:
     return WindowMetadata(
         definition.name,
         tuple(_window_metadata(rollup) for rollup in definition.rollups),
     )
+
+
+def _window_callback_entries(
+    definitions: Iterable[_WindowDefinition | _RollUpDefinition],
+) -> Iterable[
+    tuple[
+        str,
+        tuple[Callable[[WindowEmission], None], ...],
+        tuple[Callable[[WindowEmission], None], ...],
+    ]
+]:
+    for definition in definitions:
+        yield (
+            definition.name,
+            tuple(definition.opened_callbacks),
+            tuple(definition.closed_callbacks),
+        )
+        yield from _window_callback_entries(definition.rollups)
 
 
 def _project_segments(

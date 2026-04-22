@@ -117,7 +117,7 @@ python -m pip install -e ".[dev]"</code></pre>
               <pre><code>-e ./packages/python</code></pre>
             </article>
           </div>
-          <p class="language-note">Python is a partial port and not the reference API yet.</p>
+          <p class="language-note">Python tracks the core API surface with idiomatic snake-case names.</p>
         </div>
       </div>
     </section>
@@ -133,25 +133,11 @@ python -m pip install -e ".[dev]"</code></pre>
         </p>
       </div>
 
-      <div class="diagram-grid">
+      <div class="diagram-grid timeline-diagram-set">
         <article class="diagram-card">
           <h3>Latest value loses the window</h3>
-          <div class="state-diagram" aria-label="Latest value loses previous active state">
-            <div class="state-row annotated-row">
-              <span class="row-label">History</span>
-              <span class="timeline">
-                <span class="window warn" style="left: 22%; width: 36%"></span>
-                <span class="point ok" style="left: 78%"></span>
-                <span class="lane-note" style="left: 40%">Unhealthy</span>
-              </span>
-            </div>
-            <div class="state-row annotated-row">
-              <span class="row-label">Latest</span>
-              <span class="timeline">
-                <span class="point ok" style="left: 78%"></span>
-                <span class="lane-note" style="left: 78%">Healthy</span>
-              </span>
-            </div>
+          <div class="timeline-diagram-scroll">
+            <img class="timeline-diagram" src="assets/diagrams/latest-state-window.svg" alt="Shared position axis showing an unhealthy window from pos 5 to pos 12 that is absent from a latest-value row.">
           </div>
           <p>
             If the current value is healthy, a latest-state table cannot explain
@@ -161,22 +147,8 @@ python -m pip install -e ".[dev]"</code></pre>
 
         <article class="diagram-card">
           <h3>Sources disagree over time</h3>
-          <div class="state-diagram" aria-label="Two source lanes with partial overlap">
-            <div class="state-row annotated-row">
-              <span class="row-label">Station</span>
-              <span class="timeline">
-                <span class="window target" style="left: 16%; width: 50%"></span>
-                <span class="lane-note" style="left: 27%">Station only</span>
-                <span class="lane-note" style="left: 52%">Overlap</span>
-              </span>
-            </div>
-            <div class="state-row annotated-row">
-              <span class="row-label">Model</span>
-              <span class="timeline">
-                <span class="window compare" style="left: 38%; width: 38%"></span>
-                <span class="lane-note" style="left: 71%">Model only</span>
-              </span>
-            </div>
+          <div class="timeline-diagram-scroll">
+            <img class="timeline-diagram" src="assets/diagrams/source-overlap-segments.svg" alt="Station and Model windows split into station-only, overlap, and model-only aligned segments.">
           </div>
           <p>
             Comparators emit overlap, residual, missing, coverage, gap,
@@ -186,23 +158,8 @@ python -m pip install -e ".[dev]"</code></pre>
 
         <article class="diagram-card">
           <h3>Open windows need a horizon</h3>
-          <div class="state-diagram" aria-label="Open window clipped by a live horizon">
-            <div class="state-row annotated-row">
-              <span class="row-label">Open</span>
-              <span class="timeline">
-                <span class="window target dashed" style="left: 28%; width: 54%"></span>
-                <span class="horizon" style="left: 82%"></span>
-                <span class="lane-note" style="left: 55%">Still open</span>
-              </span>
-            </div>
-            <div class="state-row annotated-row">
-              <span class="row-label">View</span>
-              <span class="timeline">
-                <span class="window overlap" style="left: 28%; width: 54%"></span>
-                <span class="horizon" style="left: 82%"></span>
-                <span class="lane-note" style="left: 55%">Live view</span>
-              </span>
-            </div>
+          <div class="timeline-diagram-scroll">
+            <img class="timeline-diagram" src="assets/diagrams/live-horizon-split.svg" alt="Open window from pos 6 onward split into final and provisional portions at live horizon pos 18.">
           </div>
           <p>
             Live comparisons evaluate still-open windows at an explicit
@@ -340,7 +297,7 @@ dotnet add package Spanfold.Testing</code></pre>
           <div class="language-panel" data-language="python">
             <pre><code>cd packages/python
 python -m pip install -e ".[dev]"</code></pre>
-            <p class="language-note">The Python package is a partial port. Use it for early evaluation, not as the canonical API surface yet.</p>
+            <p class="language-note">The Python package now tracks the C# core API surface with idiomatic snake-case names.</p>
           </div>
         </article>
         <article>
@@ -385,7 +342,6 @@ pipeline = (
 
 pipeline.ingest(DeviceSignal("device-17", False), source="provider-a")
 pipeline.ingest(DeviceSignal("device-17", True), source="provider-a")</code></pre>
-            <p class="language-note">Python examples stay intentionally small until the port reaches feature parity.</p>
           </div>
         </article>
       </div>
@@ -414,12 +370,12 @@ result.ExportLlmContext("artifacts/provider-qa.llm.json");</code></pre>
     .target("provider-a")
     .against("provider-b")
     .within(window_name="DeviceOffline")
-    .using("overlap", "residual", "missing")
+    .using("overlap", "residual", "missing", "coverage")
     .run()
 )
 
-print(result.to_markdown())</code></pre>
-          <p class="language-note">The complete comparison and export surface is currently defined by the C# package.</p>
+result.export_debug_html("artifacts/provider-qa.html")
+result.export_llm_context("artifacts/provider-qa.llm.json")</code></pre>
         </div>
       </article>
     </section>

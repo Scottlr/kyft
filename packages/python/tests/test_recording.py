@@ -43,6 +43,68 @@ def test_pipeline_records_open_and_closed_windows_by_source() -> None:
     assert window.end_position == 2
 
 
+def test_window_options_receive_opened_and_closed_callbacks_before_global_callbacks() -> None:
+    opened = []
+    closed = []
+    calls = []
+    pipeline = (
+        Spanfold.for_events()
+        .on_emission(lambda emission: calls.append(("global", emission.kind)))
+        .track_window(
+            "DeviceOffline",
+            key=lambda event: event.device_id,
+            is_active=lambda event: not event.is_online,
+            configure=lambda options: options.on_opened(
+                lambda emission: (opened.append(emission), calls.append(("window", emission.kind)))
+            ).on_closed(lambda emission: closed.append(emission)),
+        )
+    )
+
+    pipeline.ingest(DeviceStatus("device-1", False))
+    pipeline.ingest(DeviceStatus("device-1", True))
+
+    assert opened[0].kind is WindowTransitionKind.OPENED
+    assert closed[0].kind is WindowTransitionKind.CLOSED
+    assert calls == [
+        ("window", WindowTransitionKind.OPENED),
+        ("global", WindowTransitionKind.OPENED),
+        ("global", WindowTransitionKind.CLOSED),
+    ]
+
+
+def test_window_option_callbacks_are_scoped_and_snapshotted_at_build() -> None:
+    offline_opened = []
+    maintenance_opened = []
+    captured_options = None
+
+    def capture(options):
+        nonlocal captured_options
+        captured_options = options
+
+    pipeline = (
+        Spanfold.for_events()
+        .window(
+            "DeviceOffline",
+            key=lambda event: event.device_id,
+            is_active=lambda event: not event.is_online,
+            on_opened=offline_opened.append,
+        )
+        .window(
+            "ZoneMaintenance",
+            key=lambda event: event.region,
+            is_active=lambda event: event.region == "maintenance",
+            configure=capture,
+        )
+        .build()
+    )
+    captured_options.on_opened(maintenance_opened.append)
+
+    pipeline.ingest(DeviceStatus("device-1", False, "maintenance"))
+
+    assert [emission.window_name for emission in offline_opened] == ["DeviceOffline"]
+    assert maintenance_opened == []
+
+
 def test_source_owns_independent_runtime_state() -> None:
     pipeline = (
         Spanfold.for_events()

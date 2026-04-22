@@ -189,7 +189,8 @@ Auditing a past decision means using only what was knowable at the time — not 
 
 ## .NET Package
 
-The .NET package is the reference implementation. It has the complete API surface, CLI, testing helpers, samples, benchmarks, and package documentation.
+The .NET package has the original C# API surface, CLI, testing helpers, samples,
+benchmarks, and package documentation.
 
 ```bash
 dotnet add package Spanfold         # core recording and comparison
@@ -200,7 +201,9 @@ dotnet add package Spanfold.Testing # optional: fixtures, snapshots, assertions
 
 ## Python Package
 
-An early typed port following the same behavioral model. Not yet the complete API surface.
+A typed Python package that tracks the core C# API surface with idiomatic
+snake-case names, dataclass models, deterministic exports, testing helpers, and
+fixture CLI commands.
 
 → [Python package README](packages/python/README.md)
 

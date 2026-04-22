@@ -2,6 +2,9 @@
 
 ## 0.1.0 - Initial Python slice
 
+- Added Python parity for comparison plan export, prepared comparisons,
+  deterministic alignment, comparator catalog, explain formats, configured
+  debug/LLM export options, LLM context export, and fixture CLI commands.
 - Added cohort evidence extension metadata with typed evidence access.
 - Added extension descriptor and comparison extension metadata exports.
 - Added coverage summaries and row aggregation helpers.
@@ -32,7 +35,5 @@
 - Added overlap, residual, missing, and coverage comparison rows.
 - Added JSON, JSON Lines, Markdown, and debug HTML exports.
 - Added focused tests for the initial parity slice.
-
-## Deferred parity
-
-- Benchmarks and complete docs site.
+- Added Python benchmark harness parity for ingestion, comparison, export, and
+  segment/cohort scenarios.

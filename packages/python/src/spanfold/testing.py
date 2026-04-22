@@ -20,6 +20,9 @@ class SpanfoldAssertionError(AssertionError):
     """Framework-neutral assertion error raised by Spanfold test helpers."""
 
 
+SpanfoldAssertionException = SpanfoldAssertionError
+
+
 @dataclass(slots=True)
 class WindowHistoryFixtureWindowBuilder:
     """Builds one recorded window for a window-history fixture."""
@@ -159,9 +162,9 @@ class SpanfoldAssert:
 
     @staticmethod
     def is_valid(result: ComparisonResult) -> None:
-        """Assert that a comparison result has no diagnostics."""
+        """Assert that a comparison result has no error diagnostics."""
 
-        if result.diagnostics:
+        if not result.is_valid:
             raise SpanfoldAssertionError("Expected a valid Spanfold result.")
 
     @staticmethod
@@ -172,6 +175,15 @@ class SpanfoldAssert:
             raise SpanfoldAssertionError(
                 f"Expected no Spanfold diagnostics, found {len(result.diagnostics)}."
             )
+
+    @staticmethod
+    def has_diagnostic(result: ComparisonResult, code: str) -> object:
+        """Assert that a comparison result contains a diagnostic code."""
+
+        for diagnostic in result.diagnostic_rows:
+            if diagnostic.code == code:
+                return diagnostic
+        raise SpanfoldAssertionError(f"Expected Spanfold diagnostic {code}.")
 
     @staticmethod
     def has_row_count(result: ComparisonResult, row_type: str, expected_count: int) -> None:

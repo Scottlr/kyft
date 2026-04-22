@@ -447,6 +447,10 @@ li,
   gap: 14px;
 }
 
+.timeline-diagram-set {
+  grid-template-columns: 1fr;
+}
+
 .diagram-card,
 .card-grid article,
 .capability-list div,
@@ -464,6 +468,28 @@ li,
 
 .diagram-card {
   padding: 20px;
+}
+
+.timeline-diagram-set .diagram-card {
+  display: grid;
+  gap: 14px;
+}
+
+.timeline-diagram-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+
+.timeline-diagram {
+  display: block;
+  width: 100%;
+  min-width: 620px;
+  height: auto;
+  overflow: hidden;
+  background: var(--bg-card);
 }
 
 .card-grid {

@@ -5,17 +5,31 @@ from datetime import UTC, datetime, timedelta
 from spanfold import (
     AsOfDirection,
     AsOfMatchStatus,
+    ClosedWindow,
     ComparisonChangelog,
+    ComparisonComparatorBuilder,
+    ComparisonComparatorCatalog,
+    ComparisonDebugHtmlOptions,
     ComparisonDiagnosticSeverity,
     ComparisonDuplicateWindowPolicy,
+    ComparisonExplanationFormat,
+    ComparisonExportException,
     ComparisonExtensionBuilder,
     ComparisonExtensionMetadata,
     ComparisonFinality,
+    ComparisonLlmContextOptions,
+    ComparisonNormalizationBuilder,
     ComparisonNormalizationPolicy,
     ComparisonNullTimestampPolicy,
     ComparisonOpenWindowPolicy,
+    ComparisonOutputOptions,
+    ComparisonPlan,
+    ComparisonPlanValidationCode,
     ComparisonResult,
     ComparisonRowFinality,
+    ComparisonScope,
+    ComparisonScopeBuilder,
+    ComparisonSelector,
     ComparisonSide,
     ContainmentStatus,
     CoverageRow,
@@ -60,6 +74,36 @@ def _pipeline():
     )
 
 
+def test_comparison_plan_selectors_and_validation_match_csharp_surface() -> None:
+    selector = ComparisonSelector.for_window_name("DeviceOffline").and_(
+        ComparisonSelector.for_source("provider-a")
+    )
+    window = ClosedWindow(
+        "DeviceOffline",
+        "device-1",
+        1,
+        2,
+        source="provider-a",
+    )
+    assert selector.matches(window)
+
+    plan = ComparisonPlan(
+        "Provider QA",
+        ComparisonSelector.runtime_only("provider-a", "runtime provider selector"),
+        [ComparisonSelector.serializable("provider-b", "source = provider-b")],
+        ComparisonScope.window("DeviceOffline").segment("region", "north"),
+        ComparisonNormalizationPolicy.default(),
+        ["overlap"],
+        ComparisonOutputOptions.default(),
+    )
+
+    diagnostics = plan.validate()
+    assert not plan.is_serializable
+    assert diagnostics[0].code is ComparisonPlanValidationCode.NON_SERIALIZABLE_SELECTOR
+    assert diagnostics[0].path == "target"
+    assert diagnostics[0].severity is ComparisonDiagnosticSeverity.WARNING
+
+
 def test_overlap_residual_missing_and_coverage() -> None:
     pipeline = _pipeline()
     pipeline.ingest(DeviceStatus("device-1", False), source="provider-a")  # [1, 5)
@@ -79,6 +123,10 @@ def test_overlap_residual_missing_and_coverage() -> None:
         .run()
     )
 
+    assert result.plan is not None
+    assert result.plan.name == "Provider QA"
+    assert result.prepared is not None
+    assert len(result.prepared.normalized_windows) == 2
     assert [
         (row.range.start.position, row.range.require_end().position) for row in result.overlap_rows
     ] == [(3, 5)]
@@ -516,6 +564,181 @@ def test_exports_are_deterministic() -> None:
     assert "<html" in result.to_debug_html()
     assert "# Comparison Explain: Provider QA" in result.explain()
     assert str(result.overlap_rows[0].target_record_ids[0]) in result.explain()
+
+
+def test_portable_exports_and_llm_context_are_deterministic(tmp_path) -> None:
+    pipeline = _pipeline()
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-a")
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-b")
+    pipeline.ingest(DeviceStatus("device-1", True), source="provider-b")
+    pipeline.ingest(DeviceStatus("device-1", True), source="provider-a")
+
+    result = (
+        pipeline.history.compare("Provider QA")
+        .target("provider-a")
+        .against("provider-b")
+        .within(window_name="DeviceOffline")
+        .using("overlap")
+        .run()
+    )
+
+    plan_json = json.loads(result.plan.export_json())
+    result_json = json.loads(result.export_json())
+    context = json.loads(result.export_llm_context())
+    lines = [json.loads(line) for line in result.export_json_lines().splitlines()]
+
+    assert plan_json["schema"] == "spanfold.comparison.plan"
+    assert result_json["schema"] == "spanfold.comparison.result"
+    assert result_json["rows"]["overlap"][0]["rowId"] == "overlap[0]"
+    assert context["schema"] == "spanfold.comparison.llm-context"
+    assert context["summary"]["planName"] == "Provider QA"
+    assert context["summary"]["rowCounts"]["overlap"] == 1
+    assert context["fullResult"]["schema"] == "spanfold.comparison.result"
+    assert context["rowDocuments"][0]["artifact"] == "result-summary"
+    assert context["rowDocuments"][1]["rowId"] == "overlap[0]"
+    assert lines[0]["artifact"] == "result-summary"
+    assert lines[1]["artifact"] == "result-row"
+
+    destination = tmp_path / "nested" / "comparison.llm.json"
+    result.to_llm_context(destination)
+    assert "spanfold.comparison.llm-context" in destination.read_text(encoding="utf-8")
+
+
+def test_builder_can_write_configured_debug_and_llm_exports(tmp_path) -> None:
+    pipeline = _pipeline()
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-a")
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-b")
+    pipeline.ingest(DeviceStatus("device-1", True), source="provider-b")
+    pipeline.ingest(DeviceStatus("device-1", True), source="provider-a")
+
+    debug_path = tmp_path / "debug" / "provider-qa.html"
+    llm_path = tmp_path / "llm" / "provider-qa.llm.json"
+    result = (
+        pipeline.history.compare("Provider QA")
+        .target("provider-a")
+        .against("provider-b")
+        .within(window_name="DeviceOffline")
+        .using("overlap")
+        .run(
+            ComparisonDebugHtmlOptions.to_file(debug_path),
+            llm_context=ComparisonLlmContextOptions.to_file(llm_path),
+        )
+    )
+
+    assert result.is_valid
+    assert "Provider QA" in debug_path.read_text(encoding="utf-8")
+    assert "spanfold.comparison.llm-context" in llm_path.read_text(encoding="utf-8")
+
+
+def test_runtime_only_plan_export_raises_with_diagnostics() -> None:
+    plan = ComparisonPlan(
+        "Runtime selector QA",
+        ComparisonSelector.runtime_only("target", "dynamic target"),
+        (ComparisonSelector.for_source("provider-b"),),
+        ComparisonScope.window("DeviceOffline"),
+        ComparisonNormalizationPolicy.default(),
+        ("overlap",),
+        ComparisonOutputOptions.default(),
+    )
+
+    try:
+        plan.export_json()
+    except ComparisonExportException as exception:
+        assert "runtime-only selectors" in str(exception)
+        assert (
+            exception.diagnostics[0].code
+            is ComparisonPlanValidationCode.NON_SERIALIZABLE_SELECTOR
+        )
+    else:
+        raise AssertionError("Expected ComparisonExportException.")
+
+
+def test_builder_build_validate_prepare_and_alignment_match_csharp_surface() -> None:
+    pipeline = _pipeline()
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-a")
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-b")
+    pipeline.ingest(DeviceStatus("device-1", True), source="provider-a")
+    pipeline.ingest(DeviceStatus("device-1", True), source="provider-b")
+
+    builder = (
+        pipeline.history.compare("Provider QA")
+        .target("provider-a")
+        .against("provider-b")
+        .within(window_name="DeviceOffline")
+        .using("overlap")
+    )
+
+    plan = builder.build()
+    prepared = builder.prepare()
+    aligned = prepared.align()
+
+    assert plan.name == "Provider QA"
+    assert not builder.validate()
+    assert len(prepared.normalized_windows) == 2
+    assert len(aligned.segments) == 3
+    assert aligned.segments[1].target_record_ids
+    assert aligned.segments[1].against_record_ids
+    assert builder.run().aligned.segments == aligned.segments
+
+
+def test_comparator_catalog_and_explanation_format_are_public() -> None:
+    assert "overlap" in ComparisonComparatorCatalog.built_in_declarations
+    assert ComparisonComparatorCatalog.is_built_in_declaration("containment")
+    assert ComparisonComparatorCatalog.is_known_declaration("lead-lag:Start:ProcessingPosition:5")
+    assert ComparisonComparatorCatalog.is_known_declaration("asof:Previous:ProcessingPosition:10")
+    assert not ComparisonComparatorCatalog.is_known_declaration("quality:drift")
+
+    plan = ComparisonPlan(
+        "Plain text QA",
+        ComparisonSelector.for_source("provider-a"),
+        (ComparisonSelector.for_source("provider-b"),),
+        ComparisonScope.window("DeviceOffline"),
+        ComparisonNormalizationPolicy.default(),
+        ("overlap",),
+        ComparisonOutputOptions.default(),
+    )
+
+    assert plan.explain().startswith("# Comparison Plan: Plain text QA")
+    assert plan.explain(ComparisonExplanationFormat.PLAIN_TEXT).startswith(
+        "Comparison Plan: Plain text QA"
+    )
+
+
+def test_fluent_builder_objects_match_csharp_workflows() -> None:
+    pipeline = _pipeline()
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-a")
+    pipeline.ingest(DeviceStatus("device-1", False), source="provider-b")
+
+    prepared = (
+        pipeline.history.compare("Live Provider QA")
+        .target("provider-a")
+        .against("provider-b")
+        .within(lambda scope: scope.window("DeviceOffline"))
+        .normalize(lambda normal: normal.clip_open_windows_to(TemporalPoint.for_position(5)))
+        .using(lambda comparators: comparators.overlap().residual())
+        .strict_if(False)
+        .prepare_live(TemporalPoint.for_position(5))
+    )
+
+    assert prepared.plan.scope == ComparisonScopeBuilder().window("DeviceOffline")
+    assert prepared.plan.normalization.open_window_horizon == TemporalPoint.for_position(5)
+    assert prepared.plan.comparators == ("overlap", "residual")
+    assert prepared.normalized_windows[0].range.require_end() == TemporalPoint.for_position(5)
+
+    declarations = (
+        ComparisonComparatorBuilder()
+        .gap()
+        .symmetric_difference()
+        .containment()
+        .lead_lag(LeadLagTransition.START, TemporalAxis.PROCESSING_POSITION, 5)
+        .as_of(AsOfDirection.PREVIOUS, TemporalAxis.PROCESSING_POSITION, 10)
+        .declaration("quality:drift")
+        .build()
+    )
+    assert declarations[-1] == "quality:drift"
+    assert ComparisonNormalizationBuilder().known_at_position(3).build().known_at == (
+        TemporalPoint.for_position(3)
+    )
 
 
 def test_comparison_extension_descriptor_builder() -> None:

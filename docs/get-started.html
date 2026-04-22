@@ -118,7 +118,7 @@
       <div class="language-panel" data-language="python">
         <pre><code>cd packages/python
 python -m pip install -e ".[dev]"</code></pre>
-        <p class="language-note">The Python package is a partial port intended for early evaluation.</p>
+        <p class="language-note">The Python package includes the core runtime, comparison, export, testing, and CLI surfaces.</p>
       </div>
     </section>
 
@@ -224,7 +224,6 @@ print(f"closed windows: {len(pipeline.history.closed_windows)}")
 print(f"overlap rows: {len(result.overlap_rows)}")
 print(f"provider-a-only rows: {len(result.residual_rows)}")
 print(f"provider-b-only rows: {len(result.missing_rows)}")</code></pre>
-          <p class="language-note">This mirrors the first slice of the Python port. Use C# docs for the full API surface.</p>
         </div>
       </div>
     </section>

@@ -10,9 +10,15 @@ from dataclasses import asdict, dataclass, replace
 from datetime import timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from spanfold.records import ClosedWindow, WindowHistory, WindowRecord, WindowRecordId
+from spanfold.records import (
+    ClosedWindow,
+    WindowHistory,
+    WindowRecord,
+    WindowRecordId,
+    WindowSegment,
+)
 from spanfold.temporal import TemporalAxis, TemporalPoint, TemporalRange
 
 
@@ -30,6 +36,44 @@ class ComparisonDiagnosticSeverity(Enum):
 
     WARNING = "warning"
     ERROR = "error"
+
+
+ComparisonPlanDiagnosticSeverity = ComparisonDiagnosticSeverity
+
+
+class ComparisonPlanValidationCode(Enum):
+    """Identifies a validation diagnostic produced by a comparison plan."""
+
+    UNKNOWN = "unknown"
+    MISSING_NAME = "missing_name"
+    MISSING_TARGET = "missing_target"
+    MISSING_AGAINST = "missing_against"
+    MISSING_COMPARATOR = "missing_comparator"
+    NON_SERIALIZABLE_SELECTOR = "non_serializable_selector"
+    MISSING_SCOPE = "missing_scope"
+    MIXED_TIME_AXES = "mixed_time_axes"
+    OPEN_WINDOWS_WITHOUT_POLICY = "open_windows_without_policy"
+    MISSING_EVENT_TIME = "missing_event_time"
+    INVALID_RANGE_DURATION = "invalid_range_duration"
+    CLIPPED_WINDOW = "clipped_window"
+    UNKNOWN_COMPARATOR = "unknown_comparator"
+    AMBIGUOUS_AS_OF_MATCH = "ambiguous_as_of_match"
+    MISSING_LINEAGE = "missing_lineage"
+    FUTURE_WINDOW_EXCLUDED = "future_window_excluded"
+    KNOWN_AT_REQUIRES_PROCESSING_POSITION = "known_at_requires_processing_position"
+    RUNTIME_NON_SERIALIZABLE_PLAN = "runtime_non_serializable_plan"
+    BROAD_SELECTOR = "broad_selector"
+    FUTURE_LEAKAGE_RISK = "future_leakage_risk"
+    LIVE_FINALITY_WITHOUT_HORIZON = "live_finality_without_horizon"
+    UNBOUNDED_OPEN_DURATION = "unbounded_open_duration"
+    MIXED_CLOCK_RISK = "mixed_clock_risk"
+
+
+class ComparisonExplanationFormat(Enum):
+    """Describes the text format used for deterministic explain output."""
+
+    PLAIN_TEXT = "plain_text"
+    MARKDOWN = "markdown"
 
 
 class ComparisonSide(Enum):
@@ -101,6 +145,49 @@ class AsOfMatchStatus(Enum):
     NO_MATCH = "no_match"
     FUTURE_REJECTED = "future_rejected"
     AMBIGUOUS = "ambiguous"
+
+
+class ComparisonComparatorCatalog:
+    """Describes comparator declarations understood by core Spanfold."""
+
+    built_in_declarations = (
+        "overlap",
+        "residual",
+        "missing",
+        "coverage",
+        "gap",
+        "symmetric-difference",
+        "containment",
+    )
+    _normalized_built_ins = (
+        "overlap",
+        "residual",
+        "missing",
+        "coverage",
+        "gap",
+        "symmetric_difference",
+        "containment",
+    )
+
+    @classmethod
+    def is_built_in_declaration(cls, declaration: str) -> bool:
+        """Return whether the declaration is an exact built-in comparator name."""
+
+        _require_text(declaration, "Comparator declaration")
+        return declaration in cls.built_in_declarations
+
+    @classmethod
+    def is_known_declaration(cls, declaration: str) -> bool:
+        """Return whether core Spanfold can execute the comparator declaration."""
+
+        _require_text(declaration, "Comparator declaration")
+        normalized = _normalize_comparator(declaration)
+        return (
+            cls.is_built_in_declaration(declaration)
+            or normalized in cls._normalized_built_ins
+            or _try_parse_lead_lag(normalized) is not None
+            or _try_parse_as_of(normalized) is not None
+        )
 
 
 class HierarchyComparisonRowKind(Enum):
@@ -206,6 +293,731 @@ class ComparisonNormalizationPolicy:
 
     def _replace(self, **changes: Any) -> ComparisonNormalizationPolicy:
         return replace(self, **changes)
+
+
+@dataclass(frozen=True, slots=True)
+class WindowSegmentFilter:
+    """Describes a segment value required by a comparison scope."""
+
+    name: str
+    value: Any
+
+
+@dataclass(frozen=True, slots=True)
+class WindowTagFilter:
+    """Describes a tag value required by a comparison scope."""
+
+    name: str
+    value: Any
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonScope:
+    """Describes the temporal scope for a comparison plan."""
+
+    window_name: str | None = None
+    time_axis: TemporalAxis = TemporalAxis.PROCESSING_POSITION
+    segment_filters: tuple[WindowSegmentFilter, ...] = ()
+    tag_filters: tuple[WindowTagFilter, ...] = ()
+
+    @classmethod
+    def all(cls) -> ComparisonScope:
+        """Create an unrestricted processing-position scope."""
+
+        return cls()
+
+    @classmethod
+    def window(
+        cls,
+        window_name: str,
+        time_axis: TemporalAxis = TemporalAxis.PROCESSING_POSITION,
+    ) -> ComparisonScope:
+        """Create a scope restricted to one window name."""
+
+        _require_text(window_name, "Window name")
+        return cls(window_name, time_axis)
+
+    def segment(self, name: str, value: Any) -> ComparisonScope:
+        """Return a new scope with a segment filter appended."""
+
+        _require_text(name, "Segment name")
+        return replace(
+            self,
+            segment_filters=(*self.segment_filters, WindowSegmentFilter(name, value)),
+        )
+
+    def tag(self, name: str, value: Any) -> ComparisonScope:
+        """Return a new scope with a tag filter appended."""
+
+        _require_text(name, "Tag name")
+        return replace(self, tag_filters=(*self.tag_filters, WindowTagFilter(name, value)))
+
+
+class ComparisonScopeBuilder:
+    """Builds comparison scopes."""
+
+    def all(self) -> ComparisonScope:
+        """Return an unrestricted processing-position comparison scope."""
+
+        return ComparisonScope.all()
+
+    def window(self, window_name: str) -> ComparisonScope:
+        """Return a scope restricted to one configured window."""
+
+        return ComparisonScope.window(window_name)
+
+
+class ComparisonNormalizationBuilder:
+    """Builds normalization policy for a comparison plan."""
+
+    def __init__(self) -> None:
+        self._policy = ComparisonNormalizationPolicy.default()
+
+    def require_closed_windows(self) -> ComparisonNormalizationBuilder:
+        """Require recorded windows to be closed before historical comparison."""
+
+        self._policy = ComparisonNormalizationPolicy.require_closed()
+        return self
+
+    def clip_open_windows_to(self, horizon: TemporalPoint) -> ComparisonNormalizationBuilder:
+        """Clip open windows to an explicit horizon."""
+
+        self._policy = self._policy._replace(
+            require_closed_windows=False,
+            time_axis=horizon.axis,
+            open_window_policy=ComparisonOpenWindowPolicy.CLIP_TO_HORIZON,
+            open_window_horizon=horizon,
+        )
+        return self
+
+    def half_open(self) -> ComparisonNormalizationBuilder:
+        """Use half-open start-inclusive, end-exclusive ranges."""
+
+        self._policy = self._policy._replace(use_half_open_ranges=True)
+        return self
+
+    def on_position(self) -> ComparisonNormalizationBuilder:
+        """Normalize windows on the processing-position axis."""
+
+        self._policy = self._policy._replace(time_axis=TemporalAxis.PROCESSING_POSITION)
+        return self
+
+    def on_event_time(self) -> ComparisonNormalizationBuilder:
+        """Normalize windows on the event-time axis."""
+
+        self._policy = self._policy._replace(time_axis=TemporalAxis.TIMESTAMP)
+        return self
+
+    def reject_missing_event_time(self) -> ComparisonNormalizationBuilder:
+        """Reject records with missing event timestamps in event-time mode."""
+
+        self._policy = self._policy._replace(
+            null_timestamp_policy=ComparisonNullTimestampPolicy.REJECT
+        )
+        return self
+
+    def exclude_missing_event_time(self) -> ComparisonNormalizationBuilder:
+        """Exclude records with missing event timestamps in event-time mode."""
+
+        self._policy = self._policy._replace(
+            null_timestamp_policy=ComparisonNullTimestampPolicy.EXCLUDE
+        )
+        return self
+
+    def coalesce_adjacent_windows(self) -> ComparisonNormalizationBuilder:
+        """Coalesce adjacent normalized windows with identical comparison scope."""
+
+        self._policy = self._policy._replace(coalesce_adjacent_windows=True)
+        return self
+
+    def reject_duplicate_windows(self) -> ComparisonNormalizationBuilder:
+        """Reject duplicate normalized windows."""
+
+        self._policy = self._policy._replace(
+            duplicate_window_policy=ComparisonDuplicateWindowPolicy.REJECT
+        )
+        return self
+
+    def known_at_position(self, position: int) -> ComparisonNormalizationBuilder:
+        """Apply a processing-position known-at point."""
+
+        return self.known_at(TemporalPoint.for_position(position))
+
+    def known_at(self, point: TemporalPoint) -> ComparisonNormalizationBuilder:
+        """Apply a known-at point to prevent future leakage."""
+
+        self._policy = self._policy._replace(known_at=point)
+        return self
+
+    def build(self) -> ComparisonNormalizationPolicy:
+        """Return the built normalization policy."""
+
+        return self._policy
+
+
+class ComparisonComparatorBuilder:
+    """Builds comparator declarations for a comparison plan."""
+
+    def __init__(self) -> None:
+        self._comparators: list[str] = []
+
+    def overlap(self) -> ComparisonComparatorBuilder:
+        """Add the overlap comparator."""
+
+        self._comparators.append("overlap")
+        return self
+
+    def residual(self) -> ComparisonComparatorBuilder:
+        """Add the residual comparator."""
+
+        self._comparators.append("residual")
+        return self
+
+    def missing(self) -> ComparisonComparatorBuilder:
+        """Add the missing comparator."""
+
+        self._comparators.append("missing")
+        return self
+
+    def coverage(self) -> ComparisonComparatorBuilder:
+        """Add the coverage comparator."""
+
+        self._comparators.append("coverage")
+        return self
+
+    def gap(self) -> ComparisonComparatorBuilder:
+        """Add the gap comparator."""
+
+        self._comparators.append("gap")
+        return self
+
+    def symmetric_difference(self) -> ComparisonComparatorBuilder:
+        """Add the symmetric-difference comparator."""
+
+        self._comparators.append("symmetric-difference")
+        return self
+
+    def containment(self) -> ComparisonComparatorBuilder:
+        """Add the containment comparator."""
+
+        self._comparators.append("containment")
+        return self
+
+    def lead_lag(
+        self,
+        transition: LeadLagTransition,
+        axis: TemporalAxis,
+        tolerance_magnitude: int,
+    ) -> ComparisonComparatorBuilder:
+        """Add a lead/lag comparator declaration."""
+
+        if tolerance_magnitude < 0:
+            msg = "Lead/lag tolerance cannot be negative."
+            raise ValueError(msg)
+        self._comparators.append(
+            f"lead-lag:{transition.value}:{axis.value}:{tolerance_magnitude}"
+        )
+        return self
+
+    def as_of(
+        self,
+        direction: AsOfDirection,
+        axis: TemporalAxis,
+        tolerance_magnitude: int,
+    ) -> ComparisonComparatorBuilder:
+        """Add an as-of lookup comparator declaration."""
+
+        if tolerance_magnitude < 0:
+            msg = "As-of tolerance cannot be negative."
+            raise ValueError(msg)
+        self._comparators.append(
+            f"asof:{direction.value}:{axis.value}:{tolerance_magnitude}"
+        )
+        return self
+
+    def declaration(self, declaration: str) -> ComparisonComparatorBuilder:
+        """Add a comparator declaration by name."""
+
+        _require_text(declaration, "Comparator declaration")
+        self._comparators.append(declaration)
+        return self
+
+    def build(self) -> tuple[str, ...]:
+        """Return comparator declarations in insertion order."""
+
+        return tuple(self._comparators)
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonOutputOptions:
+    """Describes output preferences for a comparison plan."""
+
+    include_aligned_segments: bool = True
+    include_explain_data: bool = True
+
+    @classmethod
+    def default(cls) -> ComparisonOutputOptions:
+        """Return default output options."""
+
+        return cls()
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonSelector:
+    """Describes a selection used by a window comparison plan."""
+
+    name: str
+    description: str
+    is_serializable: bool = True
+    predicate: Callable[[WindowRecord], bool] | None = None
+    cohort_activity: CohortActivity | None = None
+    cohort_sources: tuple[Any, ...] = ()
+
+    @classmethod
+    def serializable(cls, name: str, description: str) -> ComparisonSelector:
+        """Create a serializable selector descriptor."""
+
+        _require_text(name, "Selector name")
+        _require_text(description, "Selector description")
+        return cls(name, description)
+
+    @classmethod
+    def for_window_name(cls, window_name: str) -> ComparisonSelector:
+        """Create a selector for a configured window name."""
+
+        _require_text(window_name, "Window name")
+        return cls(
+            f"window:{window_name}",
+            f"window name = {window_name}",
+            predicate=lambda window: window.window_name == window_name,
+        )
+
+    @classmethod
+    def for_key(cls, key: Any) -> ComparisonSelector:
+        """Create a selector for a recorded window key."""
+
+        _require_not_none(key, "Key")
+        return cls(f"key:{key}", f"key = {key}", predicate=lambda window: window.key == key)
+
+    @classmethod
+    def for_source(cls, source: Any) -> ComparisonSelector:
+        """Create a selector for a source identity."""
+
+        _require_not_none(source, "Source")
+        return cls(
+            f"source:{source}",
+            f"source = {source}",
+            predicate=lambda window: window.source == source,
+        )
+
+    @classmethod
+    def for_sources(cls, sources: Iterable[Any]) -> ComparisonSelector:
+        """Create a selector for any of several source identities."""
+
+        return cls._for_sources_core(sources, None)
+
+    @classmethod
+    def for_cohort_sources(
+        cls,
+        sources: Iterable[Any],
+        activity: CohortActivity,
+    ) -> ComparisonSelector:
+        """Create a selector for a cohort of source identities."""
+
+        _require_not_none(activity, "Cohort activity")
+        return cls._for_sources_core(sources, activity)
+
+    @classmethod
+    def _for_sources_core(
+        cls,
+        sources: Iterable[Any],
+        activity: CohortActivity | None,
+    ) -> ComparisonSelector:
+        ordered_sources = tuple(sources)
+        if not ordered_sources:
+            msg = "At least one source is required."
+            raise ValueError(msg)
+        if any(source is None for source in ordered_sources):
+            msg = "Sources cannot include None."
+            raise ValueError(msg)
+        return cls(
+            "sources:" + ",".join(str(source) for source in ordered_sources),
+            "source in [" + ", ".join(str(source) for source in ordered_sources) + "]",
+            predicate=lambda window: window.source in ordered_sources,
+            cohort_activity=activity,
+            cohort_sources=ordered_sources,
+        )
+
+    @classmethod
+    def for_partition(cls, partition: Any) -> ComparisonSelector:
+        """Create a selector for a partition identity."""
+
+        _require_not_none(partition, "Partition")
+        return cls(
+            f"partition:{partition}",
+            f"partition = {partition}",
+            predicate=lambda window: window.partition == partition,
+        )
+
+    @classmethod
+    def for_position_range(
+        cls,
+        start_inclusive: int,
+        end_exclusive: int | None = None,
+    ) -> ComparisonSelector:
+        """Create a selector for a half-open processing-position start range."""
+
+        if end_exclusive is not None and end_exclusive < start_inclusive:
+            msg = "Position range end cannot be earlier than the start."
+            raise ValueError(msg)
+        end_label = end_exclusive if end_exclusive is not None else "*"
+        return cls(
+            f"position:{start_inclusive}..{end_label}",
+            f"start position in [{start_inclusive}, {end_label})",
+            predicate=lambda window: window.start_position >= start_inclusive
+            and (end_exclusive is None or window.start_position < end_exclusive),
+        )
+
+    @classmethod
+    def for_time_range(
+        cls,
+        start_inclusive: Any,
+        end_exclusive: Any | None = None,
+    ) -> ComparisonSelector:
+        """Create a selector for a half-open event-time start range."""
+
+        if end_exclusive is not None and end_exclusive < start_inclusive:
+            msg = "Time range end cannot be earlier than the start."
+            raise ValueError(msg)
+        end_label = end_exclusive if end_exclusive is not None else "*"
+        return cls(
+            f"time:{start_inclusive}..{end_label}",
+            f"start time in [{start_inclusive}, {end_label})",
+            predicate=lambda window: window.start_time is not None
+            and window.start_time >= start_inclusive
+            and (end_exclusive is None or window.start_time < end_exclusive),
+        )
+
+    @classmethod
+    def runtime_only(
+        cls,
+        name: str,
+        description: str,
+        predicate: Callable[[WindowRecord], bool] | None = None,
+    ) -> ComparisonSelector:
+        """Create a runtime-only selector backed by an optional predicate."""
+
+        _require_text(name, "Selector name")
+        _require_text(description, "Selector description")
+        return cls(
+            name,
+            description,
+            is_serializable=False,
+            predicate=predicate or (lambda _: True),
+        )
+
+    def with_name(self, name: str) -> ComparisonSelector:
+        """Return a copy of this selector with a different display name."""
+
+        _require_text(name, "Selector name")
+        return replace(self, name=name)
+
+    def and_(self, other: ComparisonSelector) -> ComparisonSelector:
+        """Create a selector that requires both selectors to match."""
+
+        return ComparisonSelector(
+            f"{self.name}&{other.name}",
+            f"({self.description}) and ({other.description})",
+            self.is_serializable and other.is_serializable,
+            lambda window: self.matches(window) and other.matches(window),
+        )
+
+    def or_(self, other: ComparisonSelector) -> ComparisonSelector:
+        """Create a selector that allows either selector to match."""
+
+        return ComparisonSelector(
+            f"{self.name}|{other.name}",
+            f"({self.description}) or ({other.description})",
+            self.is_serializable and other.is_serializable,
+            lambda window: self.matches(window) or other.matches(window),
+        )
+
+    def matches(self, window: WindowRecord) -> bool:
+        """Return whether this selector matches a recorded window."""
+
+        return True if self.predicate is None else bool(self.predicate(window))
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonPlanDiagnostic:
+    """Structured diagnostic emitted while validating a comparison plan."""
+
+    code: ComparisonPlanValidationCode
+    message: str
+    path: str
+    severity: ComparisonDiagnosticSeverity
+
+
+@dataclass(frozen=True, init=False, slots=True)
+class ComparisonPlan:
+    """Represents a window comparison question as inspectable data."""
+
+    name: str
+    target: ComparisonSelector | None
+    against: tuple[ComparisonSelector, ...]
+    scope: ComparisonScope | None
+    normalization: ComparisonNormalizationPolicy
+    comparators: tuple[str, ...]
+    output: ComparisonOutputOptions
+    is_strict: bool
+
+    def __init__(
+        self,
+        name: str,
+        target: ComparisonSelector | None,
+        against: Iterable[ComparisonSelector] | None,
+        scope: ComparisonScope | None,
+        normalization: ComparisonNormalizationPolicy | None,
+        comparators: Iterable[str] | None,
+        output: ComparisonOutputOptions | None,
+        is_strict: bool = False,
+    ) -> None:
+        object.__setattr__(self, "name", name)
+        object.__setattr__(self, "target", target)
+        object.__setattr__(self, "against", tuple(against or ()))
+        object.__setattr__(self, "scope", scope)
+        object.__setattr__(
+            self,
+            "normalization",
+            normalization or ComparisonNormalizationPolicy.default(),
+        )
+        object.__setattr__(
+            self,
+            "comparators",
+            tuple(comparator for comparator in (comparators or ()) if comparator.strip()),
+        )
+        object.__setattr__(self, "output", output or ComparisonOutputOptions.default())
+        object.__setattr__(self, "is_strict", is_strict)
+
+    @property
+    def is_serializable(self) -> bool:
+        """Return whether every selector can be exported as portable data."""
+
+        selectors = self.against if self.target is None else (self.target, *self.against)
+        return all(selector.is_serializable for selector in selectors)
+
+    def validate(self) -> tuple[ComparisonPlanDiagnostic, ...]:
+        """Validate structural completeness of the comparison plan."""
+
+        diagnostics: list[ComparisonPlanDiagnostic] = []
+        exportability_severity = (
+            ComparisonDiagnosticSeverity.ERROR
+            if self.is_strict
+            else ComparisonDiagnosticSeverity.WARNING
+        )
+        if not self.name or not self.name.strip():
+            diagnostics.append(
+                ComparisonPlanDiagnostic(
+                    ComparisonPlanValidationCode.MISSING_NAME,
+                    "Comparison plan name is required.",
+                    "name",
+                    ComparisonDiagnosticSeverity.ERROR,
+                )
+            )
+        if self.target is None:
+            diagnostics.append(
+                ComparisonPlanDiagnostic(
+                    ComparisonPlanValidationCode.MISSING_TARGET,
+                    "Comparison plan target selector is required.",
+                    "target",
+                    ComparisonDiagnosticSeverity.ERROR,
+                )
+            )
+        elif not self.target.is_serializable:
+            diagnostics.append(
+                ComparisonPlanDiagnostic(
+                    ComparisonPlanValidationCode.NON_SERIALIZABLE_SELECTOR,
+                    "Target selector is runtime-only and cannot be exported as plan data.",
+                    "target",
+                    exportability_severity,
+                )
+            )
+        if not self.against:
+            diagnostics.append(
+                ComparisonPlanDiagnostic(
+                    ComparisonPlanValidationCode.MISSING_AGAINST,
+                    "At least one comparison selector is required.",
+                    "against",
+                    ComparisonDiagnosticSeverity.ERROR,
+                )
+            )
+        else:
+            for index, selector in enumerate(self.against):
+                if selector.is_serializable:
+                    continue
+                diagnostics.append(
+                    ComparisonPlanDiagnostic(
+                        ComparisonPlanValidationCode.NON_SERIALIZABLE_SELECTOR,
+                        "Comparison selector is runtime-only and cannot be exported as plan data.",
+                        f"against[{index}]",
+                        exportability_severity,
+                    )
+                )
+        if self.scope is None:
+            diagnostics.append(
+                ComparisonPlanDiagnostic(
+                    ComparisonPlanValidationCode.MISSING_SCOPE,
+                    "Comparison scope is required.",
+                    "scope",
+                    ComparisonDiagnosticSeverity.ERROR,
+                )
+            )
+        if not self.comparators:
+            diagnostics.append(
+                ComparisonPlanDiagnostic(
+                    ComparisonPlanValidationCode.MISSING_COMPARATOR,
+                    "At least one comparator is required.",
+                    "comparators",
+                    ComparisonDiagnosticSeverity.ERROR,
+                )
+            )
+        return tuple(diagnostics)
+
+    def export_json(self, path: str | Path | None = None) -> str:
+        """Return deterministic portable JSON for this comparison plan."""
+
+        _ensure_exportable(self)
+        text = json.dumps(_plan_export_payload(self, self.validate()), indent=2, sort_keys=True)
+        _write_text_if_requested(path, text)
+        return text
+
+    def to_json(self, path: str | Path | None = None) -> str:
+        """Return deterministic portable JSON for this comparison plan."""
+
+        return self.export_json(path)
+
+    def to_markdown(self, path: str | Path | None = None) -> str:
+        """Return deterministic Markdown for this comparison plan."""
+
+        diagnostics = self.validate()
+        lines = [f"# Comparison Plan: {self.name}", ""]
+        lines.append(f"- strict: {self.is_strict}")
+        lines.append(f"- serializable: {self.is_serializable}")
+        lines.append(f"- target: {self.target.name if self.target else '<missing>'}")
+        lines.append(
+            "- against: "
+            + (
+                ", ".join(selector.name for selector in self.against)
+                if self.against
+                else "<missing>"
+            )
+        )
+        lines.append(f"- comparators: {', '.join(self.comparators) or '<missing>'}")
+        if self.scope is not None:
+            lines.append(f"- window: {self.scope.window_name or '<any>'}")
+            lines.append(f"- time axis: {self.scope.time_axis.value}")
+        if diagnostics:
+            lines.extend(["", "## Diagnostics"])
+            for index, diagnostic in enumerate(diagnostics):
+                lines.append(
+                    f"- diagnostic[{index}]: {diagnostic.severity.value} "
+                    f"{diagnostic.code.value} path={diagnostic.path}"
+                )
+        text = "\n".join(lines).rstrip() + "\n"
+        _write_text_if_requested(path, text)
+        return text
+
+    def explain(
+        self,
+        format: ComparisonExplanationFormat = ComparisonExplanationFormat.MARKDOWN,
+        *,
+        markdown: bool | None = None,
+        path: str | Path | None = None,
+    ) -> str:
+        """Return deterministic human-readable plan output."""
+
+        use_markdown = (
+            format is ComparisonExplanationFormat.MARKDOWN
+            if markdown is None
+            else markdown
+        )
+        if use_markdown:
+            return self.to_markdown(path)
+        text = self.to_markdown()
+        text = text.replace("# Comparison Plan:", "Comparison Plan:")
+        text = text.replace("\n## Diagnostics", "\nDiagnostics")
+        _write_text_if_requested(path, text)
+        return text
+
+
+class ComparisonExportException(ValueError):
+    """Raised when a comparison artifact cannot be exported as portable data."""
+
+    def __init__(
+        self,
+        message: str,
+        diagnostics: Iterable[ComparisonPlanDiagnostic],
+    ) -> None:
+        super().__init__(message)
+        self.diagnostics = tuple(diagnostics)
+
+
+@dataclass(frozen=True, slots=True)
+class NormalizedWindowRecord:
+    """Describes a recorded window after comparison normalization."""
+
+    window: WindowRecord
+    record_id: WindowRecordId
+    selector_name: str
+    side: ComparisonSide
+    range: TemporalRange
+    segments: tuple[Any, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class ExcludedWindowRecord:
+    """Describes a recorded window excluded during comparison preparation."""
+
+    window: WindowRecord
+    reason: str
+    diagnostic_code: ComparisonPlanValidationCode | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PreparedComparison:
+    """Represents the current prepared comparison state."""
+
+    plan: ComparisonPlan
+    diagnostics: tuple[ComparisonPlanDiagnostic, ...]
+    selected_windows: tuple[WindowRecord, ...]
+    excluded_windows: tuple[ExcludedWindowRecord, ...]
+    normalized_windows: tuple[NormalizedWindowRecord, ...]
+
+    def align(self) -> AlignedComparison:
+        """Split normalized windows into deterministic aligned segments."""
+
+        return _align_prepared(self)
+
+
+@dataclass(frozen=True, slots=True)
+class AlignedSegment:
+    """One aligned temporal segment with active target and comparison windows."""
+
+    window_name: str
+    key: Any
+    partition: Any
+    range: TemporalRange
+    target_record_ids: tuple[WindowRecordId, ...]
+    against_record_ids: tuple[WindowRecordId, ...]
+    segments: tuple[WindowSegment, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class AlignedComparison:
+    """A prepared comparison after temporal segment alignment."""
+
+    prepared: PreparedComparison
+    segments: tuple[AlignedSegment, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -768,6 +1580,58 @@ class LeadLagSummary:
 
 
 @dataclass(frozen=True, slots=True)
+class ComparisonDebugHtmlOptions:
+    """Configures optional debug HTML export during comparison execution."""
+
+    enabled: bool
+    path: str | Path | None = None
+
+    @classmethod
+    def disabled(cls) -> ComparisonDebugHtmlOptions:
+        """Return options that do not write a debug HTML artifact."""
+
+        return cls(False)
+
+    @classmethod
+    def to_file(cls, path: str | Path) -> ComparisonDebugHtmlOptions:
+        """Return options that write a debug HTML artifact to a file."""
+
+        return cls(True, _require_export_path(path))
+
+    def export_if_enabled(self, result: ComparisonResult) -> None:
+        """Write debug HTML when this option is enabled."""
+
+        if self.enabled:
+            result.export_debug_html(_require_export_path(self.path))
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonLlmContextOptions:
+    """Configures optional LLM context export during comparison execution."""
+
+    enabled: bool
+    path: str | Path | None = None
+
+    @classmethod
+    def disabled(cls) -> ComparisonLlmContextOptions:
+        """Return options that do not write an LLM context artifact."""
+
+        return cls(False)
+
+    @classmethod
+    def to_file(cls, path: str | Path) -> ComparisonLlmContextOptions:
+        """Return options that write deterministic LLM context JSON to a file."""
+
+        return cls(True, _require_export_path(path))
+
+    def export_if_enabled(self, result: ComparisonResult) -> None:
+        """Write LLM context JSON when this option is enabled."""
+
+        if self.enabled:
+            result.export_llm_context(_require_export_path(self.path))
+
+
+@dataclass(frozen=True, slots=True)
 class ComparisonResult:
     """Structured result produced by a window comparison run."""
 
@@ -789,13 +1653,24 @@ class ComparisonResult:
     known_at: TemporalPoint | None = None
     strict: bool = False
     extension_metadata: tuple[ComparisonExtensionMetadata, ...] = ()
+    plan: ComparisonPlan | None = None
+    prepared: PreparedComparison | None = None
+    aligned: Any = None
 
     def to_json(self, path: str | Path | None = None) -> str:
         """Return a deterministic JSON representation and optionally write it."""
 
         text = json.dumps(_to_jsonable(self), sort_keys=True, indent=2)
-        if path is not None:
-            Path(path).write_text(text, encoding="utf-8")
+        _write_text_if_requested(path, text)
+        return text
+
+    def export_json(self, path: str | Path | None = None) -> str:
+        """Return deterministic portable JSON for this comparison result."""
+
+        if self.plan is not None:
+            _ensure_exportable(self.plan)
+        text = json.dumps(_result_export_payload(self), indent=2, sort_keys=True)
+        _write_text_if_requested(path, text)
         return text
 
     @property
@@ -914,8 +1789,29 @@ class ComparisonResult:
                 payload["row_type"] = kind
                 rows.append(payload)
         text = "\n".join(json.dumps(row, sort_keys=True) for row in rows)
-        if path is not None:
-            Path(path).write_text(text + ("\n" if text else ""), encoding="utf-8")
+        _write_text_if_requested(path, text + ("\n" if text else ""))
+        return text
+
+    def export_json_lines(self, path: str | Path | None = None) -> str:
+        """Return deterministic JSON Lines for LLM and artifact pipelines."""
+
+        if self.plan is not None:
+            _ensure_exportable(self.plan)
+        lines = [_result_summary_line_payload(self)]
+        for row_type, values in _result_row_groups(self):
+            export_type = _export_row_type(row_type)
+            for index, row in enumerate(values):
+                payload = {
+                    "schema": "spanfold.comparison.row",
+                    "schemaVersion": 0,
+                    "artifact": "result-row",
+                    "rowType": export_type,
+                    "rowId": f"{export_type}[{index}]",
+                    **_row_export_fields(row),
+                }
+                lines.append(payload)
+        text = "\n".join(json.dumps(row, sort_keys=True) for row in lines)
+        _write_text_if_requested(path, text + ("\n" if text else ""))
         return text
 
     def to_markdown(self, path: str | Path | None = None) -> str:
@@ -955,9 +1851,13 @@ class ComparisonResult:
                 )
             lines.append("")
         text = "\n".join(lines).rstrip() + "\n"
-        if path is not None:
-            Path(path).write_text(text, encoding="utf-8")
+        _write_text_if_requested(path, text)
         return text
+
+    def export_markdown(self, path: str | Path | None = None) -> str:
+        """Return deterministic Markdown for this comparison result."""
+
+        return self.to_markdown(path)
 
     def to_debug_html(self, path: str | Path | None = None) -> str:
         """Return a self-contained debug HTML visualiser."""
@@ -1026,16 +1926,88 @@ body {{ font-family: system-ui, sans-serif; margin: 2rem; color: #17202a; }}
 </html>
 """
         if path is not None:
-            Path(path).write_text(text, encoding="utf-8")
+            _write_text_if_requested(path, text)
         return text
 
-    def explain(self, *, markdown: bool = True, path: str | Path | None = None) -> str:
+    def export_debug_html(self, path: str | Path | None = None) -> str:
+        """Return a self-contained debug HTML document and optionally write it."""
+
+        return self.to_debug_html(path)
+
+    def export_llm_context(self, path: str | Path | None = None) -> str:
+        """Return deterministic LLM context JSON and optionally write it."""
+
+        if self.plan is not None:
+            _ensure_exportable(self.plan)
+        row_documents = [
+            json.loads(line)
+            for line in self.export_json_lines().splitlines()
+            if line.strip()
+        ]
+        payload = {
+            "schema": "spanfold.comparison.llm-context",
+            "schemaVersion": 0,
+            "artifact": "llm-context",
+            "purpose": (
+                "Portable comparison context for LLMs, coding agents, CI triage, "
+                "and support handoff."
+            ),
+            "analysisInstructions": [
+                (
+                    "Treat fullResult as the source of truth for exact fields, "
+                    "ranges, windows, segments, tags, diagnostics, summaries, "
+                    "and row evidence."
+                ),
+                (
+                    "Use resultMarkdown for a concise natural-language orientation "
+                    "before drilling into fullResult."
+                ),
+                (
+                    "Use rowDocuments when chunking or streaming row-level analysis; "
+                    "rowDocuments[0] is the result summary and later entries are "
+                    "individual comparison rows."
+                ),
+                (
+                    "Preserve rowId, recordIds, window ids, temporal ranges, knownAt, "
+                    "evaluationHorizon, and finality metadata when citing evidence."
+                ),
+                (
+                    "Do not infer missing source data from absence alone; check "
+                    "diagnostics, normalization, excluded windows, and row finalities first."
+                ),
+            ],
+            "summary": _llm_summary_payload(self),
+            "resultMarkdown": self.to_markdown(),
+            "fullResult": _result_export_payload(self),
+            "rowDocuments": row_documents,
+        }
+        text = json.dumps(payload, indent=2, sort_keys=True)
+        _write_text_if_requested(path, text)
+        return text
+
+    def to_llm_context(self, path: str | Path | None = None) -> str:
+        """Return deterministic LLM context JSON and optionally write it."""
+
+        return self.export_llm_context(path)
+
+    def explain(
+        self,
+        format: ComparisonExplanationFormat = ComparisonExplanationFormat.MARKDOWN,
+        *,
+        markdown: bool | None = None,
+        path: str | Path | None = None,
+    ) -> str:
         """Return deterministic human-readable comparison output."""
 
-        prefix = "# " if markdown else ""
+        use_markdown = (
+            format is ComparisonExplanationFormat.MARKDOWN
+            if markdown is None
+            else markdown
+        )
+        prefix = "# " if use_markdown else ""
         lines = [f"{prefix}Comparison Explain: {self.name}", ""]
         if self.diagnostic_rows:
-            lines.append("## Diagnostics" if markdown else "Diagnostics")
+            lines.append("## Diagnostics" if use_markdown else "Diagnostics")
             for index, diagnostic in enumerate(self.diagnostic_rows):
                 lines.append(
                     f"- diagnostic[{index}]: {diagnostic.severity.value} "
@@ -1043,7 +2015,7 @@ body {{ font-family: system-ui, sans-serif; margin: 2rem; color: #17202a; }}
                 )
             lines.append("")
         if self.extension_metadata:
-            lines.append("## Extension Metadata" if markdown else "Extension Metadata")
+            lines.append("## Extension Metadata" if use_markdown else "Extension Metadata")
             for index, metadata in enumerate(self.extension_metadata):
                 lines.append(
                     f"- extensionMetadata[{index}]: "
@@ -1051,7 +2023,7 @@ body {{ font-family: system-ui, sans-serif; margin: 2rem; color: #17202a; }}
                 )
             lines.append("")
         if self.comparator_summaries:
-            lines.append("## Summaries" if markdown else "Summaries")
+            lines.append("## Summaries" if use_markdown else "Summaries")
             for summary in self.comparator_summaries:
                 lines.append(f"- comparator: {summary.comparator}; rows={summary.row_count}")
             lines.append("")
@@ -1063,8 +2035,7 @@ body {{ font-family: system-ui, sans-serif; margin: 2rem; color: #17202a; }}
                     f"records={','.join(str(record_id) for record_id in record_ids)}"
                 )
         text = "\n".join(lines).rstrip() + "\n"
-        if path is not None:
-            Path(path).write_text(text, encoding="utf-8")
+        _write_text_if_requested(path, text)
         return text
 
 
@@ -1084,6 +2055,16 @@ class _CohortDefinition:
     activity: CohortActivity
 
 
+@dataclass(frozen=True, slots=True)
+class _PreparedRun:
+    plan: ComparisonPlan
+    target_windows: list[_NormalizedWindow]
+    against_windows: list[_NormalizedWindow]
+    diagnostics: list[str]
+    prepared: PreparedComparison
+    extension_metadata: tuple[ComparisonExtensionMetadata, ...]
+
+
 class _Any:
     pass
 
@@ -1101,7 +2082,9 @@ class WindowComparisonBuilder:
         self._history = history
         self._name = name
         self._target: Callable[[WindowRecord], bool] | None = None
+        self._target_selector: ComparisonSelector | None = None
         self._against: list[Callable[[WindowRecord], bool]] = []
+        self._against_selectors: list[ComparisonSelector] = []
         self._cohorts: list[_CohortDefinition] = []
         self._window_name: str | None = None
         self._key: Any = _ANY
@@ -1129,6 +2112,11 @@ class WindowComparisonBuilder:
         self._target = (
             predicate if predicate is not None else lambda window: window.source == source
         )
+        self._target_selector = (
+            ComparisonSelector.runtime_only("target", "runtime target selector", predicate)
+            if predicate is not None
+            else ComparisonSelector.for_source(source)
+        )
         return self
 
     def against(
@@ -1139,9 +2127,17 @@ class WindowComparisonBuilder:
     ) -> WindowComparisonBuilder:
         """Add a comparison side by source or custom predicate."""
 
-        self._against.append(
-            predicate if predicate is not None else lambda window: window.source == source
+        selector = (
+            ComparisonSelector.runtime_only(
+                f"against-{len(self._against) + 1}",
+                "runtime comparison selector",
+                predicate,
+            )
+            if predicate is not None
+            else ComparisonSelector.for_source(source)
         )
+        self._against.append(selector.matches)
+        self._against_selectors.append(selector)
         return self
 
     def against_cohort(
@@ -1165,10 +2161,16 @@ class WindowComparisonBuilder:
             msg = "Cohort activity count cannot exceed the number of declared sources."
             raise ValueError(msg)
         self._cohorts.append(_CohortDefinition(name, cohort_sources, cohort_activity))
+        self._against_selectors.append(
+            ComparisonSelector.for_cohort_sources(cohort_sources, cohort_activity).with_name(name)
+        )
         return self
 
     def within(
         self,
+        scope: ComparisonScope
+        | Callable[[ComparisonScopeBuilder], ComparisonScope]
+        | None = None,
         *,
         window_name: str | None = None,
         key: Any = _ANY,
@@ -1177,6 +2179,16 @@ class WindowComparisonBuilder:
         tags: Mapping[str, Any] | None = None,
     ) -> WindowComparisonBuilder:
         """Limit comparison scope by window, key, or partition."""
+
+        if scope is not None:
+            resolved = (
+                scope(ComparisonScopeBuilder())
+                if callable(scope)
+                else scope
+            )
+            window_name = resolved.window_name
+            segments = {item.name: item.value for item in resolved.segment_filters}
+            tags = {item.name: item.value for item in resolved.tag_filters}
 
         self._window_name = window_name
         self._key = key
@@ -1187,7 +2199,9 @@ class WindowComparisonBuilder:
 
     def normalize(
         self,
-        policy: ComparisonNormalizationPolicy | None = None,
+        policy: ComparisonNormalizationPolicy
+        | Callable[[ComparisonNormalizationBuilder], ComparisonNormalizationBuilder]
+        | None = None,
         *,
         axis: TemporalAxis = TemporalAxis.PROCESSING_POSITION,
         horizon: TemporalPoint | None = None,
@@ -1199,7 +2213,12 @@ class WindowComparisonBuilder:
         """Choose the comparison axis, open-window horizon, and availability point."""
 
         if policy is not None:
-            self._apply_normalization_policy(policy)
+            resolved = (
+                policy(ComparisonNormalizationBuilder()).build()
+                if callable(policy)
+                else policy
+            )
+            self._apply_normalization_policy(resolved)
             return self
         if missing_event_time not in {"reject", "exclude"}:
             msg = "missing_event_time must be 'reject' or 'exclude'."
@@ -1226,11 +2245,20 @@ class WindowComparisonBuilder:
         self._coalesce_adjacent = policy.coalesce_adjacent_windows
         self._duplicate_windows = policy.duplicate_window_policy.value
 
-    def using(self, *comparators: str) -> WindowComparisonBuilder:
+    def using(
+        self,
+        *comparators: str | Callable[[ComparisonComparatorBuilder], ComparisonComparatorBuilder],
+    ) -> WindowComparisonBuilder:
         """Choose comparators to run by name."""
 
+        if len(comparators) == 1 and callable(comparators[0]):
+            configure = cast(
+                Callable[[ComparisonComparatorBuilder], ComparisonComparatorBuilder],
+                comparators[0],
+            )
+            comparators = configure(ComparisonComparatorBuilder()).build()
         self._comparators = (
-            tuple(_normalize_comparator(comparator) for comparator in comparators)
+            tuple(_normalize_comparator(cast(str, comparator)) for comparator in comparators)
             or self._comparators
         )
         return self
@@ -1241,9 +2269,63 @@ class WindowComparisonBuilder:
         self._strict = True
         return self
 
-    def run(self) -> ComparisonResult:
+    def strict_if(self, is_strict: bool) -> WindowComparisonBuilder:
+        """Promote warnings only when ``is_strict`` is true."""
+
+        return self.strict() if is_strict else self
+
+    def build(self) -> ComparisonPlan:
+        """Build the current comparison plan without executing it."""
+
+        return self._create_plan()
+
+    def validate(self) -> tuple[ComparisonPlanDiagnostic, ...]:
+        """Validate the current comparison plan."""
+
+        return self.build().validate()
+
+    def prepare(self) -> PreparedComparison:
+        """Select and normalize windows for the current comparison plan."""
+
+        return self._prepare_run().prepared
+
+    def prepare_live(self, horizon: TemporalPoint) -> PreparedComparison:
+        """Prepare the comparison with open windows clipped to an evaluation horizon."""
+
+        return self.normalize(axis=horizon.axis, horizon=horizon).prepare()
+
+    def run(
+        self,
+        export: ComparisonDebugHtmlOptions | ComparisonLlmContextOptions | None = None,
+        *,
+        debug_html: ComparisonDebugHtmlOptions | None = None,
+        llm_context: ComparisonLlmContextOptions | None = None,
+    ) -> ComparisonResult:
         """Run the configured comparison."""
 
+        prepared_run = self._prepare_run()
+        result = _run_comparison(
+            self._name,
+            prepared_run.target_windows,
+            prepared_run.against_windows,
+            self._comparators,
+            evaluation_horizon=self._horizon,
+            known_at=self._known_at,
+            diagnostics=prepared_run.diagnostics,
+            strict=self._strict,
+            extension_metadata=prepared_run.extension_metadata,
+            plan=prepared_run.plan,
+            prepared=prepared_run.prepared,
+        )
+        _export_configured_result(
+            result,
+            export=export,
+            debug_html=debug_html,
+            llm_context=llm_context,
+        )
+        return result
+
+    def _prepare_run(self) -> _PreparedRun:
         if self._target is None:
             msg = "Comparison target selector is required."
             raise ValueError(msg)
@@ -1252,6 +2334,7 @@ class WindowComparisonBuilder:
             raise ValueError(msg)
 
         diagnostics = self._normalization_diagnostics()
+        plan = self._create_plan()
         target_windows = self._select(self._target, "target", diagnostics)
         against_windows = [
             item
@@ -1265,22 +2348,36 @@ class WindowComparisonBuilder:
             self._extension_metadata.extend(metadata)
         target_windows = self._postprocess_normalized(target_windows, diagnostics)
         against_windows = self._postprocess_normalized(against_windows, diagnostics)
-        return _run_comparison(
-            self._name,
+        prepared = self._create_prepared(
+            plan,
             target_windows,
             against_windows,
-            self._comparators,
-            evaluation_horizon=self._horizon,
-            known_at=self._known_at,
             diagnostics=diagnostics,
-            strict=self._strict,
-            extension_metadata=tuple(self._extension_metadata),
+        )
+        return _PreparedRun(
+            plan,
+            target_windows,
+            against_windows,
+            diagnostics,
+            prepared,
+            tuple(self._extension_metadata),
         )
 
-    def run_live(self, horizon: TemporalPoint) -> ComparisonResult:
+    def run_live(
+        self,
+        horizon: TemporalPoint,
+        export: ComparisonDebugHtmlOptions | ComparisonLlmContextOptions | None = None,
+        *,
+        debug_html: ComparisonDebugHtmlOptions | None = None,
+        llm_context: ComparisonLlmContextOptions | None = None,
+    ) -> ComparisonResult:
         """Run the comparison with open windows clipped to an evaluation horizon."""
 
-        return self.normalize(axis=horizon.axis, horizon=horizon).run()
+        return self.normalize(axis=horizon.axis, horizon=horizon).run(
+            export,
+            debug_html=debug_html,
+            llm_context=llm_context,
+        )
 
     def _select(
         self,
@@ -1383,6 +2480,68 @@ class WindowComparisonBuilder:
             return _coalesce_normalized(deduplicated)
         return deduplicated
 
+    def _create_plan(self) -> ComparisonPlan:
+        scope = ComparisonScope(
+            self._window_name,
+            self._axis,
+            tuple(WindowSegmentFilter(name, value) for name, value in self._segments.items()),
+            tuple(WindowTagFilter(name, value) for name, value in self._tags.items()),
+        )
+        return ComparisonPlan(
+            self._name,
+            self._target_selector,
+            tuple(self._against_selectors),
+            scope,
+            self._normalization_policy(),
+            self._comparators,
+            ComparisonOutputOptions.default(),
+            self._strict,
+        )
+
+    def _normalization_policy(self) -> ComparisonNormalizationPolicy:
+        open_policy = (
+            ComparisonOpenWindowPolicy.CLIP_TO_HORIZON
+            if self._horizon is not None
+            else ComparisonOpenWindowPolicy.REQUIRE_CLOSED
+        )
+        return ComparisonNormalizationPolicy(
+            require_closed_windows=self._horizon is None,
+            time_axis=self._axis,
+            open_window_policy=open_policy,
+            open_window_horizon=self._horizon,
+            null_timestamp_policy=ComparisonNullTimestampPolicy(self._missing_event_time_policy),
+            coalesce_adjacent_windows=self._coalesce_adjacent,
+            duplicate_window_policy=ComparisonDuplicateWindowPolicy(self._duplicate_windows),
+            known_at=self._known_at,
+        )
+
+    def _create_prepared(
+        self,
+        plan: ComparisonPlan,
+        targets: list[_NormalizedWindow],
+        against: list[_NormalizedWindow],
+        *,
+        diagnostics: Iterable[str],
+    ) -> PreparedComparison:
+        normalized = [
+            *(
+                _to_normalized_record(item, ComparisonSide.TARGET)
+                for item in targets
+            ),
+            *(
+                _to_normalized_record(item, ComparisonSide.AGAINST)
+                for item in against
+            ),
+        ]
+        selected = tuple(record.window for record in normalized)
+        return PreparedComparison(
+            plan,
+            (*plan.validate(), *(_plan_diagnostic_from_code(code) for code in diagnostics)),
+            selected,
+            (),
+            tuple(normalized),
+        )
+
 
 def _run_comparison(
     name: str,
@@ -1395,6 +2554,8 @@ def _run_comparison(
     diagnostics: Iterable[str] = (),
     strict: bool = False,
     extension_metadata: tuple[ComparisonExtensionMetadata, ...] = (),
+    plan: ComparisonPlan | None = None,
+    prepared: PreparedComparison | None = None,
 ) -> ComparisonResult:
     target_groups = _group(targets)
     against_groups = _group(against)
@@ -1412,9 +2573,14 @@ def _run_comparison(
     lead_lag_rows: list[LeadLagRow] = []
     lead_lag_summaries: list[LeadLagSummary] = []
     as_of_rows: list[AsOfRow] = []
+    aligned = prepared.align() if prepared is not None else None
+    result_diagnostics = list(diagnostics)
     lead_lag_options: list[tuple[str, _LeadLagOptions]] = []
     as_of_options: list[tuple[str, _AsOfOptions]] = []
     for comparator in comparators:
+        if not ComparisonComparatorCatalog.is_known_declaration(comparator):
+            _append_once(result_diagnostics, "unknown_comparator")
+            continue
         lead_lag_option = _try_parse_lead_lag(comparator)
         if lead_lag_option is not None:
             lead_lag_options.append((comparator, lead_lag_option))
@@ -1526,7 +2692,6 @@ def _run_comparison(
         )
 
     as_of_counts: dict[str, int] = {}
-    result_diagnostics = list(diagnostics)
     for comparator, as_of_option in as_of_options:
         before = len(as_of_rows)
         for scope in scopes:
@@ -1584,6 +2749,9 @@ def _run_comparison(
         known_at=known_at,
         strict=strict,
         extension_metadata=extension_metadata,
+        plan=plan,
+        prepared=prepared,
+        aligned=aligned,
     )
 
 
@@ -1963,6 +3131,20 @@ def _can_coalesce(first: _NormalizedWindow, second: _NormalizedWindow) -> bool:
 
 def _record_ids(window: _NormalizedWindow) -> tuple[WindowRecordId, ...]:
     return window.record_ids or (window.window.id,)
+
+
+def _to_normalized_record(
+    window: _NormalizedWindow,
+    side: ComparisonSide,
+) -> NormalizedWindowRecord:
+    return NormalizedWindowRecord(
+        window.window,
+        _primary_record_id(window),
+        window.source_label,
+        side,
+        window.range,
+        tuple(window.window.segments),
+    )
 
 
 def _primary_record_id(window: _NormalizedWindow) -> WindowRecordId:
@@ -2543,6 +3725,60 @@ def _finality_key(row: ComparisonRowFinality) -> str:
     return f"{row.row_type}\n{row.row_id}"
 
 
+def _align_prepared(prepared: PreparedComparison) -> AlignedComparison:
+    groups: dict[tuple[str, str, str, str], list[NormalizedWindowRecord]] = defaultdict(list)
+    for window in prepared.normalized_windows:
+        key = (
+            window.window.window_name,
+            repr(window.window.key),
+            repr(window.window.partition),
+            repr(window.segments),
+        )
+        groups[key].append(window)
+
+    segments: list[AlignedSegment] = []
+    for _, windows in sorted(groups.items(), key=lambda item: item[0]):
+        boundaries = sorted(
+            {
+                point
+                for window in windows
+                if window.range.end is not None
+                for point in (window.range.start, window.range.end)
+            }
+        )
+        if len(boundaries) < 2:
+            continue
+        first = windows[0]
+        for start, end in zip(boundaries, boundaries[1:], strict=False):
+            if start >= end:
+                continue
+            target_ids: list[WindowRecordId] = []
+            against_ids: list[WindowRecordId] = []
+            for window in windows:
+                if window.range.end is None:
+                    continue
+                if not (window.range.start <= start and end <= window.range.end):
+                    continue
+                if window.side is ComparisonSide.TARGET:
+                    target_ids.append(window.record_id)
+                else:
+                    against_ids.append(window.record_id)
+            if not target_ids and not against_ids:
+                continue
+            segments.append(
+                AlignedSegment(
+                    first.window.window_name,
+                    first.window.key,
+                    first.window.partition,
+                    TemporalRange.closed(start, end),
+                    tuple(target_ids),
+                    tuple(against_ids),
+                    first.segments,
+                )
+            )
+    return AlignedComparison(prepared, tuple(segments))
+
+
 def _append_once(values: list[str], value: str) -> None:
     if value not in values:
         values.append(value)
@@ -2557,6 +3793,19 @@ def _diagnostic_from_code(code: str, *, strict: bool) -> ComparisonDiagnostic:
         _DIAGNOSTIC_MESSAGES.get(code, "Comparison diagnostic."),
         _DIAGNOSTIC_PATHS.get(code, "comparison"),
         severity,
+    )
+
+
+def _plan_diagnostic_from_code(code: str) -> ComparisonPlanDiagnostic:
+    try:
+        validation_code = ComparisonPlanValidationCode(code)
+    except ValueError:
+        validation_code = ComparisonPlanValidationCode.UNKNOWN
+    return ComparisonPlanDiagnostic(
+        validation_code,
+        _DIAGNOSTIC_MESSAGES.get(code, "Comparison diagnostic."),
+        _DIAGNOSTIC_PATHS.get(code, "comparison"),
+        _diagnostic_severity(code),
     )
 
 
@@ -2584,6 +3833,7 @@ _DIAGNOSTIC_MESSAGES = {
     ),
     "missing_event_time": "Event-time comparison requires recorded event timestamps.",
     "open_windows_without_policy": "Open windows require an explicit evaluation horizon.",
+    "unknown_comparator": "Comparator declaration is not registered.",
 }
 
 
@@ -2596,6 +3846,7 @@ _DIAGNOSTIC_PATHS = {
     "known_at_requires_processing_position": "normalization.known_at",
     "missing_event_time": "normalization.axis",
     "open_windows_without_policy": "normalization.horizon",
+    "unknown_comparator": "comparators",
 }
 
 
@@ -2770,6 +4021,373 @@ def _parse_metadata_fields(value: str) -> dict[str, str]:
     return fields
 
 
+def _require_export_path(path: str | Path | None) -> str | Path:
+    if path is None or not str(path).strip():
+        msg = "Export path cannot be empty."
+        raise ValueError(msg)
+    return path
+
+
+def _write_text_if_requested(path: str | Path | None, text: str) -> None:
+    if path is None:
+        return
+    destination = Path(_require_export_path(path))
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(text, encoding="utf-8")
+
+
+def _ensure_exportable(plan: ComparisonPlan) -> None:
+    if plan.is_serializable:
+        return
+    diagnostics = tuple(
+        diagnostic
+        for diagnostic in plan.validate()
+        if diagnostic.code is ComparisonPlanValidationCode.NON_SERIALIZABLE_SELECTOR
+    ) or (
+        ComparisonPlanDiagnostic(
+            ComparisonPlanValidationCode.NON_SERIALIZABLE_SELECTOR,
+            (
+                "Comparison plan contains runtime-only selectors and cannot be "
+                "exported as portable data."
+            ),
+            "selectors",
+            ComparisonDiagnosticSeverity.ERROR,
+        ),
+    )
+    raise ComparisonExportException(
+        "Comparison plan contains runtime-only selectors and cannot be exported as portable data.",
+        diagnostics,
+    )
+
+
+def _export_configured_result(
+    result: ComparisonResult,
+    *,
+    export: ComparisonDebugHtmlOptions | ComparisonLlmContextOptions | None,
+    debug_html: ComparisonDebugHtmlOptions | None,
+    llm_context: ComparisonLlmContextOptions | None,
+) -> None:
+    if isinstance(export, ComparisonDebugHtmlOptions | ComparisonLlmContextOptions):
+        export.export_if_enabled(result)
+    elif export is not None:
+        msg = "export must be ComparisonDebugHtmlOptions, ComparisonLlmContextOptions, or None."
+        raise TypeError(msg)
+    if debug_html is not None:
+        debug_html.export_if_enabled(result)
+    if llm_context is not None:
+        llm_context.export_if_enabled(result)
+
+
+def _plan_export_payload(
+    plan: ComparisonPlan,
+    diagnostics: Iterable[ComparisonPlanDiagnostic],
+) -> dict[str, Any]:
+    return {
+        "schema": "spanfold.comparison.plan",
+        "schemaVersion": 0,
+        "artifact": "plan",
+        "name": plan.name,
+        "isStrict": plan.is_strict,
+        "isSerializable": plan.is_serializable,
+        "target": _selector_export_payload(plan.target) if plan.target is not None else None,
+        "against": [_selector_export_payload(selector) for selector in plan.against],
+        "scope": _scope_export_payload(plan.scope),
+        "normalization": _normalization_export_payload(plan.normalization),
+        "comparators": list(plan.comparators),
+        "output": _output_export_payload(plan.output),
+        "diagnostics": [_plan_diagnostic_export_payload(item) for item in diagnostics],
+    }
+
+
+def _selector_export_payload(selector: ComparisonSelector) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "name": selector.name,
+        "description": selector.description,
+        "isSerializable": selector.is_serializable,
+    }
+    if selector.cohort_activity is not None:
+        cohort: dict[str, Any] = {
+            "activity": selector.cohort_activity.name,
+            "sources": [_to_jsonable(source) for source in selector.cohort_sources],
+        }
+        if selector.cohort_activity.count is not None:
+            cohort["count"] = selector.cohort_activity.count
+        payload["cohort"] = cohort
+    return payload
+
+
+def _scope_export_payload(scope: ComparisonScope | None) -> dict[str, Any] | None:
+    if scope is None:
+        return None
+    payload: dict[str, Any] = {
+        "windowName": scope.window_name,
+        "timeAxis": scope.time_axis.value,
+    }
+    if scope.segment_filters:
+        payload["segmentFilters"] = [
+            {"name": item.name, "value": _to_jsonable(item.value)}
+            for item in scope.segment_filters
+        ]
+    if scope.tag_filters:
+        payload["tagFilters"] = [
+            {"name": item.name, "value": _to_jsonable(item.value)}
+            for item in scope.tag_filters
+        ]
+    return payload
+
+
+def _normalization_export_payload(policy: ComparisonNormalizationPolicy) -> dict[str, Any]:
+    return {
+        "requireClosedWindows": policy.require_closed_windows,
+        "useHalfOpenRanges": policy.use_half_open_ranges,
+        "timeAxis": policy.time_axis.value,
+        "openWindowPolicy": policy.open_window_policy.value,
+        "openWindowHorizon": _to_jsonable(policy.open_window_horizon),
+        "nullTimestampPolicy": policy.null_timestamp_policy.value,
+        "coalesceAdjacentWindows": policy.coalesce_adjacent_windows,
+        "duplicateWindowPolicy": policy.duplicate_window_policy.value,
+        "knownAt": _to_jsonable(policy.known_at),
+    }
+
+
+def _output_export_payload(output: ComparisonOutputOptions) -> dict[str, Any]:
+    return {
+        "includeAlignedSegments": output.include_aligned_segments,
+        "includeExplainData": output.include_explain_data,
+    }
+
+
+def _plan_diagnostic_export_payload(diagnostic: ComparisonPlanDiagnostic) -> dict[str, Any]:
+    return {
+        "code": diagnostic.code.value,
+        "message": diagnostic.message,
+        "path": diagnostic.path,
+        "severity": diagnostic.severity.value,
+    }
+
+
+def _diagnostic_export_payload(diagnostic: ComparisonDiagnostic) -> dict[str, Any]:
+    return {
+        "code": diagnostic.code,
+        "message": diagnostic.message,
+        "path": diagnostic.path,
+        "severity": diagnostic.severity.value,
+    }
+
+
+def _result_export_payload(result: ComparisonResult) -> dict[str, Any]:
+    plan = result.plan or _fallback_result_plan(result)
+    plan_diagnostics = result.plan.validate() if result.plan is not None else ()
+    return {
+        "schema": "spanfold.comparison.result",
+        "schemaVersion": 0,
+        "artifact": "result",
+        "isValid": result.is_valid,
+        "knownAt": _to_jsonable(result.known_at),
+        "evaluationHorizon": _to_jsonable(result.evaluation_horizon),
+        "plan": _plan_export_payload(plan, plan_diagnostics),
+        "diagnostics": [_diagnostic_export_payload(item) for item in result.diagnostic_rows],
+        "prepared": _prepared_export_payload(result.prepared),
+        "aligned": _aligned_export_payload(result.aligned),
+        "comparatorSummaries": [
+            {"comparatorName": item.comparator, "rowCount": item.row_count}
+            for item in result.comparator_summaries
+        ],
+        "rows": _rows_export_payload(result),
+        "rowFinalities": [_row_finality_export_payload(item) for item in result.row_finalities],
+        "extensionMetadata": [
+            {
+                "extensionId": item.extension_id,
+                "key": item.key,
+                "value": item.value,
+            }
+            for item in result.extension_metadata
+        ],
+        "coverageSummaries": _to_jsonable(result.coverage_summaries),
+        "leadLagSummaries": _to_jsonable(result.lead_lag_summaries),
+    }
+
+
+def _fallback_result_plan(result: ComparisonResult) -> ComparisonPlan:
+    return ComparisonPlan(
+        result.name,
+        None,
+        (),
+        None,
+        ComparisonNormalizationPolicy.default(),
+        tuple(summary.comparator for summary in result.comparator_summaries),
+        ComparisonOutputOptions.default(),
+        result.strict,
+    )
+
+
+def _prepared_export_payload(prepared: PreparedComparison | None) -> dict[str, Any] | None:
+    if prepared is None:
+        return None
+    return {
+        "selectedWindows": [_window_export_payload(window) for window in prepared.selected_windows],
+        "excludedWindows": [
+            {
+                "recordId": str(item.window.id),
+                "reason": item.reason,
+                "diagnosticCode": item.diagnostic_code.value if item.diagnostic_code else None,
+                "window": _window_export_payload(item.window),
+            }
+            for item in prepared.excluded_windows
+        ],
+        "normalizedWindows": [
+            {
+                "recordId": str(item.record_id),
+                "selectorName": item.selector_name,
+                "side": item.side.value,
+                "range": _to_jsonable(item.range),
+                "window": _window_export_payload(item.window),
+            }
+            for item in prepared.normalized_windows
+        ],
+    }
+
+
+def _aligned_export_payload(aligned: Any) -> Any:
+    if aligned is None:
+        return None
+    segments = getattr(aligned, "segments", None)
+    if segments is None:
+        return _to_jsonable(aligned)
+    return {
+        "segments": [
+            {
+                "segmentId": f"segment[{index}]",
+                "windowName": segment.window_name,
+                "key": _to_jsonable(segment.key),
+                "partition": _to_jsonable(segment.partition),
+                "range": _to_jsonable(segment.range),
+                "targetRecordIds": [str(record_id) for record_id in segment.target_record_ids],
+                "againstRecordIds": [str(record_id) for record_id in segment.against_record_ids],
+            }
+            for index, segment in enumerate(segments)
+        ]
+    }
+
+
+def _window_export_payload(window: WindowRecord) -> dict[str, Any]:
+    return {
+        "id": str(window.id),
+        "windowName": window.window_name,
+        "key": _to_jsonable(window.key),
+        "partition": _to_jsonable(window.partition),
+        "source": _to_jsonable(window.source),
+        "startPosition": window.start_position,
+        "endPosition": window.end_position,
+        "startTimestamp": window.start_time.isoformat() if window.start_time else None,
+        "endTimestamp": window.end_time.isoformat() if window.end_time else None,
+        "segments": _to_jsonable(window.segments),
+        "tags": _to_jsonable(window.tags),
+        "boundaryReason": window.boundary_reason.value if window.boundary_reason else None,
+        "boundaryChanges": _to_jsonable(window.boundary_changes),
+    }
+
+
+def _rows_export_payload(result: ComparisonResult) -> dict[str, list[dict[str, Any]]]:
+    return {
+        _export_row_type(row_type): [
+            {
+                "rowId": f"{_export_row_type(row_type)}[{index}]",
+                "finality": getattr(row, "finality", ComparisonFinality.FINAL).value,
+                **_row_export_fields(row),
+            }
+            for index, row in enumerate(values)
+        ]
+        for row_type, values in _result_row_groups(result)
+    }
+
+
+def _row_export_fields(row: Any) -> dict[str, Any]:
+    payload = _to_jsonable(row)
+    if "range" in payload:
+        payload["range"] = _to_jsonable(row.range)
+    for key in (
+        "target_record_ids",
+        "against_record_ids",
+        "container_record_ids",
+    ):
+        if key in payload:
+            payload[key] = [str(record_id) for record_id in getattr(row, key)]
+    return {_camel_case(key): value for key, value in payload.items()}
+
+
+def _row_finality_export_payload(row: ComparisonRowFinality) -> dict[str, Any]:
+    export_type = _export_row_type(row.row_type)
+    return {
+        "rowType": export_type,
+        "rowId": row.row_id.replace(row.row_type, export_type, 1),
+        "finality": row.finality.value,
+        "reason": row.reason,
+        "version": row.version,
+        "supersedesRowId": row.supersedes_row_id,
+    }
+
+
+def _result_summary_line_payload(result: ComparisonResult) -> dict[str, Any]:
+    counts = _row_counts(result)
+    return {
+        "schema": "spanfold.comparison.row",
+        "schemaVersion": 0,
+        "artifact": "result-summary",
+        "planName": result.name,
+        "isValid": result.is_valid,
+        "knownAt": _to_jsonable(result.known_at),
+        "evaluationHorizon": _to_jsonable(result.evaluation_horizon),
+        "diagnosticCount": len(result.diagnostic_rows),
+        "overlapRowCount": counts["overlap"],
+        "residualRowCount": counts["residual"],
+        "missingRowCount": counts["missing"],
+        "coverageRowCount": counts["coverage"],
+        "gapRowCount": counts["gap"],
+        "symmetricDifferenceRowCount": counts["symmetricDifference"],
+        "containmentRowCount": counts["containment"],
+        "leadLagRowCount": counts["leadLag"],
+        "asOfRowCount": counts["asOf"],
+    }
+
+
+def _llm_summary_payload(result: ComparisonResult) -> dict[str, Any]:
+    counts = _row_counts(result)
+    aligned_segments = getattr(result.aligned, "segments", ())
+    return {
+        "planName": result.name,
+        "isValid": result.is_valid,
+        "knownAt": _to_jsonable(result.known_at),
+        "evaluationHorizon": _to_jsonable(result.evaluation_horizon),
+        "diagnosticCount": len(result.diagnostic_rows),
+        "selectedWindowCount": len(result.prepared.selected_windows) if result.prepared else 0,
+        "excludedWindowCount": len(result.prepared.excluded_windows) if result.prepared else 0,
+        "normalizedWindowCount": len(result.prepared.normalized_windows) if result.prepared else 0,
+        "alignedSegmentCount": len(aligned_segments),
+        "rowCounts": counts,
+    }
+
+
+def _row_counts(result: ComparisonResult) -> dict[str, int]:
+    return {
+        _export_row_type(row_type): len(values)
+        for row_type, values in _result_row_groups(result)
+    }
+
+
+def _export_row_type(row_type: str) -> str:
+    return {
+        "symmetric_difference": "symmetricDifference",
+        "lead_lag": "leadLag",
+        "as_of": "asOf",
+    }.get(row_type, row_type)
+
+
+def _camel_case(value: str) -> str:
+    head, *tail = value.split("_")
+    return head + "".join(part[:1].upper() + part[1:] for part in tail)
+
+
 def _to_jsonable(value: Any) -> Any:
     if isinstance(value, ComparisonResult):
         payload = {
@@ -2780,6 +4398,14 @@ def _to_jsonable(value: Any) -> Any:
         payload["row_finalities"] = _to_jsonable(value.row_finalities)
         payload["is_valid"] = value.is_valid
         return payload
+    if isinstance(value, ComparisonSelector):
+        return {
+            "name": value.name,
+            "description": value.description,
+            "is_serializable": value.is_serializable,
+            "cohort_activity": _to_jsonable(value.cohort_activity),
+            "cohort_sources": _to_jsonable(value.cohort_sources),
+        }
     if isinstance(value, Enum):
         return value.value
     if isinstance(value, WindowRecordId):
@@ -2804,6 +4430,8 @@ def _to_jsonable(value: Any) -> Any:
         return [_to_jsonable(item) for item in value]
     if isinstance(value, dict):
         return {str(key): _to_jsonable(item) for key, item in value.items()}
+    if callable(value):
+        return "<runtime>"
     return value
 
 
@@ -2847,3 +4475,15 @@ def _point_label(point: TemporalPoint) -> str:
     if point.axis is TemporalAxis.PROCESSING_POSITION:
         return str(point.position)
     return point.timestamp.isoformat()
+
+
+def _require_text(value: str, label: str) -> None:
+    if not value or not value.strip():
+        msg = f"{label} cannot be empty."
+        raise ValueError(msg)
+
+
+def _require_not_none(value: Any, label: str) -> None:
+    if value is None:
+        msg = f"{label} is required."
+        raise ValueError(msg)

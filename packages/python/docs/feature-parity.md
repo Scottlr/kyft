@@ -33,15 +33,18 @@
 - Event-time comparison mode with missing timestamp diagnostics.
 - Duplicate-window rejection and adjacent-window coalescing normalization.
 - Full normalization policy object mirroring the C# plan surface.
+- Comparison plans, prepared comparisons, deterministic aligned segments, plan
+  validation, comparator catalog, and explain format enum.
 - `run_live()` live comparison shortcut for explicit horizon clipping.
 - Structured diagnostics with warning/error severity and strict-mode promotion.
 - JSON export includes structured diagnostics and row finality snapshots.
+- LLM context export and configured debug/LLM export options for `run()` and
+  `run_live()`.
 - Extension descriptor and metadata surface.
 - Segment cohort safety and known-at cohort regression coverage.
-
-## Implement Later
-
-- Benchmarks.
+- Fixture CLI with `validate-plan`, `compare`, and `explain`.
+- Benchmark harness covering ingestion, comparison preparation/alignment,
+  comparator execution, live residuals, exports, and segment/cohort scenarios.
 
 ## Intentionally Different in Python
 
