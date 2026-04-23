@@ -5,8 +5,9 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use serde::Deserialize;
 use spanfold::{
-    AgainstSelection, Comparator, ComparisonPlan, ContractFixture, PrimitiveValue,
-    WindowHistoryFixture, compare,
+    AgainstSelection, Comparator, ComparisonFinality, ComparisonPlan, ContractFixture,
+    OpenWindowPolicy, PrimitiveValue, WindowHistoryFixture, compare, export_result_debug_html,
+    export_result_json, export_result_llm_context, export_result_markdown,
 };
 use std::{fs, process::ExitCode};
 
@@ -115,9 +116,13 @@ fn run(cli: Cli) -> Result<ExitCode, String> {
             let fixture = load_fixture(&fixture)?;
             let result = fixture.execute();
             let format = match format {
-                OutputFormat::Json => serialize_json(&result)?,
-                OutputFormat::Markdown => export_markdown(&result),
-                OutputFormat::LlmContext => export_llm_context(&result)?,
+                OutputFormat::Json => {
+                    export_result_json(&result).map_err(|error| error.to_string())?
+                }
+                OutputFormat::Markdown => export_result_markdown(&result),
+                OutputFormat::LlmContext => {
+                    export_result_llm_context(&result).map_err(|error| error.to_string())?
+                }
             };
             println!("{format}");
             Ok(if result.is_valid {
@@ -128,7 +133,7 @@ fn run(cli: Cli) -> Result<ExitCode, String> {
         }
         Command::Explain { fixture } => {
             let fixture = load_fixture(&fixture)?;
-            println!("{}", export_markdown(&fixture.execute()));
+            println!("{}", export_result_markdown(&fixture.execute()));
             Ok(ExitCode::SUCCESS)
         }
         Command::Audit { fixture, out } => {
@@ -164,60 +169,12 @@ fn load_fixture(path: &str) -> Result<ContractFixture, String> {
     ContractFixture::parse_json(&json).map_err(|error| error.to_string())
 }
 
-fn serialize_json(result: &spanfold::ComparisonResult) -> Result<String, String> {
-    serde_json::to_string_pretty(result).map_err(|error| error.to_string())
-}
-
-fn export_markdown(result: &spanfold::ComparisonResult) -> String {
-    let mut text = format!("# Comparison Explain\n\nValid: {}\n\n", result.is_valid);
-    if !result.diagnostics.is_empty() {
-        text.push_str("## Diagnostics\n\n");
-        for diagnostic in &result.diagnostics {
-            text.push_str("- ");
-            text.push_str(&diagnostic.code);
-            text.push('\n');
-        }
-        text.push('\n');
-    }
-    text.push_str("| Comparator | Rows |\n| --- | ---: |\n");
-    for summary in &result.comparator_summaries {
-        text.push_str("| ");
-        text.push_str(&summary.comparator_name);
-        text.push_str(" | ");
-        text.push_str(&summary.row_count.to_string());
-        text.push_str(" |\n");
-    }
-    text
-}
-
-fn export_llm_context(result: &spanfold::ComparisonResult) -> Result<String, String> {
-    let payload = serde_json::json!({
-        "schema": "spanfold.comparison.llm-context",
-        "schemaVersion": 0,
-        "artifact": "llm-context",
-        "summary": {
-            "isValid": result.is_valid,
-            "diagnosticCount": result.diagnostics.len(),
-            "rowCounts": {
-                "overlap": result.overlap_rows.len(),
-                "residual": result.residual_rows.len(),
-                "missing": result.missing_rows.len(),
-                "coverage": result.coverage_rows.len(),
-            }
-        },
-        "resultMarkdown": export_markdown(result),
-        "fullResult": result,
-        "rowDocuments": []
-    });
-    serde_json::to_string_pretty(&payload).map_err(|error| error.to_string())
-}
-
 fn write_audit_bundle(result: &spanfold::ComparisonResult, out: &str) -> Result<(), String> {
     fs::create_dir_all(out).map_err(|error| error.to_string())?;
-    let json = serialize_json(result)?;
-    let markdown = export_markdown(result);
-    let llm = export_llm_context(result)?;
-    let html = "<!doctype html><html><body><h1>Spanfold debug HTML placeholder</h1></body></html>";
+    let json = export_result_json(result).map_err(|error| error.to_string())?;
+    let markdown = export_result_markdown(result);
+    let llm = export_result_llm_context(result).map_err(|error| error.to_string())?;
+    let html = export_result_debug_html(result);
     fs::write(format!("{out}/comparison.json"), &json).map_err(|error| error.to_string())?;
     fs::write(format!("{out}/comparison.md"), &markdown).map_err(|error| error.to_string())?;
     fs::write(format!("{out}/comparison.llm.json"), &llm).map_err(|error| error.to_string())?;
@@ -226,8 +183,11 @@ fn write_audit_bundle(result: &spanfold::ComparisonResult, out: &str) -> Result<
         "schema": "spanfold.audit.bundle",
         "schemaVersion": 0,
         "artifact": "audit-bundle",
+        "planName": result.plan_name,
         "isValid": result.is_valid,
         "diagnosticCount": result.diagnostics.len(),
+        "provisionalRowCount": result.row_finalities.iter().filter(|item| item.finality == ComparisonFinality::Provisional).count(),
+        "rowCounts": row_counts_json(result),
         "artifacts": {
             "json": "comparison.json",
             "markdown": "comparison.md",
@@ -240,6 +200,20 @@ fn write_audit_bundle(result: &spanfold::ComparisonResult, out: &str) -> Result<
     fs::write(format!("{out}/manifest.json"), &manifest).map_err(|error| error.to_string())?;
     println!("{manifest}");
     Ok(())
+}
+
+fn row_counts_json(result: &spanfold::ComparisonResult) -> serde_json::Value {
+    serde_json::json!({
+        "overlap": result.overlap_rows.len(),
+        "residual": result.residual_rows.len(),
+        "missing": result.missing_rows.len(),
+        "coverage": result.coverage_rows.len(),
+        "gap": result.gap_rows.len(),
+        "symmetricDifference": result.symmetric_difference_rows.len(),
+        "containment": result.containment_rows.len(),
+        "leadLag": result.lead_lag_rows.len(),
+        "asOf": result.as_of_rows.len()
+    })
 }
 
 fn compare_windows_jsonl(
@@ -298,8 +272,14 @@ fn compare_windows_jsonl(
         comparators: vec![
             Comparator::Overlap,
             Comparator::Residual,
+            Comparator::Missing,
             Comparator::Coverage,
+            Comparator::Gap,
+            Comparator::SymmetricDifference,
         ],
+        known_at: None,
+        open_window_policy: OpenWindowPolicy::RequireClosed,
+        open_window_horizon: None,
         strict: false,
     };
     Ok(compare(&history, &plan))
@@ -383,5 +363,8 @@ mod tests {
         assert_eq!(result.overlap_rows.len(), 1);
         assert_eq!(result.residual_rows.len(), 1);
         assert_eq!(result.coverage_rows.len(), 2);
+        assert_eq!(result.missing_rows.len(), 1);
+        assert_eq!(result.gap_rows.len(), 0);
+        assert_eq!(result.symmetric_difference_rows.len(), 2);
     }
 }

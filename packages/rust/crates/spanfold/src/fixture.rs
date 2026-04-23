@@ -4,8 +4,8 @@ use serde::Deserialize;
 use thiserror::Error;
 
 use crate::{
-    AgainstSelection, Comparator, ComparisonPlan, PrimitiveValue, WindowFilter, WindowHistory,
-    WindowHistoryFixture, compare,
+    AgainstSelection, CohortActivity, Comparator, ComparisonPlan, OpenWindowPolicy, PrimitiveValue,
+    WindowFilter, WindowHistory, WindowHistoryFixture, compare,
 };
 
 /// Fixture loading and validation error.
@@ -120,6 +120,8 @@ struct RawWindow {
     key: String,
     source: Option<String>,
     partition: Option<String>,
+    #[serde(rename = "knownAtPosition")]
+    known_at_position: Option<i64>,
     #[serde(rename = "startPosition")]
     start_position: i64,
     #[serde(rename = "endPosition")]
@@ -154,6 +156,12 @@ struct RawPlan {
     #[serde(rename = "scopeTags", default)]
     scope_tags: Vec<RawNamedValue>,
     comparators: Vec<String>,
+    #[serde(rename = "knownAtPosition")]
+    known_at_position: Option<i64>,
+    #[serde(rename = "liveHorizonPosition")]
+    live_horizon_position: Option<i64>,
+    #[serde(rename = "openWindowHorizonPosition")]
+    open_window_horizon_position: Option<i64>,
     strict: bool,
 }
 
@@ -162,6 +170,7 @@ struct RawAgainstCohort {
     name: String,
     sources: Vec<String>,
     activity: String,
+    count: Option<usize>,
 }
 
 impl TryFrom<RawPlan> for ComparisonPlan {
@@ -169,14 +178,25 @@ impl TryFrom<RawPlan> for ComparisonPlan {
 
     fn try_from(value: RawPlan) -> Result<Self, Self::Error> {
         let against = if let Some(cohort) = value.against_cohort {
-            if cohort.activity != "any" {
+            if cohort.sources.is_empty() {
                 return Err(FixtureError::Validation(
-                    "only againstCohort activity=any is implemented in Rust so far.".to_owned(),
+                    "againstCohort must declare at least one source.".to_owned(),
                 ));
             }
-            AgainstSelection::CohortAny {
+            let activity = parse_cohort_activity(&cohort.activity, cohort.count)?;
+            if activity
+                .count()
+                .is_some_and(|count| count > cohort.sources.len())
+            {
+                return Err(FixtureError::Validation(
+                    "againstCohort activity count cannot exceed the number of declared sources."
+                        .to_owned(),
+                ));
+            }
+            AgainstSelection::Cohort {
                 name: cohort.name,
                 sources: cohort.sources,
+                activity,
             }
         } else if let Some(sources) = value.against_sources {
             AgainstSelection::Sources(sources)
@@ -194,6 +214,10 @@ impl TryFrom<RawPlan> for ComparisonPlan {
             comparators.push(parsed);
         }
 
+        let open_window_horizon = value
+            .live_horizon_position
+            .or(value.open_window_horizon_position);
+
         Ok(ComparisonPlan {
             name: value.name,
             target_source: value.target_source,
@@ -202,8 +226,46 @@ impl TryFrom<RawPlan> for ComparisonPlan {
             scope_segments: into_filters(value.scope_segments),
             scope_tags: into_filters(value.scope_tags),
             comparators,
+            known_at: value.known_at_position.map(crate::TemporalPoint::position),
+            open_window_policy: if open_window_horizon.is_some() {
+                OpenWindowPolicy::ClipToHorizon
+            } else {
+                OpenWindowPolicy::RequireClosed
+            },
+            open_window_horizon: open_window_horizon.map(crate::TemporalPoint::position),
             strict: value.strict,
         })
+    }
+}
+
+fn parse_cohort_activity(
+    activity: &str,
+    count: Option<usize>,
+) -> Result<CohortActivity, FixtureError> {
+    match activity {
+        "any" => Ok(CohortActivity::Any),
+        "all" => Ok(CohortActivity::All),
+        "none" => Ok(CohortActivity::None),
+        "at-least" => {
+            let count = count.ok_or_else(|| {
+                FixtureError::Validation("againstCohort at-least requires count.".to_owned())
+            })?;
+            if count < 1 {
+                return Err(FixtureError::Validation(
+                    "againstCohort at-least count must be greater than zero.".to_owned(),
+                ));
+            }
+            Ok(CohortActivity::AtLeast { count })
+        }
+        "at-most" => Ok(CohortActivity::AtMost {
+            count: count.unwrap_or(0),
+        }),
+        "exactly" => Ok(CohortActivity::Exactly {
+            count: count.unwrap_or(0),
+        }),
+        _ => Err(FixtureError::Validation(format!(
+            "unsupported againstCohort activity: {activity}"
+        ))),
     }
 }
 
@@ -223,6 +285,9 @@ fn apply_window_metadata(
 ) -> crate::WindowHistoryFixtureWindow {
     if let Some(source) = &window.source {
         builder = builder.source(source.clone());
+    }
+    if let Some(known_at_position) = window.known_at_position {
+        builder = builder.known_at_position(known_at_position);
     }
     if let Some(partition) = &window.partition {
         builder = builder.partition(partition.clone());

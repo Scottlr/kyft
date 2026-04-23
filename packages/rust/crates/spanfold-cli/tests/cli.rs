@@ -51,8 +51,30 @@ fn audit_writes_artifact_bundle() {
 
     assert!(fs::exists(out.path().join("comparison.json")).expect("comparison.json status"));
     assert!(fs::exists(out.path().join("comparison.md")).expect("comparison.md status"));
+    assert!(fs::exists(out.path().join("comparison.html")).expect("comparison.html status"));
     assert!(
         fs::exists(out.path().join("comparison.llm.json")).expect("comparison.llm.json status")
     );
     assert!(fs::exists(out.path().join("manifest.json")).expect("manifest.json status"));
+}
+
+#[test]
+fn compare_outputs_llm_context_with_row_documents() {
+    Command::cargo_bin("spanfold")
+        .expect("binary")
+        .args([
+            "compare",
+            fixture_path("basic-overlap.json")
+                .to_str()
+                .expect("utf8 fixture path"),
+            "--format",
+            "llm-context",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "\"schema\": \"spanfold.comparison.llm-context\"",
+        ))
+        .stdout(predicate::str::contains("\"artifact\": \"result-summary\""))
+        .stdout(predicate::str::contains("\"rowId\": \"overlap[0]\""));
 }

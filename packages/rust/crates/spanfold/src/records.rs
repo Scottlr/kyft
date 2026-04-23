@@ -81,6 +81,8 @@ pub struct ClosedWindow {
     pub key: String,
     /// Window temporal range.
     pub range: TemporalRange,
+    /// Availability point used for known-at filtering, when explicitly supplied.
+    pub known_at: Option<TemporalPoint>,
     /// Optional source/lane.
     pub source: Option<String>,
     /// Optional partition.
@@ -102,6 +104,8 @@ pub struct OpenWindow {
     pub key: String,
     /// Window start point.
     pub start: TemporalPoint,
+    /// Availability point used for known-at filtering, when explicitly supplied.
+    pub known_at: Option<TemporalPoint>,
     /// Optional source/lane.
     pub source: Option<String>,
     /// Optional partition.
@@ -141,12 +145,38 @@ impl WindowHistory {
         &self.open
     }
 
-    fn push_closed(&mut self, window: ClosedWindow) {
+    /// Builds a directional source matrix for one recorded window family.
+    #[must_use]
+    pub fn compare_sources(
+        &self,
+        name: &str,
+        window_name: &str,
+        sources: &[String],
+    ) -> crate::SourceMatrixResult {
+        crate::compare_sources(self, name, window_name, sources)
+    }
+
+    /// Compares parent and child window families as a hierarchy explanation.
+    #[must_use]
+    pub fn compare_hierarchy(
+        &self,
+        name: &str,
+        parent_window_name: &str,
+        child_window_name: &str,
+    ) -> crate::HierarchyComparisonResult {
+        crate::compare_hierarchy(self, name, parent_window_name, child_window_name)
+    }
+
+    pub(crate) fn push_closed(&mut self, window: ClosedWindow) {
         self.closed.push(window);
     }
 
-    fn push_open(&mut self, window: OpenWindow) {
+    pub(crate) fn push_open(&mut self, window: OpenWindow) {
         self.open.push(window);
+    }
+
+    pub(crate) fn open_windows_mut(&mut self) -> &mut Vec<OpenWindow> {
+        &mut self.open
     }
 }
 
@@ -184,6 +214,7 @@ impl WindowHistoryFixture {
             window_name: window_name.into(),
             key: key.into(),
             range,
+            known_at: metadata.known_at,
             source: metadata.source,
             partition: metadata.partition,
             segments: metadata.segments,
@@ -208,6 +239,7 @@ impl WindowHistoryFixture {
             window_name: window_name.into(),
             key: key.into(),
             start: TemporalPoint::position(start_position),
+            known_at: metadata.known_at,
             source: metadata.source,
             partition: metadata.partition,
             segments: metadata.segments,
@@ -232,6 +264,7 @@ impl WindowHistoryFixture {
 /// Metadata builder for one fixture window.
 #[derive(Clone, Debug, Default)]
 pub struct WindowHistoryFixtureWindow {
+    known_at: Option<TemporalPoint>,
     source: Option<String>,
     partition: Option<String>,
     segments: Vec<WindowSegment>,
@@ -243,6 +276,13 @@ impl WindowHistoryFixtureWindow {
     #[must_use]
     pub fn source(mut self, source: impl Into<String>) -> Self {
         self.source = Some(source.into());
+        self
+    }
+
+    /// Sets the known-at processing position for the window.
+    #[must_use]
+    pub fn known_at_position(mut self, position: i64) -> Self {
+        self.known_at = Some(TemporalPoint::position(position));
         self
     }
 
