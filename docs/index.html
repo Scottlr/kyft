@@ -135,78 +135,126 @@ python -m pip install -e ".[dev]"</code></pre>
 
       <div class="diagram-grid">
         <article class="diagram-card">
-          <h3>Latest value loses the window</h3>
-          <div class="state-diagram" aria-label="Latest value loses previous active state">
+          <h3>A window, not a flag</h3>
+          <div class="legend-row" aria-hidden="true">
+            <span class="legend-title">Read</span>
+            <span class="legend-chip residual">active range</span>
+            <span class="legend-chip"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent-rust);"></span>event</span>
+          </div>
+          <div class="state-diagram" aria-label="Events open and close a single active window">
             <div class="state-row annotated-row">
-              <span class="row-label">History</span>
+              <span class="row-label">Events</span>
               <span class="timeline">
-                <span class="window warn" style="left: 22%; width: 36%"></span>
-                <span class="point ok" style="left: 78%"></span>
-                <span class="lane-note" style="left: 40%">Unhealthy</span>
+                <span class="point" style="left: 22%"></span>
+                <span class="point ok" style="left: 62%"></span>
+                <span class="lane-note" style="left: 22%">offline at 3</span>
+                <span class="lane-note" style="left: 62%">online at 7</span>
               </span>
             </div>
             <div class="state-row annotated-row">
-              <span class="row-label">Latest</span>
+              <span class="row-label">Window</span>
               <span class="timeline">
-                <span class="point ok" style="left: 78%"></span>
-                <span class="lane-note" style="left: 78%">Healthy</span>
+                <span class="window warn" style="left: 22%; width: 40%"></span>
+              </span>
+            </div>
+            <div class="measure-row">
+              <span class="row-label">Span</span>
+              <span class="measure-track">
+                <span class="measure residual" style="left: 22%; width: 40%">
+                  <span class="measure-label">offline: 4 positions</span>
+                </span>
+              </span>
+            </div>
+            <div class="axis-row">
+              <span class="row-label">Position</span>
+              <span class="axis">
+                <span class="tick" style="left: 2%"></span><span class="tick-label" style="left: 2%">1</span>
+                <span class="tick" style="left: 22%"></span><span class="tick-label" style="left: 22%">3</span>
+                <span class="tick" style="left: 42%"></span><span class="tick-label" style="left: 42%">5</span>
+                <span class="tick" style="left: 62%"></span><span class="tick-label" style="left: 62%">7</span>
+                <span class="tick" style="left: 82%"></span><span class="tick-label" style="left: 82%">9</span>
               </span>
             </div>
           </div>
-          <p>
-            If the current value is healthy, a latest-state table cannot explain
-            that the same key was unhealthy earlier.
+          <p class="diagram-caption">
+            A latest-value table would only show <strong>online</strong> at the end.
+            The window keeps the four-position offline span as the thing you can
+            query, measure, and compare.
           </p>
         </article>
 
         <article class="diagram-card">
-          <h3>Sources disagree over time</h3>
-          <div class="state-diagram" aria-label="Two source lanes with partial overlap">
-            <div class="state-row annotated-row">
-              <span class="row-label">Station</span>
+          <h3>Overlap, residual, missing</h3>
+          <div class="legend-row" aria-hidden="true">
+            <span class="legend-title">Lanes</span>
+            <span class="legend-chip target">Target</span>
+            <span class="legend-chip compare">Against</span>
+          </div>
+          <div class="state-diagram" aria-label="Two source histories align into overlap, target-only, and against-only regions">
+            <div class="state-row">
+              <span class="row-label">Target</span>
               <span class="timeline">
-                <span class="window target" style="left: 16%; width: 50%"></span>
-                <span class="lane-note" style="left: 27%">Station only</span>
-                <span class="lane-note" style="left: 52%">Overlap</span>
+                <span class="window target" style="left: 16%; width: 52%"></span>
               </span>
             </div>
-            <div class="state-row annotated-row">
-              <span class="row-label">Model</span>
+            <div class="state-row">
+              <span class="row-label">Against</span>
               <span class="timeline">
-                <span class="window compare" style="left: 38%; width: 38%"></span>
-                <span class="lane-note" style="left: 71%">Model only</span>
+                <span class="window compare" style="left: 40%; width: 44%"></span>
+              </span>
+            </div>
+            <div class="measure-row">
+              <span class="row-label">Rows</span>
+              <span class="measure-track">
+                <span class="measure residual" style="left: 16%; width: 24%">
+                  <span class="measure-label">residual</span>
+                </span>
+                <span class="measure overlap" style="left: 40%; width: 28%">
+                  <span class="measure-label">overlap</span>
+                </span>
+                <span class="measure missing" style="left: 68%; width: 16%">
+                  <span class="measure-label">missing</span>
+                </span>
               </span>
             </div>
           </div>
-          <p>
-            Comparators emit overlap, residual, missing, coverage, gap,
-            containment, lead/lag, and as-of rows.
+          <p class="diagram-caption">
+            One comparison plan emits three row kinds at once. <strong>Residual</strong>
+            is target-only, <strong>overlap</strong> is agreement, <strong>missing</strong>
+            is against-only. Coverage, gap, containment, lead/lag, and as-of extend the same rows.
           </p>
         </article>
 
         <article class="diagram-card">
-          <h3>Open windows need a horizon</h3>
-          <div class="state-diagram" aria-label="Open window clipped by a live horizon">
+          <h3>Live vs final evidence</h3>
+          <div class="legend-row" aria-hidden="true">
+            <span class="legend-title">Read</span>
+            <span class="legend-chip open">open</span>
+            <span class="legend-chip overlap">provisional row</span>
+            <span class="legend-chip horizon">horizon</span>
+          </div>
+          <div class="state-diagram" aria-label="Open window clipped by a live horizon becomes a provisional row">
             <div class="state-row annotated-row">
               <span class="row-label">Open</span>
               <span class="timeline">
                 <span class="window target dashed" style="left: 28%; width: 54%"></span>
                 <span class="horizon" style="left: 82%"></span>
-                <span class="lane-note" style="left: 55%">Still open</span>
+                <span class="lane-note" style="left: 55%">no close yet</span>
               </span>
             </div>
             <div class="state-row annotated-row">
-              <span class="row-label">View</span>
+              <span class="row-label">Live row</span>
               <span class="timeline">
                 <span class="window overlap" style="left: 28%; width: 54%"></span>
                 <span class="horizon" style="left: 82%"></span>
-                <span class="lane-note" style="left: 55%">Live view</span>
+                <span class="lane-note" style="left: 82%">horizon</span>
               </span>
             </div>
           </div>
-          <p>
-            Live comparisons evaluate still-open windows at an explicit
-            processing position or timestamp and mark provisional rows.
+          <p class="diagram-caption">
+            The horizon is the moment the live run asks its question. Rows derived
+            from windows still open at that moment are <strong>provisional</strong>:
+            they can change, and exports say so.
           </p>
         </article>
       </div>

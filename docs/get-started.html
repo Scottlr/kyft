@@ -86,24 +86,57 @@
         </p>
       </div>
 
-      <div class="quick-timeline" aria-label="Two source windows compared">
-        <div class="quick-row annotated-quick-row">
-          <span>provider-a</span>
-          <span class="quick-track">
-            <span class="quick-window target" style="left: 24%; width: 48%"></span>
-            <span class="quick-note note-residual" style="left: 30%">a-only</span>
-            <span class="quick-note note-overlap" style="left: 48%">overlap</span>
-          </span>
-          <span>offline 3..6</span>
+      <div class="diagram-panel">
+        <div class="legend-row" aria-hidden="true">
+          <span class="legend-title">Lanes</span>
+          <span class="legend-chip target">provider-a</span>
+          <span class="legend-chip compare">provider-b</span>
         </div>
-        <div class="quick-row annotated-quick-row">
-          <span>provider-b</span>
-          <span class="quick-track">
-            <span class="quick-window compare" style="left: 40%; width: 16%"></span>
-            <span class="quick-note note-residual" style="left: 62%">a-only</span>
-          </span>
-          <span>offline 4..5</span>
+        <div class="state-diagram" aria-label="Two provider windows aligned into residual, overlap, and residual rows">
+          <div class="state-row">
+            <span class="row-label">provider-a</span>
+            <span class="timeline">
+              <span class="window target" style="left: 24%; width: 48%"></span>
+            </span>
+          </div>
+          <div class="state-row">
+            <span class="row-label">provider-b</span>
+            <span class="timeline">
+              <span class="window compare" style="left: 40%; width: 16%"></span>
+            </span>
+          </div>
+          <div class="measure-row">
+            <span class="row-label">Rows</span>
+            <span class="measure-track">
+              <span class="measure residual" style="left: 24%; width: 16%">
+                <span class="measure-label">a-only 3..4</span>
+              </span>
+              <span class="measure overlap" style="left: 40%; width: 16%">
+                <span class="measure-label">overlap 4..5</span>
+              </span>
+              <span class="measure residual" style="left: 56%; width: 16%">
+                <span class="measure-label">a-only 5..6</span>
+              </span>
+            </span>
+          </div>
+          <div class="axis-row">
+            <span class="row-label">Position</span>
+            <span class="axis">
+              <span class="tick" style="left: 8%"></span><span class="tick-label" style="left: 8%">1</span>
+              <span class="tick" style="left: 24%"></span><span class="tick-label" style="left: 24%">3</span>
+              <span class="tick" style="left: 40%"></span><span class="tick-label" style="left: 40%">4</span>
+              <span class="tick" style="left: 56%"></span><span class="tick-label" style="left: 56%">5</span>
+              <span class="tick" style="left: 72%"></span><span class="tick-label" style="left: 72%">6</span>
+              <span class="tick" style="left: 88%"></span><span class="tick-label" style="left: 88%">7</span>
+            </span>
+          </div>
         </div>
+        <p class="diagram-caption">
+          Provider A reported offline from <strong>3..6</strong>. Provider B reported
+          <strong>4..5</strong>. The same plan emits the three rows below the lanes:
+          two target-only spans on either side of the agreement, and one shared
+          overlap in the middle.
+        </p>
       </div>
     </section>
 
@@ -259,15 +292,15 @@ a-only device-17: 5..6</code></pre>
       <div class="summary-list grid">
         <a href="visualiser.html">
           <strong>Open visual auditing examples</strong>
-          <span>See how the same overlap and residual rows look as timelines.</span>
+          <span>See the same overlap and residual rows rendered as interactive timelines.</span>
         </a>
         <a href="llm-context.html">
           <strong>Export agentic auditing context</strong>
-          <span>Generate agent-readable JSON with full result data and row evidence.</span>
+          <span>Generate agent-readable JSON with full result data and row-level evidence.</span>
         </a>
         <a href="use-cases.html">
           <strong>Browse use cases</strong>
-          <span>Map temporal windows to monitoring, IoT, logistics, access audit, and pipelines.</span>
+          <span>Map temporal windows to monitoring, IoT, payments, logistics, and data pipelines.</span>
         </a>
         <a href="api.html">
           <strong>Use the API reference</strong>
@@ -275,7 +308,7 @@ a-only device-17: 5..6</code></pre>
         </a>
         <a href="https://github.com/Scottlr/spanfold/tree/main/samples">
           <strong>Run the samples</strong>
-          <span>Start with simple device monitoring, then move into multi-lane scenarios.</span>
+          <span>Start with the single-lane device monitoring sample, then scale up to multi-source scenarios.</span>
         </a>
       </div>
     </section>

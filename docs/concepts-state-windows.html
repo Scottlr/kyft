@@ -78,23 +78,55 @@
           the evidence needed for debugging, audit, and quality checks.
         </p>
       </div>
-      <div class="state-diagram" aria-label="Events becoming a state window">
-        <div class="state-row annotated-row">
-          <span class="row-label">Events</span>
-          <span class="timeline">
-            <span class="point" style="left: 22%"></span>
-            <span class="point ok" style="left: 62%"></span>
-            <span class="lane-note" style="left: 22%">offline</span>
-            <span class="lane-note" style="left: 62%">online</span>
-          </span>
+      <div class="diagram-panel">
+        <div class="legend-row" aria-hidden="true">
+          <span class="legend-title">Read</span>
+          <span class="legend-chip"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent-rust);"></span>predicate true</span>
+          <span class="legend-chip"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent-forest);"></span>predicate false</span>
+          <span class="legend-chip target">recorded window</span>
         </div>
-        <div class="state-row annotated-row">
-          <span class="row-label">Window</span>
-          <span class="timeline">
-            <span class="window target" style="left: 22%; width: 40%"></span>
-            <span class="lane-note" style="left: 42%">active range</span>
-          </span>
+        <div class="state-diagram" aria-label="A predicate transition opens and closes a window">
+          <div class="state-row annotated-row">
+            <span class="row-label">Events</span>
+            <span class="timeline">
+              <span class="point ok" style="left: 8%"></span>
+              <span class="point" style="left: 22%"></span>
+              <span class="point ok" style="left: 62%"></span>
+              <span class="point ok" style="left: 88%"></span>
+              <span class="lane-note" style="left: 22%">isOnline = false</span>
+              <span class="lane-note" style="left: 62%">isOnline = true</span>
+            </span>
+          </div>
+          <div class="state-row">
+            <span class="row-label">Window</span>
+            <span class="timeline">
+              <span class="window target" style="left: 22%; width: 40%"></span>
+            </span>
+          </div>
+          <div class="measure-row">
+            <span class="row-label">Range</span>
+            <span class="measure-track">
+              <span class="measure residual" style="left: 22%; width: 40%">
+                <span class="measure-label">[3, 7) — 4 positions</span>
+              </span>
+            </span>
+          </div>
+          <div class="axis-row">
+            <span class="row-label">Position</span>
+            <span class="axis">
+              <span class="tick" style="left: 8%"></span><span class="tick-label" style="left: 8%">1</span>
+              <span class="tick" style="left: 22%"></span><span class="tick-label" style="left: 22%">3</span>
+              <span class="tick" style="left: 42%"></span><span class="tick-label" style="left: 42%">5</span>
+              <span class="tick" style="left: 62%"></span><span class="tick-label" style="left: 62%">7</span>
+              <span class="tick" style="left: 88%"></span><span class="tick-label" style="left: 88%">10</span>
+            </span>
+          </div>
         </div>
+        <p class="diagram-caption">
+          Two events frame the window. The predicate flipped to true at position
+          3 and back to false at position 7. The recorded range is half-open:
+          <strong>active at 3, no longer active at 7</strong>.
+        </p>
       </div>
     </section>
 

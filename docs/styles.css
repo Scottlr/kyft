@@ -780,6 +780,11 @@ li,
   background: color-mix(in srgb, var(--accent-slate) 16%, transparent);
 }
 
+.window.plum { background: var(--accent-plum); }
+.window.lagoon { background: var(--accent-lagoon); }
+.window.rose { background: var(--accent-rose); }
+.window.residual-amber { background: var(--accent-amber); }
+
 .point {
   top: 1px;
   width: 14px;
@@ -803,6 +808,385 @@ li,
 
 .horizon {
   top: -4px;
+}
+
+/* Diagram kit — used across concept pages for consistent, labeled visuals. */
+
+.diagram-panel {
+  padding: 18px 20px 22px;
+  border: 1px solid color-mix(in srgb, var(--rule) 88%, var(--ink));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 90%, white), var(--bg-card));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 54%, transparent),
+    0 10px 24px color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.diagram-panel .state-diagram {
+  margin: 6px 0 0;
+}
+
+.legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: center;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-card) 70%, white);
+}
+
+.legend-row .legend-title {
+  color: var(--ink-faint);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.legend-chip::before {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border: 1px solid color-mix(in srgb, var(--ink) 26%, transparent);
+  content: "";
+}
+
+.legend-chip.target::before { background: var(--accent-slate); }
+.legend-chip.compare::before { background: var(--accent-forest); }
+.legend-chip.overlap::before { background: var(--accent-forest); }
+.legend-chip.residual::before { background: var(--accent-rust); }
+.legend-chip.residual-amber::before { background: var(--accent-amber); }
+.legend-chip.missing::before { background: var(--accent-amber); }
+.legend-chip.open::before {
+  background: color-mix(in srgb, var(--accent-slate) 16%, transparent);
+  border: 2px dashed var(--accent-slate);
+  height: 12px;
+}
+.legend-chip.horizon::before {
+  width: 2px;
+  height: 14px;
+  border: 0;
+  background: var(--ink);
+}
+.legend-chip.plum::before { background: var(--accent-plum); }
+.legend-chip.lagoon::before { background: var(--accent-lagoon); }
+.legend-chip.rose::before { background: var(--accent-rose); }
+
+/* Axis ticks below a timeline lane */
+.axis-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.axis-row .row-label {
+  color: var(--ink-faint);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.axis {
+  position: relative;
+  height: 18px;
+  margin-top: 2px;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 32%, transparent);
+}
+
+.axis .tick {
+  position: absolute;
+  top: -1px;
+  width: 1px;
+  height: 6px;
+  background: color-mix(in srgb, var(--ink) 42%, transparent);
+  transform: translateX(-50%);
+}
+
+.axis .tick-label {
+  position: absolute;
+  top: 6px;
+  color: var(--ink-muted);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
+}
+
+/* Measurement bracket rendered below a lane to show a span value. */
+.measure-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+  min-height: 26px;
+}
+
+.measure-row .row-label {
+  color: var(--ink-faint);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.measure-track {
+  position: relative;
+  height: 22px;
+}
+
+.measure {
+  position: absolute;
+  top: 0;
+  height: 12px;
+  border-top: 2px solid var(--ink-muted);
+  border-right: 2px solid var(--ink-muted);
+  border-left: 2px solid var(--ink-muted);
+  border-bottom: 0;
+  pointer-events: none;
+}
+
+.measure .measure-label {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  padding: 0 6px;
+  background: var(--bg-card);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.measure.overlap { border-color: var(--accent-forest); }
+.measure.overlap .measure-label { color: var(--accent-forest); }
+.measure.residual { border-color: var(--accent-rust); }
+.measure.residual .measure-label { color: var(--accent-rust); }
+.measure.missing { border-color: var(--accent-amber); }
+.measure.missing .measure-label { color: var(--accent-amber); }
+.measure.gap { border-color: var(--accent-plum); border-style: dashed; }
+.measure.gap .measure-label { color: var(--accent-plum); }
+
+/* Inline value reading over a window (e.g. a numeric sample). */
+.window-value {
+  position: absolute;
+  top: -16px;
+  z-index: 3;
+  padding: 0 4px;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+/* Threshold reference line across the whole timeline. */
+.threshold {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  height: 0;
+  border-top: 1.5px dashed var(--accent-rose);
+  pointer-events: none;
+}
+
+.threshold-label {
+  position: absolute;
+  top: -14px;
+  right: 0;
+  color: var(--accent-rose);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* Narrative caption read aloud: sits below a diagram as plain-English hint. */
+.diagram-caption {
+  margin: 18px 0 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.diagram-caption strong { color: var(--ink); font-weight: 780; }
+
+/* Source matrix — compact labeled grid for directional pairwise comparisons. */
+.matrix-grid {
+  display: grid;
+  grid-template-columns: 88px repeat(4, minmax(0, 1fr));
+  gap: 3px;
+  margin: 6px 0 0;
+  padding: 10px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-panel) 60%, var(--bg-card));
+}
+
+.matrix-grid .mx-corner,
+.matrix-grid .mx-col-head,
+.matrix-grid .mx-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.matrix-grid .mx-row-head {
+  justify-content: flex-end;
+  padding-right: 10px;
+}
+
+.matrix-grid .mx-cell {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 8px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--ink);
+  text-align: center;
+}
+
+.matrix-grid .mx-cell .mx-ratio {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix-grid .mx-cell .mx-hint {
+  color: var(--ink-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.matrix-grid .mx-cell.diag {
+  background: color-mix(in srgb, var(--ink-faint) 14%, var(--bg-card));
+  color: var(--ink-faint);
+}
+
+.matrix-grid .mx-cell.good {
+  border-color: color-mix(in srgb, var(--accent-forest) 45%, var(--rule));
+  background: color-mix(in srgb, var(--accent-forest) 9%, var(--bg-card));
+}
+
+.matrix-grid .mx-cell.warn {
+  border-color: color-mix(in srgb, var(--accent-rust) 50%, var(--rule));
+  background: color-mix(in srgb, var(--accent-rust) 10%, var(--bg-card));
+}
+
+.matrix-grid .mx-cell.bad {
+  border-color: color-mix(in srgb, var(--accent-rose) 60%, var(--rule));
+  background: color-mix(in srgb, var(--accent-rose) 13%, var(--bg-card));
+}
+
+/* Parent/child explanation connectors (hierarchy page). */
+.explain-link {
+  position: absolute;
+  top: 100%;
+  z-index: 1;
+  height: 12px;
+  border-top: 0;
+  border-right: 1px dashed color-mix(in srgb, var(--accent-forest) 65%, transparent);
+  border-bottom: 1px dashed color-mix(in srgb, var(--accent-forest) 65%, transparent);
+  border-left: 1px dashed color-mix(in srgb, var(--accent-forest) 65%, transparent);
+  pointer-events: none;
+}
+
+.explain-link.unexplained {
+  border-color: color-mix(in srgb, var(--accent-rose) 70%, transparent);
+}
+
+/* Compact formula panel shown next to a diagram (advanced analytics). */
+.formula {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-card) 78%, white);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.formula .formula-label {
+  color: var(--ink-muted);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.formula em {
+  color: var(--ink-muted);
+  font-style: normal;
+}
+
+.formula .operator { color: var(--ink-muted); }
+.formula .target { color: var(--accent-slate); }
+.formula .compare { color: var(--accent-forest); }
+.formula .result { color: var(--accent-plum); font-weight: 700; }
+
+/* Sequence of diagram stages with arrows between them. */
+.stage-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 10px 0 0;
+}
+
+.stage-flow .stage-card {
+  padding: 16px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+
+.stage-flow .stage-card .stage-kicker {
+  margin: 0 0 8px;
+  color: var(--accent-forest);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stage-flow .stage-card h4 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.stage-flow .stage-card p {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .two-col {
@@ -1365,6 +1749,23 @@ pre .hljs-comment {
 
   .quick-row {
     grid-template-columns: 1fr;
+  }
+
+  .matrix-grid {
+    grid-template-columns: 70px repeat(4, minmax(0, 1fr));
+    padding: 8px;
+  }
+
+  .matrix-grid .mx-cell {
+    padding: 6px 2px;
+  }
+
+  .matrix-grid .mx-cell .mx-ratio { font-size: 12px; }
+  .matrix-grid .mx-cell .mx-hint { font-size: 9px; }
+
+  .axis-row,
+  .measure-row {
+    grid-template-columns: 64px minmax(0, 1fr);
   }
 }
 

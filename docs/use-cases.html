@@ -60,8 +60,9 @@
     <section class="page-hero compact">
       <h1>Interval use cases.</h1>
       <p class="lead">
-        Use windows when you need to keep the shape of state over time: sources,
-        keys, phases, thresholds, and known-at boundaries.
+        Seven scenarios where latest-state is not enough — where the shape of
+        state over time (sources, keys, phases, thresholds, and known-at
+        boundaries) is the evidence you actually need.
       </p>
     </section>
 
@@ -90,7 +91,7 @@
           <p>
             Record over-temperature, vibration, stale sensor, calibration, or
             safety-interlock windows. Segment by site, unit, operating mode, or
-            maintenance period without losing the raw active ranges.
+            maintenance period without collapsing the original active ranges.
           </p>
         </div>
         <div class="mini-graph" aria-label="IoT segmented timeline">
@@ -105,9 +106,9 @@
           <p class="eyebrow">Weather and numeric thresholds</p>
           <h2>When did a reading stay inside or outside a range?</h2>
           <p>
-            Treat numeric values as window predicates: temperature above 23.5 C,
+            Treat numeric values as window predicates: temperature above 23.5&nbsp;°C,
             humidity inside a comfort band, wind gusts over a limit, or pressure
-            changes sustained for long enough to matter.
+            changes sustained past a tolerance.
           </p>
         </div>
         <div class="mini-graph" aria-label="Weather temperature timeline">
@@ -154,11 +155,11 @@
       <article id="distributed-systems">
         <div>
           <p class="eyebrow">Distributed systems</p>
-          <h2>Did a quorum really observe the same state?</h2>
+          <h2>Did a quorum observe the same state?</h2>
           <p>
-            Collapse several lanes into a cohort and compare against a primary
-            lane. Useful for replication, quorum health, failover, leader
-            elections, and cross-region state agreement.
+            Collapse several member lanes into one cohort and compare against
+            a primary lane. Useful for replication audits, quorum health,
+            failover, leader elections, and cross-region state agreement.
           </p>
         </div>
         <div class="mini-graph" aria-label="Distributed systems quorum timeline">
