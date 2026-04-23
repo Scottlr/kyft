@@ -86,7 +86,25 @@ dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- validate-plan fixtu
 dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- compare fixture.json --format json # Execute and export JSON.
 dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- compare fixture.json --format llm-context # Execute and export agent-readable context.
 dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- explain fixture.json # Execute and export Markdown.
+dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- audit fixture.json --out artifacts/spanfold-audit # Write JSON, Markdown, debug HTML, LLM context, and a manifest.
 ```
+
+For lower-setup audits, use flat JSON Lines where each line is one recorded
+window. This avoids writing the full fixture envelope and plan by hand.
+
+```json
+{"key":"device-1","source":"provider-a","startPosition":1,"endPosition":5}
+{"key":"device-1","source":"provider-b","startPosition":3,"endPosition":7}
+```
+
+```bash
+dotnet run --project src/Spanfold.Cli/Spanfold.Cli.csproj -- audit-windows windows.jsonl --window DeviceOffline --target provider-a --against provider-b --out artifacts/spanfold-audit
+```
+
+`audit-windows` accepts optional `windowName`, `partition`, `segments`, and
+`tags` fields on each JSONL row using the same names as fixture windows. Use
+`--comparators overlap,residual,coverage`, repeated `--against` values, and
+`--live-horizon-position 100` when needed.
 
 The CLI validates required fixture properties before execution and returns JSON
 diagnostics on standard error for malformed fixtures.

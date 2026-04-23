@@ -3,7 +3,10 @@ obj/
 artifacts/
 TestResults/
 /discovery/
+/specs/proposals/
 /specs/
+/packages/rust/specs/
+/packages/rust/target/
 
 *.user
 *.suo

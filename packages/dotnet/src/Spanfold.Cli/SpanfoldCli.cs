@@ -17,7 +17,7 @@ public static class SpanfoldCli
         {
             if (args.Length < 2)
             {
-                WriteError(stderr, "Usage: spanfold <validate-plan|compare|explain> <fixture.json> [--format json|markdown|llm-context]");
+                WriteError(stderr, "Usage: spanfold <validate-plan|compare|explain|audit> <fixture.json> [--format json|markdown|llm-context] [--out directory] or spanfold audit-windows <windows.jsonl> --target source --against source --out directory [--window name]");
                 return 2;
             }
 
@@ -28,11 +28,24 @@ public static class SpanfoldCli
                 return 2;
             }
 
+            if (string.Equals(command, "audit-windows", StringComparison.Ordinal))
+            {
+                var windowResult = ExecuteWindowJsonLines(args);
+                stdout.Write(WriteAuditBundle(windowResult, ReadRequiredOption(args, "--out")));
+                return windowResult.IsValid ? 0 : 1;
+            }
+
             var fixturePath = args[1];
             var format = ReadFormat(args);
             using var fixture = JsonDocument.Parse(File.ReadAllText(fixturePath));
             ValidateFixture(fixture.RootElement);
             var result = ExecuteFixture(fixture.RootElement);
+
+            if (string.Equals(command, "audit", StringComparison.Ordinal))
+            {
+                stdout.Write(WriteAuditBundle(result, ReadRequiredOption(args, "--out")));
+                return result.IsValid ? 0 : 1;
+            }
 
             if (string.Equals(command, "validate-plan", StringComparison.Ordinal))
             {
@@ -70,7 +83,9 @@ public static class SpanfoldCli
     {
         return string.Equals(command, "validate-plan", StringComparison.Ordinal)
             || string.Equals(command, "compare", StringComparison.Ordinal)
-            || string.Equals(command, "explain", StringComparison.Ordinal);
+            || string.Equals(command, "explain", StringComparison.Ordinal)
+            || string.Equals(command, "audit", StringComparison.Ordinal)
+            || string.Equals(command, "audit-windows", StringComparison.Ordinal);
     }
 
     private static string ReadFormat(string[] args)
@@ -92,6 +107,51 @@ public static class SpanfoldCli
         }
 
         return "json";
+    }
+
+    private static string? ReadOptionalOption(string[] args, string optionName)
+    {
+        for (var i = 2; i < args.Length - 1; i++)
+        {
+            if (string.Equals(args[i], optionName, StringComparison.Ordinal))
+            {
+                return string.IsNullOrWhiteSpace(args[i + 1]) ? null : args[i + 1];
+            }
+        }
+
+        return null;
+    }
+
+    private static string ReadRequiredOption(string[] args, string optionName)
+    {
+        for (var i = 2; i < args.Length - 1; i++)
+        {
+            if (string.Equals(args[i], optionName, StringComparison.Ordinal))
+            {
+                ArgumentException.ThrowIfNullOrWhiteSpace(args[i + 1]);
+                return args[i + 1];
+            }
+        }
+
+        throw new ArgumentException("The command requires " + optionName + " <value>.");
+    }
+
+    private static IReadOnlyList<string> ReadOptionValues(string[] args, string optionName)
+    {
+        var values = new List<string>();
+        for (var i = 2; i < args.Length - 1; i++)
+        {
+            if (!string.Equals(args[i], optionName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            values.AddRange(args[i + 1]
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(static value => value.Length > 0));
+        }
+
+        return values;
     }
 
     private static ComparisonResult ExecuteFixture(JsonElement fixture)
@@ -117,6 +177,116 @@ public static class SpanfoldCli
         return liveHorizon.HasValue
             ? builder.RunLive(liveHorizon.Value)
             : builder.Run();
+    }
+
+    private static ComparisonResult ExecuteWindowJsonLines(string[] args)
+    {
+        var path = args[1];
+        var target = ReadRequiredOption(args, "--target");
+        var againstSources = ReadOptionValues(args, "--against");
+        if (againstSources.Count == 0)
+        {
+            throw new ArgumentException("The audit-windows command requires --against <source>.");
+        }
+
+        var windowName = ReadOptionalOption(args, "--window");
+        var comparators = ReadOptionValues(args, "--comparators");
+        if (comparators.Count == 0)
+        {
+            comparators = ["overlap", "residual", "coverage"];
+        }
+
+        var history = CreateHistoryFromWindowJsonLines(path, windowName);
+        var comparisonName = ReadOptionalOption(args, "--name") ?? "Spanfold Window Audit";
+        var builder = history.Compare(comparisonName)
+            .Target(target, selector => selector.Source(target));
+
+        foreach (var source in againstSources)
+        {
+            builder.Against(source, selector => selector.Source(source));
+        }
+
+        var scope = string.IsNullOrWhiteSpace(windowName)
+            ? ComparisonScope.All()
+            : ComparisonScope.Window(windowName);
+
+        builder = builder
+            .Within(_ => scope)
+            .Using(_ => BuildComparators(comparators))
+            .StrictIf(HasFlag(args, "--strict"));
+
+        var horizon = ReadOptionalOption(args, "--live-horizon-position");
+        return horizon is null
+            ? builder.Run()
+            : builder.RunLive(TemporalPoint.ForPosition(long.Parse(horizon, CultureInfo.InvariantCulture)));
+    }
+
+    private static WindowHistory CreateHistoryFromWindowJsonLines(string path, string? defaultWindowName)
+    {
+        var builder = new WindowHistoryFixtureBuilder();
+        var lineNumber = 0;
+        foreach (var line in File.ReadLines(path))
+        {
+            lineNumber++;
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            using var document = JsonDocument.Parse(line);
+            var window = document.RootElement;
+            RequireKind(window, "$", JsonValueKind.Object);
+            var windowName = window.TryGetProperty("windowName", out var rowWindowName)
+                && rowWindowName.ValueKind != JsonValueKind.Null
+                    ? rowWindowName.GetString()
+                    : defaultWindowName;
+            if (string.IsNullOrWhiteSpace(windowName))
+            {
+                throw new ArgumentException("windows.jsonl line " + lineNumber.ToString(CultureInfo.InvariantCulture) + " must include windowName or use --window.");
+            }
+
+            var key = RequireProperty(window, "key", "$", JsonValueKind.String).GetString()!;
+            var source = RequireProperty(window, "source", "$", JsonValueKind.String).GetString();
+            var startPosition = RequireProperty(window, "startPosition", "$", JsonValueKind.Number).GetInt64();
+            var partition = window.TryGetProperty("partition", out var partitionProperty)
+                && partitionProperty.ValueKind != JsonValueKind.Null
+                    ? partitionProperty.GetString()
+                    : null;
+            var segments = ReadSegments(window);
+            var tags = ReadTags(window);
+            if (!window.TryGetProperty("endPosition", out var endPosition)
+                || endPosition.ValueKind == JsonValueKind.Null)
+            {
+                builder.AddOpenWindow(windowName, key, startPosition, source, partition, segments, tags);
+                continue;
+            }
+
+            RequireKind(endPosition, "$.endPosition", JsonValueKind.Number);
+            builder.AddClosedWindow(
+                windowName,
+                key,
+                startPosition,
+                endPosition.GetInt64(),
+                source,
+                partition,
+                segments,
+                tags);
+        }
+
+        return builder.Build();
+    }
+
+    private static bool HasFlag(string[] args, string flag)
+    {
+        for (var i = 2; i < args.Length; i++)
+        {
+            if (string.Equals(args[i], flag, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static WindowHistory CreateHistory(JsonElement windows)
@@ -354,6 +524,65 @@ public static class SpanfoldCli
         writer.Write("]}");
     }
 
+    private static string WriteAuditBundle(ComparisonResult result, string outputDirectory)
+    {
+        var fullDirectory = Path.GetFullPath(outputDirectory);
+        Directory.CreateDirectory(fullDirectory);
+
+        const string jsonFileName = "comparison.json";
+        const string markdownFileName = "comparison.md";
+        const string debugHtmlFileName = "comparison.html";
+        const string llmContextFileName = "comparison.llm.json";
+        const string manifestFileName = "manifest.json";
+
+        File.WriteAllText(Path.Combine(fullDirectory, jsonFileName), result.ExportJson());
+        File.WriteAllText(Path.Combine(fullDirectory, markdownFileName), result.ExportMarkdown());
+        File.WriteAllText(Path.Combine(fullDirectory, debugHtmlFileName), result.ExportDebugHtml());
+        File.WriteAllText(Path.Combine(fullDirectory, llmContextFileName), result.ExportLlmContext());
+
+        var manifest = ExportAuditManifest(
+            result,
+            new AuditArtifacts(
+                jsonFileName,
+                markdownFileName,
+                debugHtmlFileName,
+                llmContextFileName,
+                manifestFileName));
+        File.WriteAllText(Path.Combine(fullDirectory, manifestFileName), manifest);
+        return manifest;
+    }
+
+    private static string ExportAuditManifest(ComparisonResult result, AuditArtifacts artifacts)
+    {
+        var manifest = new AuditManifest(
+            "spanfold.audit.bundle",
+            0,
+            "audit-bundle",
+            result.Plan.Name,
+            result.IsValid,
+            result.Diagnostics.Count,
+            result.RowFinalities.Count(static row => row.Finality == ComparisonFinality.Provisional),
+            new AuditRowCounts(
+                result.OverlapRows.Count,
+                result.ResidualRows.Count,
+                result.MissingRows.Count,
+                result.CoverageRows.Count,
+                result.GapRows.Count,
+                result.SymmetricDifferenceRows.Count,
+                result.ContainmentRows.Count,
+                result.LeadLagRows.Count,
+                result.AsOfRows.Count),
+            artifacts);
+
+        return JsonSerializer.Serialize(
+            manifest,
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            });
+    }
+
     private static void WriteError(TextWriter writer, string message)
     {
         writer.Write("{\"error\":");
@@ -570,6 +799,35 @@ public static class SpanfoldCli
         throw new ArgumentException(path + " has unsupported JSON kind " + element.ValueKind + ".");
     }
 }
+
+internal sealed record AuditManifest(
+    string Schema,
+    int SchemaVersion,
+    string Artifact,
+    string PlanName,
+    bool IsValid,
+    int DiagnosticCount,
+    int ProvisionalRowCount,
+    AuditRowCounts RowCounts,
+    AuditArtifacts Artifacts);
+
+internal sealed record AuditRowCounts(
+    int Overlap,
+    int Residual,
+    int Missing,
+    int Coverage,
+    int Gap,
+    int SymmetricDifference,
+    int Containment,
+    int LeadLag,
+    int AsOf);
+
+internal sealed record AuditArtifacts(
+    string Json,
+    string Markdown,
+    string DebugHtml,
+    string LlmContext,
+    string Manifest);
 
 internal static class WindowComparisonBuilderCliExtensions
 {

@@ -121,7 +121,8 @@ Implemented now:
   context exports
 - configured debug HTML and LLM context export options for `run()` and
   `run_live()`
-- fixture CLI with `validate-plan`, `compare`, and `explain`
+- fixture CLI with `validate-plan`, `compare`, `explain`, `audit`, and
+  lower-setup JSONL `audit-windows`
 - testing helpers for fixtures, snapshots, assertions, and virtual clocks
 - benchmark harness covering ingestion, comparison preparation/alignment,
   comparator execution, live residuals, exports, and segment/cohort scenarios

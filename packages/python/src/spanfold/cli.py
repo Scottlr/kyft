@@ -21,19 +21,28 @@ def run(args: Sequence[str], stdout: TextIO, stderr: TextIO) -> int:
         if len(args) < 2:
             _write_error(
                 stderr,
-                "Usage: spanfold <validate-plan|compare|explain> "
-                "<fixture.json> [--format json|markdown|llm-context]",
+                "Usage: spanfold <validate-plan|compare|explain|audit> "
+                "<fixture.json> [--format json|markdown|llm-context] [--out directory] "
+                "or spanfold audit-windows <windows.jsonl> --target source "
+                "--against source --out directory [--window name]",
             )
             return 2
         command = args[0]
-        if command not in {"validate-plan", "compare", "explain"}:
+        if command not in {"validate-plan", "compare", "explain", "audit", "audit-windows"}:
             _write_error(stderr, f"Unknown command: {command}")
             return 2
+        if command == "audit-windows":
+            result = _execute_window_json_lines(args)
+            stdout.write(_write_audit_bundle(result, _read_required_option(args, "--out")))
+            return 0 if result.is_valid else 1
         output_format = _read_format(args)
         fixture = json.loads(Path(args[1]).read_text(encoding="utf-8"))
         _validate_fixture(fixture)
         result = _execute_fixture(fixture)
 
+        if command == "audit":
+            stdout.write(_write_audit_bundle(result, _read_required_option(args, "--out")))
+            return 0 if result.is_valid else 1
         if command == "validate-plan":
             stdout.write(
                 json.dumps(
@@ -76,6 +85,172 @@ def _read_format(args: Sequence[str]) -> str:
             raise ValueError(msg)
         return output_format
     return "json"
+
+
+def _read_optional_option(args: Sequence[str], option_name: str) -> str | None:
+    for index in range(2, len(args) - 1):
+        if args[index] == option_name:
+            value = args[index + 1].strip()
+            return value or None
+    return None
+
+
+def _read_required_option(args: Sequence[str], option_name: str) -> str:
+    for index in range(2, len(args) - 1):
+        if args[index] == option_name:
+            value = args[index + 1]
+            if not value.strip():
+                msg = f"The command requires {option_name} <value>."
+                raise ValueError(msg)
+            return value
+    msg = f"The command requires {option_name} <value>."
+    raise ValueError(msg)
+
+
+def _read_option_values(args: Sequence[str], option_name: str) -> list[str]:
+    values: list[str] = []
+    for index in range(2, len(args) - 1):
+        if args[index] != option_name:
+            continue
+        values.extend(value.strip() for value in args[index + 1].split(",") if value.strip())
+    return values
+
+
+def _has_flag(args: Sequence[str], flag: str) -> bool:
+    return any(value == flag for value in args[2:])
+
+
+def _write_audit_bundle(result: Any, output_directory: str) -> str:
+    directory = Path(output_directory).resolve()
+    directory.mkdir(parents=True, exist_ok=True)
+
+    json_file_name = "comparison.json"
+    markdown_file_name = "comparison.md"
+    debug_html_file_name = "comparison.html"
+    llm_context_file_name = "comparison.llm.json"
+    manifest_file_name = "manifest.json"
+
+    result.export_json(directory / json_file_name)
+    result.export_markdown(directory / markdown_file_name)
+    result.export_debug_html(directory / debug_html_file_name)
+    result.export_llm_context(directory / llm_context_file_name)
+
+    manifest = _export_audit_manifest(
+        result,
+        {
+            "json": json_file_name,
+            "markdown": markdown_file_name,
+            "debugHtml": debug_html_file_name,
+            "llmContext": llm_context_file_name,
+            "manifest": manifest_file_name,
+        },
+    )
+    (directory / manifest_file_name).write_text(manifest, encoding="utf-8")
+    return manifest
+
+
+def _export_audit_manifest(result: Any, artifacts: dict[str, str]) -> str:
+    payload = {
+        "schema": "spanfold.audit.bundle",
+        "schemaVersion": 0,
+        "artifact": "audit-bundle",
+        "planName": result.name,
+        "isValid": result.is_valid,
+        "diagnosticCount": len(result.diagnostic_rows),
+        "provisionalRowCount": len(result.provisional_row_finalities()),
+        "rowCounts": {
+            "overlap": len(result.overlap_rows),
+            "residual": len(result.residual_rows),
+            "missing": len(result.missing_rows),
+            "coverage": len(result.coverage_rows),
+            "gap": len(result.gap_rows),
+            "symmetricDifference": len(result.symmetric_difference_rows),
+            "containment": len(result.containment_rows),
+            "leadLag": len(result.lead_lag_rows),
+            "asOf": len(result.as_of_rows),
+        },
+        "artifacts": artifacts,
+    }
+    return json.dumps(payload, indent=2, sort_keys=True)
+
+
+def _execute_window_json_lines(args: Sequence[str]) -> Any:
+    target = _read_required_option(args, "--target")
+    against_sources = _read_option_values(args, "--against")
+    if not against_sources:
+        msg = "The audit-windows command requires --against <source>."
+        raise ValueError(msg)
+    window_name = _read_optional_option(args, "--window")
+    comparators = _read_option_values(args, "--comparators") or [
+        "overlap",
+        "residual",
+        "coverage",
+    ]
+    history = _create_history_from_window_json_lines(Path(args[1]), window_name)
+    builder = history.compare(_read_optional_option(args, "--name") or "Spanfold Window Audit")
+    builder.target(target)
+    for source in against_sources:
+        builder.against(source)
+    builder.within(window_name=window_name).using(*comparators)
+    if _has_flag(args, "--strict"):
+        builder.strict()
+    horizon = _read_optional_option(args, "--live-horizon-position")
+    if horizon is not None:
+        return builder.run_live(TemporalPoint.for_position(int(horizon)))
+    return builder.run()
+
+
+def _create_history_from_window_json_lines(
+    path: Path,
+    default_window_name: str | None,
+) -> WindowHistory:
+    builder = WindowHistoryFixtureBuilder()
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        window = json.loads(line)
+        if not isinstance(window, dict):
+            msg = f"windows.jsonl line {line_number} must be an object."
+            raise ValueError(msg)
+        window_name = window.get("windowName") or default_window_name
+        if not isinstance(window_name, str) or not window_name.strip():
+            msg = f"windows.jsonl line {line_number} must include windowName or use --window."
+            raise ValueError(msg)
+        key = _require(window, "key", str, "$")
+        source = _require(window, "source", str, "$")
+        start_position = _require(window, "startPosition", int, "$")
+        partition = window.get("partition")
+        if partition is not None and not isinstance(partition, str):
+            msg = f"windows.jsonl line {line_number} partition must be a string or null."
+            raise ValueError(msg)
+        segments = _read_segments(window)
+        tags = _read_tags(window)
+        end_position = window.get("endPosition")
+        if end_position is None:
+            builder.add_open_window(
+                window_name,
+                key,
+                start_position,
+                source=source,
+                partition=partition,
+                segments=segments,
+                tags=tags,
+            )
+            continue
+        if not isinstance(end_position, int):
+            msg = f"windows.jsonl line {line_number} endPosition must be a number or null."
+            raise ValueError(msg)
+        builder.add_closed_window(
+            window_name,
+            key,
+            start_position,
+            end_position,
+            source=source,
+            partition=partition,
+            segments=segments,
+            tags=tags,
+        )
+    return builder.build()
 
 
 def _execute_fixture(fixture: dict[str, Any]) -> Any:

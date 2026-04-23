@@ -1,0 +1,19 @@
+[workspace]
+members = [
+    "crates/spanfold",
+    "crates/spanfold-cli",
+]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+repository = "https://github.com/Scottlr/Spanfold"
+authors = ["Spanfold contributors"]
+
+[workspace.dependencies]
+clap = { version = "4.6.1", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+thiserror = "2.0.17"

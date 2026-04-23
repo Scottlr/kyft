@@ -1,0 +1,24 @@
+[package]
+name = "spanfold-cli"
+version = "0.0.0"
+description = "Production high-throughput CLI for Spanfold temporal evidence workflows."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "spanfold"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+spanfold = { path = "../spanfold" }
+
+[dev-dependencies]
+assert_cmd = "2.1.1"
+predicates = "3.1.3"
+tempfile = "3.23.0"
