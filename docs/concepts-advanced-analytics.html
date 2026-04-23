@@ -59,262 +59,360 @@
   <main>
     <section class="page-hero compact">
       <p class="eyebrow">Concepts</p>
-      <h1>Ask deeper interval questions.</h1>
+      <h1>Compose multi-stage temporal evidence.</h1>
       <p class="lead">
-        Once windows are aligned, Spanfold can measure agreement, divergence,
-        timing, containment, coverage, point-in-time matches, and live finality
-        without hand-written interval joins.
+        Once windows are aligned, comparators can reason about nested
+        containment, coverage with exclusions, transition drift, replay-safe
+        audits, and live provisional rows without hand-written interval joins.
       </p>
     </section>
 
-    <section class="doc-section two-col">
-      <div>
-        <p class="eyebrow">Problem</p>
-        <h2>Advanced questions usually start as interval joins.</h2>
+    <section class="doc-section">
+      <div class="section-heading">
+        <p class="eyebrow">Scenario</p>
+        <h2>A realistic audit has five things happening at once.</h2>
         <p>
-          A provider comparison, SLA audit, or incident review rarely needs one
-          number. It needs to know which source was active, which source was
-          silent, which ranges overlapped, where coverage disappeared, and what
-          was knowable when a decision was made.
+          Real comparisons rarely produce a single clean overlap. A primary and
+          a backup see different parts of the same outage. A maintenance window
+          partly excludes the outage from the SLA. The incident escalates
+          mid-range, so measurements before and after the boundary must be
+          reported separately. The backup briefly drops out. And the dashboard
+          still has to serve a live number while the window is still open.
         </p>
       </div>
-      <div>
-        <p>
-          Hand-written interval joins tend to mix those concerns together:
-          filtering, clipping, source alignment, null handling, row labeling,
-          finality, and summary math all end up in one query. Spanfold keeps the
-          interpretation step separate. First record windows with stable ids and
-          context. Then compose comparator row families over those windows.
-        </p>
-        <p>
-          The result is still granular. Coverage ratios and lead/lag summaries
-          are derived from rows that carry the original window ids, ranges,
-          source names, segments, tags, and finality.
+      <div class="diagram-panel">
+        <div class="legend-row" aria-hidden="true">
+          <span class="legend-title">Scenario</span>
+          <span class="legend-chip lagoon">maintenance</span>
+          <span class="legend-chip target">primary (target)</span>
+          <span class="legend-chip compare">backup (covers)</span>
+          <span class="legend-chip residual">uncovered</span>
+          <span class="legend-chip overlap">eligible coverage</span>
+        </div>
+        <div class="state-diagram" aria-label="One audit combining containment, coverage, gap, and segment boundaries">
+          <div class="state-row annotated-row">
+            <span class="row-label">maintenance</span>
+            <span class="timeline">
+              <span class="window lagoon" style="left: 28%; width: 14%"></span>
+              <span class="lane-note" style="left: 35%">planned — excluded from SLA</span>
+            </span>
+          </div>
+          <div class="state-row annotated-row">
+            <span class="row-label">primary</span>
+            <span class="timeline">
+              <span class="window target" style="left: 14%; width: 68%"></span>
+              <span class="lane-note" style="left: 22%">opened first</span>
+            </span>
+          </div>
+          <div class="state-row annotated-row">
+            <span class="row-label">backup</span>
+            <span class="timeline">
+              <span class="window compare" style="left: 22%; width: 40%"></span>
+              <span class="window compare" style="left: 68%; width: 14%"></span>
+              <span class="lane-note" style="left: 65%">dropped</span>
+            </span>
+          </div>
+          <div class="state-row annotated-row">
+            <span class="row-label">lifecycle</span>
+            <span class="timeline">
+              <span class="window residual-amber" style="left: 14%; width: 34%"></span>
+              <span class="window rose" style="left: 48%; width: 34%"></span>
+              <span class="lane-note" style="left: 31%">triage</span>
+              <span class="lane-note" style="left: 65%">escalated</span>
+            </span>
+          </div>
+          <div class="measure-row">
+            <span class="row-label">SLA band</span>
+            <span class="measure-track">
+              <span class="measure residual" style="left: 14%; width: 8%">
+                <span class="measure-label">pre-backup</span>
+              </span>
+              <span class="measure overlap" style="left: 22%; width: 6%">
+                <span class="measure-label">covered</span>
+              </span>
+              <span class="measure gap" style="left: 28%; width: 14%">
+                <span class="measure-label">excluded (maintenance)</span>
+              </span>
+              <span class="measure overlap" style="left: 42%; width: 20%">
+                <span class="measure-label">covered</span>
+              </span>
+              <span class="measure residual" style="left: 62%; width: 6%">
+                <span class="measure-label">backup dropped</span>
+              </span>
+              <span class="measure overlap" style="left: 68%; width: 14%">
+                <span class="measure-label">covered</span>
+              </span>
+            </span>
+          </div>
+        </div>
+        <div class="formula">
+          <span class="formula-label">Derived measures</span>
+          <span><em>eligible</em> = <span class="target">primary</span> <span class="operator">−</span> (<span class="target">primary</span> <span class="operator">∩</span> maintenance)</span>
+          <span><em>covered</em> &nbsp;= <span class="target">primary</span> <span class="operator">∩</span> <span class="compare">backup</span> <span class="operator">∩</span> <span class="operator">¬</span>maintenance</span>
+          <span><em>gap</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <em>eligible</em> <span class="operator">−</span> <em>covered</em></span>
+          <span><em>ratio</em> &nbsp;&nbsp;&nbsp;= <span class="result">covered / eligible</span></span>
+        </div>
+        <p class="diagram-caption">
+          Every evidence row carries the original window ids and ranges, so the
+          same rows feed the SLA ratio, the gap alert, the segment-specific
+          coverage (triage vs escalated), and the live dashboard — no rederivation.
         </p>
       </div>
     </section>
 
     <section class="doc-section">
       <div class="section-heading">
-        <p class="eyebrow">Journey</p>
-        <h2>From source windows to decision rows.</h2>
+        <p class="eyebrow">Pipeline</p>
+        <h2>Stage the analysis so interpretation stays visible.</h2>
         <p>
-          The advanced analytics flow is deliberately staged: select the two
-          sides, normalize them onto a temporal axis, align the ranges, emit the
-          row families needed by the decision, then aggregate only after the
-          evidence rows exist.
+          Hand-written interval joins tend to blend filtering, normalization,
+          alignment, scoring, and rollup into one query — which is why the
+          answers are hard to audit. Spanfold stages them, so each step is
+          explicit and re-runnable.
         </p>
       </div>
-
-      <div class="diagram-grid">
-        <article class="diagram-card">
-          <h3>1. Align lanes</h3>
-          <div class="state-diagram" aria-label="Target and comparison windows before analytics">
-            <div class="state-row annotated-row">
-              <span class="row-label">Target</span>
-              <span class="timeline">
-                <span class="window target" style="left: 12%; width: 48%"></span>
-                <span class="lane-note" style="left: 36%">primary active</span>
-              </span>
-            </div>
-            <div class="state-row annotated-row">
-              <span class="row-label">Against</span>
-              <span class="timeline">
-                <span class="window compare" style="left: 32%; width: 46%"></span>
-                <span class="lane-note" style="left: 55%">backup active</span>
-              </span>
-            </div>
-          </div>
-          <p>
-            Select source, key, window, segment, and tag scope before asking any
-            analytic question.
-          </p>
+      <div class="stage-flow">
+        <article class="stage-card">
+          <p class="stage-kicker">1. Scope</p>
+          <h4>Pick window, axis, segments, tags.</h4>
+          <p>Choose what counts as in-scope before asking any analytic question. Narrow by window name, temporal axis, segment values, and tag filters.</p>
         </article>
-
-        <article class="diagram-card">
-          <h3>2. Emit evidence</h3>
-          <div class="state-diagram" aria-label="Derived overlap residual and missing rows">
-            <div class="state-row annotated-row">
-              <span class="row-label">Rows</span>
-              <span class="timeline">
-                <span class="window residual" style="left: 12%; width: 20%"></span>
-                <span class="window overlap" style="left: 32%; width: 28%"></span>
-                <span class="window missing" style="left: 60%; width: 18%"></span>
-                <span class="timeline-note note-residual" style="left: 22%">residual</span>
-                <span class="timeline-note note-overlap" style="left: 46%">overlap</span>
-                <span class="timeline-note note-missing" style="left: 69%">missing</span>
-              </span>
-            </div>
-            <div class="state-row annotated-row">
-              <span class="row-label">Timing</span>
-              <span class="timeline">
-                <span class="point" style="left: 12%"></span>
-                <span class="point ok" style="left: 32%"></span>
-                <span class="lane-note" style="left: 22%">target leads</span>
-              </span>
-            </div>
-          </div>
-          <p>
-            Comparator rows name the kind of evidence rather than hiding it
-            inside a single aggregate.
-          </p>
+        <article class="stage-card">
+          <p class="stage-kicker">2. Normalize</p>
+          <h4>Known-at, horizon, exclusions.</h4>
+          <p>Apply known-at filtering for replay safety, clip open windows to a live horizon, exclude ranges that should not count, and require closed windows for historical runs.</p>
         </article>
-
-        <article class="diagram-card">
-          <h3>3. Clip live state</h3>
-          <div class="state-diagram" aria-label="Open window clipped at a live horizon">
-            <div class="state-row annotated-row">
-              <span class="row-label">Open</span>
-              <span class="timeline">
-                <span class="window dashed" style="left: 24%; width: 58%"></span>
-                <span class="horizon" style="left: 82%"></span>
-                <span class="lane-note" style="left: 55%">still active</span>
-              </span>
-            </div>
-            <div class="state-row annotated-row">
-              <span class="row-label">Result</span>
-              <span class="timeline">
-                <span class="window overlap" style="left: 24%; width: 58%"></span>
-                <span class="horizon" style="left: 82%"></span>
-                <span class="lane-note" style="left: 55%">provisional</span>
-              </span>
-            </div>
-          </div>
-          <p>
-            Live runs evaluate open windows at a declared horizon and mark rows
-            whose answer can still change.
-          </p>
+        <article class="stage-card">
+          <p class="stage-kicker">3. Align</p>
+          <h4>Join lanes by key and partition.</h4>
+          <p>Match target and against windows on key, source, partition, and temporal axis. Cohorts collapse many members into one derived lane at this stage.</p>
         </article>
-      </div>
-    </section>
-
-    <section class="doc-section two-col">
-      <div>
-        <p class="eyebrow">Solution</p>
-        <h2>Compose the evidence rows you need.</h2>
-        <p>
-          Start with the row families that answer the business question. Add
-          overlap when you need agreement, residual when the target must be
-          covered, missing when the comparison source reported something the
-          target did not, and coverage or gap rows when the output must roll up
-          into a threshold.
-        </p>
-      </div>
-      <div>
-        <pre><code>var qa = pipeline.History
-    .Compare("Provider QA")
-    .Target("provider-a", s =&gt; s.Source("provider-a"))
-    .Against("provider-b", s =&gt; s.Source("provider-b"))
-    .Within(scope =&gt; scope
-        .Window("DeviceOffline")
-        .Tag("region", "eu-west"))
-    .Normalize(n =&gt; n.RequireClosedWindows().OnPosition())
-    .Using(c =&gt; c
-        .Overlap()
-        .Residual()
-        .Missing()
-        .Coverage()
-        .Gap()
-        .Containment()
-        .LeadLag(
-            LeadLagTransition.Start,
-            TemporalAxis.ProcessingPosition,
-            toleranceMagnitude: 5))
-    .Run();</code></pre>
+        <article class="stage-card">
+          <p class="stage-kicker">4. Score</p>
+          <h4>Emit comparator rows.</h4>
+          <p>Overlap, residual, missing, coverage, gap, containment, lead/lag, and as-of rows come out of this stage. Each row preserves its originating window ids and range.</p>
+        </article>
+        <article class="stage-card">
+          <p class="stage-kicker">5. Project</p>
+          <h4>Aggregate per segment or tag.</h4>
+          <p>Group rows by segment, tag, source, or bucket. Compute ratios, histograms, and rollups from the evidence rows — not from counters.</p>
+        </article>
+        <article class="stage-card">
+          <p class="stage-kicker">6. Publish</p>
+          <h4>Export with finality preserved.</h4>
+          <p>Emit JSON, Markdown, debug HTML, or agent context. Final and provisional rows are kept distinct so a live dashboard cannot pretend to be history.</p>
+        </article>
       </div>
     </section>
 
     <section class="doc-section">
       <div class="section-heading">
-        <p class="eyebrow">Analytics</p>
+        <p class="eyebrow">Row families</p>
         <h2>Choose the row family that matches the decision.</h2>
       </div>
       <div class="comparison-list">
-        <article><h3>Coverage</h3><p>Use when the target should have been backed by another source. Coverage rows support ratios such as covered magnitude divided by target magnitude, while preserving the ranges that contributed to the number.</p></article>
-        <article><h3>Gaps</h3><p>Use when absence is the failure mode. Gap rows isolate uncovered spans so alerts and audits can point to concrete start and end positions rather than just a failed percentage.</p></article>
-        <article><h3>Containment</h3><p>Use when one side is expected to fully wrap another, such as a maintenance window containing a provider outage or a parent state containing child activity.</p></article>
-        <article><h3>Lead and lag</h3><p>Use when transition timing matters. Compare starts or ends on processing position or event time, apply a tolerance, and classify whether the target led, lagged, or matched.</p></article>
-        <article><h3>As-of</h3><p>Use for audits and replay. Evaluate the previous or next matching window at a decision point after applying known-at normalization, so future evidence does not leak into the answer.</p></article>
-        <article><h3>Live finality</h3><p>Use when open windows are part of the answer. Clip them to a horizon and keep provisional rows visibly separate from final rows in exports and summaries.</p></article>
+        <article><h3>Coverage</h3><p>Covered magnitude over eligible target magnitude, with exclusions applied at the normalize stage. Ratios stay drill-downable because every ratio preserves its contributing rows.</p></article>
+        <article><h3>Gaps</h3><p>Uncovered spans surfaced as their own rows. Useful with a minimum-magnitude threshold so that micro-flaps below (say) 30 seconds do not trigger alerts but still appear in exports.</p></article>
+        <article><h3>Containment</h3><p>One window fully encloses another. Use it for maintenance-inside-outage exclusions, parent-contains-child explanation, or release-window envelopes. Partial containment surfaces as its own row kind.</p></article>
+        <article><h3>Lead &amp; lag</h3><p>Signed transition deltas with a tolerance band. Group the rows into buckets to build histograms, or filter by direction (target-leads / target-lags / within-tolerance) for SLA assertions.</p></article>
+        <article><h3>As-of</h3><p>Point-in-time match against the previous or next qualifying window. Combined with known-at filtering, as-of rows let audits replay the evidence that was visible at a specific decision moment.</p></article>
+        <article><h3>Live finality</h3><p>Rows derived from clipped open windows are labelled provisional and carry the horizon metadata. Final rows from closed history stay stable when the same comparison is replayed later.</p></article>
       </div>
     </section>
 
     <section class="doc-section">
       <div class="section-heading">
-        <p class="eyebrow">Examples</p>
-        <h2>Turn evidence rows into operational answers.</h2>
+        <p class="eyebrow">Hard examples</p>
+        <h2>Four real audits that combine several concepts.</h2>
+        <p>
+          Each example is a single Compare plan that layers normalization,
+          exclusion, segment filters, and comparator rows. Read them as
+          templates — the shape is the contribution, not the provider names.
+        </p>
       </div>
       <div class="code-grid">
         <article>
-          <h3>Coverage threshold</h3>
-          <pre><code>var coverage = pipeline.History
-    .Compare("Backup coverage SLA")
+          <h3>1. Coverage SLA with maintenance exclusions</h3>
+          <p>
+            Payments outages must be covered by backup at 99.5%, but scheduled
+            maintenance is excluded — <em>unless</em> the incident has already
+            escalated, in which case the exclusion no longer applies.
+          </p>
+          <pre><code>var maintenance = pipeline.History
+    .Query()
+    .Window("MaintenanceWindow")
+    .Tag("tier", "business-hours")
+    .Windows();
+
+var sla = pipeline.History
+    .Compare("Payment coverage SLA")
     .Target("primary", s =&gt; s.Source("primary"))
     .Against("backup", s =&gt; s.Source("backup"))
-    .Within(scope =&gt; scope.Window("DeviceOffline"))
-    .Using(c =&gt; c.Coverage().Gap())
+    .Within(scope =&gt; scope
+        .Window("PaymentOutage")
+        .Axis(TemporalAxis.EventTime)
+        .Segment("lifecycle", "Incident", "Escalated"))
+    .Normalize(n =&gt; n
+        .RequireClosedWindows()
+        .ExcludeRanges(maintenance,
+            when: ctx =&gt; !ctx.Target.Segment("lifecycle").Equals("Escalated")))
+    .Using(c =&gt; c
+        .Coverage()
+        .Gap(minimumMagnitude: TimeSpan.FromSeconds(30))
+        .Containment(ContainmentPolicy.ExcludeFromDenominator))
     .Run();
 
-var covered = coverage.CoverageRows.TotalCoveredMagnitude();
-var expected = coverage.CoverageRows.TotalTargetMagnitude();
-var ratio = expected == 0 ? 1d : (double)covered / expected;
+var eligible = sla.CoverageRows.TotalTargetMagnitude();
+var covered  = sla.CoverageRows.TotalCoveredMagnitude();
+var ratio    = eligible == TimeSpan.Zero
+    ? 1d
+    : covered / eligible;
 
-var longestGap = coverage.GapRows
-    .OrderByDescending(row =&gt; row.Range.GetPositionLength())
-    .FirstOrDefault();</code></pre>
+var breaches = sla.GapRows
+    .Where(g =&gt; g.Range.Duration &gt; TimeSpan.FromMinutes(5))
+    .OrderByDescending(g =&gt; g.Range.Duration)
+    .ToArray();</code></pre>
         </article>
+
         <article>
-          <h3>Transition drift</h3>
-          <pre><code>var timing = pipeline.History
-    .Compare("Provider start drift")
-    .Target("provider-a", s =&gt; s.Source("provider-a"))
-    .Against("provider-b", s =&gt; s.Source("provider-b"))
-    .Within(scope =&gt; scope.Window("DeviceOffline"))
+          <h3>2. Transition drift histogram across 30 days</h3>
+          <p>
+            Two providers should open their outage windows within 500&nbsp;ms
+            of each other. Bucket the signed deltas into 100&nbsp;ms buckets
+            and flag any bucket that holds more than 5% of the population.
+          </p>
+          <pre><code>var drift = pipeline.History
+    .Compare("Provider start-drift")
+    .Target("primary", s =&gt; s.Source("primary"))
+    .Against("secondary", s =&gt; s.Source("secondary"))
+    .Within(scope =&gt; scope
+        .Window("DeviceOffline")
+        .Axis(TemporalAxis.EventTime)
+        .Since(DateTimeOffset.UtcNow.AddDays(-30)))
     .Using(c =&gt; c.LeadLag(
         LeadLagTransition.Start,
-        TemporalAxis.ProcessingPosition,
-        toleranceMagnitude: 5))
+        TemporalAxis.EventTime,
+        toleranceMagnitude: TimeSpan.FromMilliseconds(500)))
     .Run();
 
-var lateStarts = timing.LeadLagRows
-    .Where(row =&gt; row.Direction == LeadLagDirection.TargetLags)
-    .ToArray();</code></pre>
+var buckets = drift.LeadLagRows
+    .GroupBy(row =&gt; (long)Math.Round(row.Delta.TotalMilliseconds / 100d) * 100)
+    .Select(g =&gt; new
+    {
+        BucketMs       = g.Key,
+        Count          = g.Count(),
+        OutOfTolerance = g.Count(r =&gt; r.Direction != LeadLagDirection.WithinTolerance)
+    })
+    .OrderBy(b =&gt; b.BucketMs)
+    .ToArray();
+
+var total    = drift.LeadLagRows.Count;
+var hot      = buckets.Where(b =&gt; b.OutOfTolerance &gt; total * 0.05).ToArray();
+var p95Drift = drift.LeadLagRows
+    .OrderBy(r =&gt; Math.Abs(r.Delta.TotalMilliseconds))
+    .ElementAt((int)(total * 0.95))
+    .Delta;</code></pre>
         </article>
       </div>
 
       <div class="code-grid stacked-code">
         <article>
-          <h3>Point-in-time audit</h3>
-          <pre><code>var audit = pipeline.History
-    .Compare("Decision audit")
-    .Target("decision", s =&gt; s.Source("decision-service"))
-    .Against("risk", s =&gt; s.Source("risk-provider"))
+          <h3>3. Replay-safe retro audit at two snapshots</h3>
+          <p>
+            Did the risk picture change between two decision points because of
+            late-arriving events? Regenerate the view at both known-at horizons
+            and diff window identities and ranges.
+          </p>
+          <pre><code>var earlier = pipeline.History
+    .Compare("Risk view @ 12,000")
+    .Target("risk",   s =&gt; s.Source("risk-service"))
+    .Against("market", s =&gt; s.Source("market-feed"))
     .Within(scope =&gt; scope.Window("HighRisk"))
-    .Normalize(n =&gt; n.KnownAtPosition(42))
-    .Using(c =&gt; c.AsOf(
-        AsOfDirection.Previous,
-        TemporalAxis.ProcessingPosition,
-        toleranceMagnitude: 10))
+    .Normalize(n =&gt; n.KnownAtPosition(12_000))
+    .Using(c =&gt; c.Overlap().Residual().Missing())
     .Run();
 
-var decisionEvidence = audit.AsOfRows
-    .Where(row =&gt; row.TargetPoint.Position == 42);</code></pre>
+var later = pipeline.History
+    .Compare("Risk view @ 12,847")
+    .Target("risk",   s =&gt; s.Source("risk-service"))
+    .Against("market", s =&gt; s.Source("market-feed"))
+    .Within(scope =&gt; scope.Window("HighRisk"))
+    .Normalize(n =&gt; n.KnownAtPosition(12_847))
+    .Using(c =&gt; c.Overlap().Residual().Missing())
+    .Run();
+
+var retroactive = later.AllWindows()
+    .Except(earlier.AllWindows(), WindowIdentityComparer.Default)
+    .ToArray();
+
+var restated = later.AllWindows()
+    .Join(earlier.AllWindows(),
+        nw =&gt; nw.WindowId, ow =&gt; ow.WindowId,
+        (nw, ow) =&gt; new { nw.WindowId, Before = ow.Range, After = nw.Range })
+    .Where(x =&gt; x.Before != x.After)
+    .ToArray();</code></pre>
         </article>
+
         <article>
-          <h3>Live dashboard export</h3>
-          <pre><code>var horizon = TemporalPoint.ForPosition(1_250);
+          <h3>4. Live dashboard with provisional banding</h3>
+          <p>
+            The live coverage number is what the dashboard shows; the final
+            number is what survives replay. Keep both, and compute how much of
+            the live number is still provisional.
+          </p>
+          <pre><code>var horizon = TemporalPoint.ForPosition(currentPosition);
 
 var live = pipeline.History
-    .Compare("Current provider QA")
-    .Target("provider-a", s =&gt; s.Source("provider-a"))
-    .Against("provider-b", s =&gt; s.Source("provider-b"))
-    .Within(scope =&gt; scope.Window("DeviceOffline"))
+    .Compare("Live coverage")
+    .Target("primary", s =&gt; s.Source("primary"))
+    .Against("backup",  s =&gt; s.Source("backup"))
+    .Within(scope =&gt; scope.Window("PaymentOutage"))
     .Normalize(n =&gt; n.ClipOpenWindowsTo(horizon))
-    .Using(c =&gt; c.Overlap().Residual().Missing())
+    .Using(c =&gt; c.Coverage())
     .RunLive(horizon);
 
-var provisionalRows = live.ProvisionalRowFinalities();</code></pre>
+static double Ratio(IEnumerable&lt;CoverageRow&gt; rows)
+{
+    var covered = rows.Sum(r =&gt; r.CoveredMagnitude.Value);
+    var target  = rows.Sum(r =&gt; r.TargetMagnitude.Value);
+    return target == 0 ? 1d : covered / target;
+}
+
+var final       = live.CoverageRows.Where(r =&gt; r.Finality == RowFinality.Final);
+var provisional = live.CoverageRows.Where(r =&gt; r.Finality == RowFinality.Provisional);
+
+var finalRatio    = Ratio(final);
+var liveRatio     = Ratio(final.Concat(provisional));
+var provisionalPp = liveRatio - finalRatio;
+
+dashboard.Render(
+    finalRatio: finalRatio,
+    liveRatio:  liveRatio,
+    provisionalBanding: provisionalPp,
+    horizon:    horizon);</code></pre>
         </article>
+      </div>
+    </section>
+
+    <section class="doc-section two-col">
+      <div>
+        <p class="eyebrow">Reading order</p>
+        <h2>Look at rows first, then ratios.</h2>
+        <p>
+          A comparison result is most useful when ratios come <em>out of</em>
+          the evidence rows instead of replacing them. That is what keeps
+          audits explainable: every summary number can be walked back to the
+          ranges, window ids, segments, and sources that produced it.
+        </p>
+      </div>
+      <div>
+        <p>
+          The same evidence rows feed live dashboards, incident reports,
+          regulator-facing audits, and retrospective root-cause reviews — with
+          finality preserved, so a provisional live number can never be mistaken
+          for a settled historical one.
+        </p>
+        <p class="link-line"><a href="concepts.html">Back to concepts overview</a></p>
       </div>
     </section>
   </main>
