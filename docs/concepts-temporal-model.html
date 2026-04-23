@@ -63,22 +63,46 @@
           still-open windows now.
         </p>
       </div>
-      <div class="quick-timeline" aria-label="Different temporal axes">
-        <div class="quick-row annotated-quick-row">
-          <span>event time</span>
-          <span class="quick-track"><span class="quick-window target" style="left: 18%; width: 38%"></span><span class="quick-note" style="left: 37%">source clock</span></span>
-          <span>when it occurred</span>
+      <div class="diagram-panel">
+        <div class="legend-row" aria-hidden="true">
+          <span class="legend-title">Axes</span>
+          <span class="legend-chip target">event time</span>
+          <span class="legend-chip compare">processing position</span>
+          <span class="legend-chip residual-amber">known-at</span>
+          <span class="legend-chip horizon">live horizon</span>
         </div>
-        <div class="quick-row annotated-quick-row">
-          <span>position</span>
-          <span class="quick-track"><span class="quick-window compare" style="left: 32%; width: 38%"></span><span class="quick-note" style="left: 51%">pipeline order</span></span>
-          <span>when seen</span>
+        <div class="state-diagram" aria-label="The same window plotted against three different time axes">
+          <div class="state-row annotated-row">
+            <span class="row-label">Event time</span>
+            <span class="timeline">
+              <span class="window target" style="left: 18%; width: 38%"></span>
+              <span class="lane-note" style="left: 37%">10:03..10:11</span>
+            </span>
+          </div>
+          <div class="state-row annotated-row">
+            <span class="row-label">Position</span>
+            <span class="timeline">
+              <span class="window compare" style="left: 32%; width: 38%"></span>
+              <span class="lane-note" style="left: 51%">positions 47..62</span>
+            </span>
+          </div>
+          <div class="state-row annotated-row">
+            <span class="row-label">Known-at</span>
+            <span class="timeline">
+              <span class="window missing" style="left: 48%; width: 16%"></span>
+              <span class="horizon" style="left: 64%"></span>
+              <span class="lane-note" style="left: 56%">visible at decision</span>
+              <span class="lane-note" style="left: 64%">decision @ 50</span>
+            </span>
+          </div>
         </div>
-        <div class="quick-row annotated-quick-row">
-          <span>known-at</span>
-          <span class="quick-track"><span class="quick-window residual" style="left: 48%; width: 16%"></span><span class="quick-note" style="left: 56%">available</span></span>
-          <span>decision-safe</span>
-        </div>
+        <p class="diagram-caption">
+          The same outage looks different on each axis. Event time is when the
+          source said it happened. Position is when the pipeline saw it.
+          Known-at filters records to those <strong>available before the
+          decision point</strong> at position 50, so a backtest cannot peek at
+          evidence that arrived later.
+        </p>
       </div>
     </section>
 

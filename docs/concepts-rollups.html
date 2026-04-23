@@ -83,10 +83,66 @@
           exported, and explained with the same APIs.
         </p>
       </div>
-      <div class="state-diagram" aria-label="Child windows rolling up to parent windows">
-        <div class="state-row annotated-row"><span class="row-label">Device 1</span><span class="timeline"><span class="window target" style="left: 16%; width: 32%"></span><span class="lane-note" style="left: 32%">offline</span></span></div>
-        <div class="state-row annotated-row"><span class="row-label">Device 2</span><span class="timeline"><span class="window compare" style="left: 44%; width: 32%"></span><span class="lane-note" style="left: 60%">offline</span></span></div>
-        <div class="state-row annotated-row"><span class="row-label">Zone</span><span class="timeline"><span class="window overlap" style="left: 16%; width: 60%"></span><span class="lane-note" style="left: 46%">any child active</span></span></div>
+      <div class="diagram-panel">
+        <div class="legend-row" aria-hidden="true">
+          <span class="legend-title">Roll-up</span>
+          <span class="legend-chip target">device-1</span>
+          <span class="legend-chip compare">device-2</span>
+          <span class="legend-chip plum">device-3</span>
+          <span class="legend-chip overlap">zone parent</span>
+        </div>
+        <div class="state-diagram" aria-label="Three device child windows roll up into one zone parent window">
+          <div class="state-row annotated-row">
+            <span class="row-label">device-1</span>
+            <span class="timeline">
+              <span class="window target" style="left: 12%; width: 22%"></span>
+              <span class="lane-note" style="left: 22%">offline</span>
+            </span>
+          </div>
+          <div class="state-row annotated-row">
+            <span class="row-label">device-2</span>
+            <span class="timeline">
+              <span class="window compare" style="left: 28%; width: 28%"></span>
+              <span class="lane-note" style="left: 41%">offline</span>
+            </span>
+          </div>
+          <div class="state-row annotated-row">
+            <span class="row-label">device-3</span>
+            <span class="timeline">
+              <span class="window plum" style="left: 60%; width: 22%"></span>
+              <span class="lane-note" style="left: 70%">offline</span>
+            </span>
+          </div>
+          <div class="state-row annotated-row">
+            <span class="row-label">zone</span>
+            <span class="timeline">
+              <span class="window overlap" style="left: 12%; width: 44%"></span>
+              <span class="window overlap" style="left: 60%; width: 22%"></span>
+              <span class="lane-note" style="left: 33%">any child active</span>
+              <span class="lane-note" style="left: 70%">re-opens</span>
+            </span>
+          </div>
+          <div class="measure-row">
+            <span class="row-label">Spans</span>
+            <span class="measure-track">
+              <span class="measure overlap" style="left: 12%; width: 44%">
+                <span class="measure-label">zone window 1</span>
+              </span>
+              <span class="measure gap" style="left: 56%; width: 4%">
+                <span class="measure-label">recovered</span>
+              </span>
+              <span class="measure overlap" style="left: 60%; width: 22%">
+                <span class="measure-label">zone window 2</span>
+              </span>
+            </span>
+          </div>
+        </div>
+        <p class="diagram-caption">
+          Devices 1 and 2 keep the zone active continuously. When both recover
+          before device-3 fails, the zone closes briefly and a second window
+          opens — same parent key, distinct evidence. Roll-ups never invent
+          coverage between child outages; the recovered span is real.
+        </p>
       </div>
     </section>
 
