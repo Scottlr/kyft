@@ -204,12 +204,13 @@
   // Compact variant (no eyebrow/title) for use inside existing page sections.
   function FigCompact(svgContent, keyItems, svgW, svgH) {
     svgW = svgW || 700; svgH = svgH || 260;
-    return '<div style="background:' + SF.paper + ';'
+    // max-width caps full-width size; height:auto gives proportional scaling in narrow containers.
+    return '<div style="max-width:' + (svgW + 48) + 'px;background:' + SF.paper + ';'
       + 'background-image:radial-gradient(rgba(26,23,20,0.035) 1px,transparent 1px);'
       + 'background-size:3px 3px;border:1px solid ' + SF.rule + ';overflow:hidden;">'
       + '<div style="padding:28px 24px 20px;">'
-      + '<svg width="' + svgW + '" height="' + svgH + '" viewBox="0 0 ' + svgW + ' ' + svgH
-        + '" style="width:100%;overflow:visible;" aria-hidden="true">'
+      + '<svg viewBox="0 0 ' + svgW + ' ' + svgH
+        + '" style="width:100%;height:auto;overflow:visible;display:block;" aria-hidden="true">'
       + DEFS + svgContent
       + '</svg>'
       + '</div>'
@@ -484,7 +485,9 @@
 
   // ── D_TemporalModel — three axes ──────────────────────────────────────
   figs.D_TemporalModel = function () {
-    var svgH = 270;
+    var svgH = 294;
+    // Horizon() badge renders 28px above `top`; extra 24px gap prevents overlap with Position block.
+    var hzLaneY = 2*LH + 24;
     var g = '<g transform="translate(' + LX + ',40)">';
 
     // Event time lane
@@ -499,14 +502,14 @@
 
     // Known-at lane with horizon
     var hzX = 6.5 * U;
-    g += '<rect x="' + hzX + '" y="' + (2*LH - 8) + '" width="' + (PW-hzX) + '" height="' + (BH+16) + '" fill="#faf2e4" opacity="0.7"/>';
-    g += Lane(2*LH, 'Known-at', null, PW,
+    g += '<rect x="' + hzX + '" y="' + (hzLaneY - 8) + '" width="' + (PW-hzX) + '" height="' + (BH+16) + '" fill="#faf2e4" opacity="0.7"/>';
+    g += Lane(hzLaneY, 'Known-at', null, PW,
       Block(5*U, 1.5*U, { h: BH, color: SF.missing, label: 'visible at decision' })
     );
-    g += Horizon(hzX, 2*LH - 8, 2*LH + BH + 16);
-    g += '<text x="' + (hzX + 8) + '" y="' + (2*LH + BH/2 + 6) + '" font-family="' + SF.fontUI + '" font-size="11" fill="' + SF.ink2 + '">decision @ pos 50</text>';
+    g += Horizon(hzX, hzLaneY - 8, hzLaneY + BH + 16);
+    g += '<text x="' + (hzX + 8) + '" y="' + (hzLaneY + BH/2 + 6) + '" font-family="' + SF.fontUI + '" font-size="11" fill="' + SF.ink2 + '">decision @ pos 50</text>';
 
-    g += '<g transform="translate(0,' + (3*LH + 10) + ')">' + Ruler([0,2,5,6.5,10], TOT, PW) + '</g>';
+    g += '<g transform="translate(0,' + (hzLaneY + LH + 10) + ')">' + Ruler([0,2,5,6.5,10], TOT, PW) + '</g>';
 
     g += '</g>';
 
