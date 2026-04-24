@@ -64,47 +64,7 @@
           If it does not create a boundary, splitting the window creates noise.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Read</span>
-          <span class="legend-chip target">predicate true</span>
-          <span class="legend-chip compare">segment: triage</span>
-          <span class="legend-chip residual-amber">segment: escalated</span>
-        </div>
-        <div class="state-diagram" aria-label="A segment value change splits one active window into two recorded windows">
-          <div class="state-row">
-            <span class="row-label">Predicate</span>
-            <span class="timeline">
-              <span class="window target" style="left: 14%; width: 68%"></span>
-            </span>
-          </div>
-          <div class="state-row">
-            <span class="row-label">Recorded</span>
-            <span class="timeline">
-              <span class="window compare" style="left: 14%; width: 34%"></span>
-              <span class="window residual" style="left: 48%; width: 34%"></span>
-            </span>
-          </div>
-          <div class="measure-row">
-            <span class="row-label">Spans</span>
-            <span class="measure-track">
-              <span class="measure overlap" style="left: 14%; width: 34%">
-                <span class="measure-label">window 1: triage</span>
-              </span>
-              <span class="measure residual" style="left: 48%; width: 34%">
-                <span class="measure-label">window 2: escalated</span>
-              </span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          The predicate stays true the whole time, but the lifecycle segment
-          flips from <strong>triage</strong> to <strong>escalated</strong> in
-          the middle. Spanfold closes the first window and opens a new one at
-          that boundary, so each segment can be measured on its own without
-          re-deriving state.
-        </p>
-      </div>
+      <div data-fig="D_SegmentSplit"></div>
     </section>
 
     <section class="doc-section two-col">
@@ -140,45 +100,7 @@
           changing the interval shape.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Compare</span>
-          <span class="legend-chip target">predicate truth</span>
-          <span class="legend-chip compare">segment splits</span>
-          <span class="legend-chip overlap">tag describes</span>
-        </div>
-        <div class="state-diagram" aria-label="Same predicate truth, three different recording models">
-          <div class="state-row annotated-row">
-            <span class="row-label">Predicate</span>
-            <span class="timeline">
-              <span class="window target" style="left: 14%; width: 68%"></span>
-              <span class="lane-note" style="left: 48%">one truth span</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">Segment</span>
-            <span class="timeline">
-              <span class="window compare" style="left: 14%; width: 34%"></span>
-              <span class="window residual" style="left: 48%; width: 34%"></span>
-              <span class="lane-note" style="left: 31%">triage</span>
-              <span class="lane-note" style="left: 65%">escalated</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">Tag</span>
-            <span class="timeline">
-              <span class="window overlap" style="left: 14%; width: 68%"></span>
-              <span class="lane-note" style="left: 48%">fleet = critical (metadata only)</span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          Three layers from one event stream. The predicate produces one
-          continuous truth span. Segments turn that into two recordable windows
-          you can compare independently. Tags travel along for filtering and
-          export but never split a range.
-        </p>
-      </div>
+      <div data-fig="D_Segments"></div>
     </section>
 
     <section class="doc-section">
@@ -221,6 +143,7 @@
   </main>
 
   <footer class="site-footer"><span>Spanfold</span><a href="concepts.html">Concepts overview</a></footer>
+  <script src="sf-diagrams.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script src="syntax.js"></script>
   <script src="language.js"></script>

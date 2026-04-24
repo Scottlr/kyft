@@ -66,49 +66,7 @@ var closedForDevice = pipeline.History.ClosedWindows
           the domain says they should.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Read</span>
-          <span class="legend-chip target">closed window</span>
-          <span class="legend-chip compare">closed window</span>
-          <span class="legend-chip open">open window</span>
-        </div>
-        <div class="state-diagram" aria-label="One source history showing closed and open windows">
-          <div class="state-row annotated-row">
-            <span class="row-label">Closed</span>
-            <span class="timeline">
-              <span class="window target" style="left: 14%; width: 28%"></span>
-              <span class="window compare" style="left: 52%; width: 18%"></span>
-              <span class="lane-note" style="left: 28%">past incident</span>
-              <span class="lane-note" style="left: 61%">short blip</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">Open</span>
-            <span class="timeline">
-              <span class="window dashed" style="left: 74%; width: 16%"></span>
-              <span class="lane-note" style="left: 82%">still active</span>
-            </span>
-          </div>
-          <div class="axis-row">
-            <span class="row-label">Position</span>
-            <span class="axis">
-              <span class="tick" style="left: 14%"></span><span class="tick-label" style="left: 14%">opened</span>
-              <span class="tick" style="left: 42%"></span><span class="tick-label" style="left: 42%">closed</span>
-              <span class="tick" style="left: 52%"></span><span class="tick-label" style="left: 52%">opened</span>
-              <span class="tick" style="left: 70%"></span><span class="tick-label" style="left: 70%">closed</span>
-              <span class="tick" style="left: 74%"></span><span class="tick-label" style="left: 74%">opened</span>
-              <span class="tick" style="left: 90%"></span><span class="tick-label" style="left: 90%">now</span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          The history exposes both <strong>closed</strong> windows (with start
-          and end) and <strong>open</strong> windows (start only). Inspect them
-          before introducing a second lane — most comparison surprises come
-          from a misnamed source or a predicate that opens too eagerly.
-        </p>
-      </div>
+      <div data-fig="D_QueryHistory"></div>
     </section>
 
     <section class="doc-section">
@@ -156,6 +114,7 @@ var byLifecycle = pipeline.History
     <span>Spanfold</span>
     <a href="concepts-comparing-histories.html">Next: comparing histories</a>
   </footer>
+  <script src="sf-diagrams.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script src="syntax.js"></script>
   <script src="language.js"></script>

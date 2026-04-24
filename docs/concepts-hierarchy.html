@@ -64,62 +64,7 @@
           roll up, or parent and child windows that overlap only partly.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Hierarchy</span>
-          <span class="legend-chip target">parent (region)</span>
-          <span class="legend-chip overlap">explained</span>
-          <span class="legend-chip rose">unexplained</span>
-          <span class="legend-chip residual-amber">orphan child</span>
-        </div>
-        <div class="state-diagram" aria-label="Parent window explained by child windows with one unexplained gap and one orphan">
-          <div class="state-row annotated-row">
-            <span class="row-label">Parent</span>
-            <span class="timeline">
-              <span class="window target" style="left: 12%; width: 64%"></span>
-              <span class="lane-note" style="left: 30%">explained</span>
-              <span class="lane-note" style="left: 53%">unexplained</span>
-              <span class="lane-note" style="left: 68%">explained</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">child-1</span>
-            <span class="timeline">
-              <span class="window compare" style="left: 12%; width: 30%"></span>
-              <span class="explain-link" style="left: 12%; width: 30%"></span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">child-2</span>
-            <span class="timeline">
-              <span class="window compare" style="left: 60%; width: 16%"></span>
-              <span class="explain-link" style="left: 60%; width: 16%"></span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">gap</span>
-            <span class="timeline">
-              <span class="window rose" style="left: 42%; width: 18%"></span>
-              <span class="explain-link unexplained" style="left: 42%; width: 18%"></span>
-              <span class="lane-note" style="left: 51%">parent active, no child evidence</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">orphan</span>
-            <span class="timeline">
-              <span class="window residual-amber" style="left: 82%; width: 12%"></span>
-              <span class="lane-note" style="left: 88%">child only — parent missed it</span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          Two children explain most of the parent range. The middle of the
-          parent has no child contribution — an <strong>unexplained</strong>
-          row that points at a roll-up rule mismatch. The lone child after the
-          parent closed is an <strong>orphan</strong>: real child evidence that
-          should have promoted to a parent window but did not.
-        </p>
-      </div>
+      <div data-fig="D_Hierarchy"></div>
     </section>
 
     <section class="doc-section two-col">
@@ -192,6 +137,7 @@ var orphanedChildren = hierarchy.Rows
   </main>
 
   <footer class="site-footer"><span>Spanfold</span><a href="concepts.html">Concepts overview</a></footer>
+  <script src="sf-diagrams.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script src="syntax.js"></script>
   <script src="language.js"></script>

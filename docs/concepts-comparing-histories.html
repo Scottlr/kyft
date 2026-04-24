@@ -44,52 +44,7 @@
           interval joins tend to hide these cases in query logic.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Lanes</span>
-          <span class="legend-chip target">Target</span>
-          <span class="legend-chip compare">Against</span>
-          <span class="legend-chip residual">residual</span>
-          <span class="legend-chip overlap">overlap</span>
-          <span class="legend-chip missing">missing</span>
-        </div>
-        <div class="state-diagram" aria-label="Two source histories aligned into residual, overlap, and missing rows">
-          <div class="state-row">
-            <span class="row-label">Target</span>
-            <span class="timeline">
-              <span class="window target" style="left: 18%; width: 52%"></span>
-            </span>
-          </div>
-          <div class="state-row">
-            <span class="row-label">Against</span>
-            <span class="timeline">
-              <span class="window compare" style="left: 40%; width: 42%"></span>
-            </span>
-          </div>
-          <div class="measure-row">
-            <span class="row-label">Rows</span>
-            <span class="measure-track">
-              <span class="measure residual" style="left: 18%; width: 22%">
-                <span class="measure-label">residual</span>
-              </span>
-              <span class="measure overlap" style="left: 40%; width: 30%">
-                <span class="measure-label">overlap</span>
-              </span>
-              <span class="measure missing" style="left: 70%; width: 12%">
-                <span class="measure-label">missing</span>
-              </span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          Each row is interval evidence with a name. <strong>Residual</strong>
-          is the part of the target the against side did not cover.
-          <strong>Overlap</strong> is the part both saw. <strong>Missing</strong>
-          is the part only the against side saw — usually meaning the target
-          missed it. The same plan emits all three; the rows keep the original
-          window ids and ranges.
-        </p>
-      </div>
+      <div data-fig="D_Compare"></div>
     </section>
 
     <section class="doc-section two-col">
@@ -158,6 +113,7 @@
     <span>Spanfold</span>
     <a href="concepts-segments.html">Next: segments and tags</a>
   </footer>
+  <script src="sf-diagrams.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script src="syntax.js"></script>
   <script src="language.js"></script>
