@@ -81,53 +81,7 @@ var provisional = live.ProvisionalRowFinalities();</code></pre>
           change when more events arrive, so Spanfold keeps row finality explicit.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Live</span>
-          <span class="legend-chip open">open window</span>
-          <span class="legend-chip overlap">clipped span</span>
-          <span class="legend-chip horizon">horizon @ 100</span>
-        </div>
-        <div class="state-diagram" aria-label="Open window clipped to a horizon at position 100">
-          <div class="state-row annotated-row">
-            <span class="row-label">Open</span>
-            <span class="timeline">
-              <span class="window dashed" style="left: 24%; width: 64%"></span>
-              <span class="horizon" style="left: 82%"></span>
-              <span class="lane-note" style="left: 50%">no end yet</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">Clipped</span>
-            <span class="timeline">
-              <span class="window overlap" style="left: 24%; width: 58%"></span>
-              <span class="horizon" style="left: 82%"></span>
-              <span class="lane-note" style="left: 50%">treated as [start, horizon)</span>
-            </span>
-          </div>
-          <div class="measure-row">
-            <span class="row-label">Row</span>
-            <span class="measure-track">
-              <span class="measure overlap" style="left: 24%; width: 58%">
-                <span class="measure-label">provisional — finality may change</span>
-              </span>
-            </span>
-          </div>
-          <div class="axis-row">
-            <span class="row-label">Position</span>
-            <span class="axis">
-              <span class="tick" style="left: 24%"></span><span class="tick-label" style="left: 24%">opened @ 71</span>
-              <span class="tick" style="left: 82%"></span><span class="tick-label" style="left: 82%">horizon @ 100</span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          The open window has a start but no end. A live run clips it at the
-          declared horizon and emits a row labelled <strong>provisional</strong>.
-          When the same comparison is replayed later with the window closed, the
-          row stabilises and may extend past the original horizon.
-        </p>
-      </div>
+      <div data-fig="D_Horizon"></div>
     </section>
 
     <section class="doc-section">
@@ -141,58 +95,7 @@ var provisional = live.ProvisionalRowFinalities();</code></pre>
           labeling rows that can still change.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Finality</span>
-          <span class="legend-chip target">closed (final)</span>
-          <span class="legend-chip open">open (uncertain)</span>
-          <span class="legend-chip overlap">clipped (provisional)</span>
-          <span class="legend-chip horizon">horizon</span>
-        </div>
-        <div class="state-diagram" aria-label="Three windows of differing finality across one timeline">
-          <div class="state-row annotated-row">
-            <span class="row-label">Closed</span>
-            <span class="timeline">
-              <span class="window target" style="left: 8%; width: 22%"></span>
-              <span class="lane-note" style="left: 18%">[12, 28) — final</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">Open</span>
-            <span class="timeline">
-              <span class="window dashed" style="left: 44%; width: 46%"></span>
-              <span class="horizon" style="left: 80%"></span>
-              <span class="lane-note" style="left: 60%">opened @ 58, no close</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">Live run</span>
-            <span class="timeline">
-              <span class="window target" style="left: 8%; width: 22%"></span>
-              <span class="window overlap" style="left: 44%; width: 36%"></span>
-              <span class="horizon" style="left: 80%"></span>
-              <span class="lane-note" style="left: 60%">clipped at horizon</span>
-            </span>
-          </div>
-          <div class="measure-row">
-            <span class="row-label">Rows</span>
-            <span class="measure-track">
-              <span class="measure overlap" style="left: 8%; width: 22%">
-                <span class="measure-label">final</span>
-              </span>
-              <span class="measure residual" style="left: 44%; width: 36%">
-                <span class="measure-label">provisional</span>
-              </span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          One run can produce both kinds of evidence. The earlier closed window
-          settles into a <strong>final</strong> row. The currently open window is
-          clipped at the horizon and emits a <strong>provisional</strong> row that
-          carries enough metadata for the dashboard to mark it as still moving.
-        </p>
-      </div>
+      <div data-fig="D_FinalityRows"></div>
     </section>
 
     <section class="doc-section">
@@ -236,6 +139,7 @@ var provisional = live.ProvisionalRowFinalities();</code></pre>
   </main>
 
   <footer class="site-footer"><span>Spanfold</span><a href="concepts.html">Concepts overview</a></footer>
+  <script src="sf-diagrams.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script src="syntax.js"></script>
   <script src="language.js"></script>

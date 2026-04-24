@@ -80,51 +80,7 @@
           questions.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Stage</span>
-          <span class="legend-chip target">primary lane</span>
-          <span class="legend-chip compare">comparison lane</span>
-          <span class="legend-chip overlap">agreement</span>
-          <span class="legend-chip residual">target-only</span>
-        </div>
-        <div class="state-diagram" aria-label="Three stages of Spanfold: record, compare, derive">
-          <div class="state-row">
-            <span class="row-label">1. Record</span>
-            <span class="timeline">
-              <span class="window target" style="left: 12%; width: 30%"></span>
-              <span class="lane-note" style="left: 27%">predicate true</span>
-            </span>
-          </div>
-          <div class="state-row">
-            <span class="row-label">2. Compare</span>
-            <span class="timeline">
-              <span class="window target" style="left: 12%; width: 36%"></span>
-              <span class="window compare" style="left: 30%; width: 36%"></span>
-            </span>
-          </div>
-          <div class="measure-row">
-            <span class="row-label">3. Derive</span>
-            <span class="measure-track">
-              <span class="measure residual" style="left: 12%; width: 18%">
-                <span class="measure-label">residual</span>
-              </span>
-              <span class="measure overlap" style="left: 30%; width: 18%">
-                <span class="measure-label">overlap</span>
-              </span>
-              <span class="measure missing" style="left: 48%; width: 18%">
-                <span class="measure-label">missing</span>
-              </span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          The whole stack reduces to three steps. <strong>Record</strong> the
-          period a predicate held true. <strong>Compare</strong> two such
-          histories. <strong>Derive</strong> rows that explain where they
-          agreed, where one led, and where neither saw the other.
-        </p>
-      </div>
+      <div data-fig="D_ConceptsFlow"></div>
     </section>
 
     <section class="doc-section">
@@ -224,6 +180,7 @@
     <span>Spanfold</span>
     <a href="https://github.com/Scottlr/spanfold">github.com/Scottlr/spanfold</a>
   </footer>
+  <script src="sf-diagrams.js"></script>
   <script src="language.js"></script>
 </body>
 </html>

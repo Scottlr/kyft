@@ -106,69 +106,7 @@ var uncovered = result
           sources, and whether the cohort lane was active.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Cohort</span>
-          <span class="legend-chip target">source-b</span>
-          <span class="legend-chip compare">source-c</span>
-          <span class="legend-chip plum">source-d</span>
-          <span class="legend-chip overlap">cohort active (≥2)</span>
-        </div>
-        <div class="state-diagram" aria-label="Three member sources reduce to one cohort lane under an at-least-2 rule">
-          <div class="state-row annotated-row">
-            <span class="row-label">source-b</span>
-            <span class="timeline">
-              <span class="window target" style="left: 14%; width: 36%"></span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">source-c</span>
-            <span class="timeline">
-              <span class="window compare" style="left: 30%; width: 38%"></span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">source-d</span>
-            <span class="timeline">
-              <span class="window plum" style="left: 56%; width: 30%"></span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">cohort</span>
-            <span class="timeline">
-              <span class="window overlap" style="left: 30%; width: 38%"></span>
-              <span class="lane-note" style="left: 49%">≥2 active here</span>
-            </span>
-          </div>
-          <div class="measure-row">
-            <span class="row-label">Active</span>
-            <span class="measure-track">
-              <span class="measure residual" style="left: 14%; width: 16%">
-                <span class="measure-label">1 of 3</span>
-              </span>
-              <span class="measure overlap" style="left: 30%; width: 20%">
-                <span class="measure-label">2 of 3</span>
-              </span>
-              <span class="measure overlap" style="left: 50%; width: 6%">
-                <span class="measure-label">3 of 3</span>
-              </span>
-              <span class="measure overlap" style="left: 56%; width: 12%">
-                <span class="measure-label">2 of 3</span>
-              </span>
-              <span class="measure residual" style="left: 68%; width: 18%">
-                <span class="measure-label">1 of 3</span>
-              </span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          Three replica sources rise and fall on slightly different schedules.
-          The cohort lane is active only where the count crosses the required
-          threshold of two. The active count band on the right shows why a
-          per-member comparison would invent three disagreement stories where
-          there is really one quorum.
-        </p>
-      </div>
+      <div data-fig="D_Cohort"></div>
     </section>
 
     <section class="doc-section">
@@ -183,61 +121,7 @@ var uncovered = result
           member individually.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Pipeline</span>
-          <span class="legend-chip target">aligned segments</span>
-          <span class="legend-chip residual-amber">rule failed</span>
-          <span class="legend-chip overlap">cohort lane</span>
-        </div>
-        <div class="state-diagram" aria-label="Cohort member windows aligned, evaluated against a rule, and reduced to one lane">
-          <div class="state-row annotated-row">
-            <span class="row-label">Members</span>
-            <span class="timeline">
-              <span class="window target" style="left: 14%; width: 22%"></span>
-              <span class="window compare" style="left: 30%; width: 28%"></span>
-              <span class="window plum" style="left: 50%; width: 24%"></span>
-              <span class="lane-note" style="left: 30%">overlap windows</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">Aligned</span>
-            <span class="timeline">
-              <span class="window residual" style="left: 14%; width: 16%"></span>
-              <span class="window overlap" style="left: 30%; width: 6%"></span>
-              <span class="window overlap" style="left: 36%; width: 14%"></span>
-              <span class="window overlap" style="left: 50%; width: 8%"></span>
-              <span class="window residual" style="left: 58%; width: 16%"></span>
-              <span class="lane-note" style="left: 50%">segments cut at every transition</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">Rule (≥2)</span>
-            <span class="timeline">
-              <span class="window residual-amber" style="left: 14%; width: 16%"></span>
-              <span class="window overlap" style="left: 30%; width: 28%"></span>
-              <span class="window residual-amber" style="left: 58%; width: 16%"></span>
-              <span class="lane-note" style="left: 22%">fail</span>
-              <span class="lane-note" style="left: 44%">pass</span>
-              <span class="lane-note" style="left: 66%">fail</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">Cohort</span>
-            <span class="timeline">
-              <span class="window overlap" style="left: 30%; width: 28%"></span>
-              <span class="lane-note" style="left: 44%">one derived lane</span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          Members are first sliced into <strong>aligned segments</strong> at
-          every transition. Each segment is tested against the cohort rule.
-          Only the passing segments survive into the final cohort lane the
-          comparators see — so target/cohort residuals describe a single
-          group decision, not three separate disagreements.
-        </p>
-      </div>
+      <div data-fig="D_CohortPipeline"></div>
     </section>
 
     <section class="doc-section">
@@ -299,6 +183,7 @@ var uncovered = result
     <span>Spanfold</span>
     <a href="concepts.html">Concepts overview</a>
   </footer>
+  <script src="sf-diagrams.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script src="syntax.js"></script>
   <script src="language.js"></script>

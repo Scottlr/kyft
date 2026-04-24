@@ -85,54 +85,7 @@
           be true over different ranges.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Direction</span>
-          <span class="legend-chip residual">target-only</span>
-          <span class="legend-chip overlap">overlap</span>
-          <span class="legend-chip missing">comparison-only</span>
-        </div>
-        <div class="state-diagram" aria-label="Two cells of the matrix read in opposite directions">
-          <div class="state-row annotated-row">
-            <span class="row-label">A → B</span>
-            <span class="timeline">
-              <span class="window residual" style="left: 18%; width: 20%"></span>
-              <span class="window overlap" style="left: 38%; width: 26%"></span>
-              <span class="lane-note" style="left: 28%">A only</span>
-              <span class="lane-note" style="left: 51%">covered</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">B → A</span>
-            <span class="timeline">
-              <span class="window overlap" style="left: 38%; width: 26%"></span>
-              <span class="window missing" style="left: 64%; width: 18%"></span>
-              <span class="lane-note" style="left: 51%">covered</span>
-              <span class="lane-note" style="left: 73%">B only</span>
-            </span>
-          </div>
-          <div class="measure-row">
-            <span class="row-label">Cells</span>
-            <span class="measure-track">
-              <span class="measure residual" style="left: 18%; width: 20%">
-                <span class="measure-label">A→B residual</span>
-              </span>
-              <span class="measure overlap" style="left: 38%; width: 26%">
-                <span class="measure-label">overlap (same in both cells)</span>
-              </span>
-              <span class="measure missing" style="left: 64%; width: 18%">
-                <span class="measure-label">B→A residual</span>
-              </span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          The same overlap appears in both cells, but the residuals belong to
-          whichever lane is the <strong>target</strong>. Collapsing this into one
-          symmetric number would hide that A under-reported on the left and B
-          under-reported on the right — distinct stories that need distinct fixes.
-        </p>
-      </div>
+      <div data-fig="D_SourceMatrix"></div>
     </section>
 
     <section class="doc-section two-col">
@@ -171,43 +124,7 @@ var weakCells = matrix.Cells
           the underlying rows when a number looks wrong.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Cells</span>
-          <span class="legend-chip overlap">≥ 95% covered</span>
-          <span class="legend-chip residual-amber">90–95% covered</span>
-          <span class="legend-chip rose">&lt; 90% covered</span>
-          <span class="legend-chip">diagonal (self)</span>
-        </div>
-        <div class="matrix-grid" style="grid-template-columns: 88px repeat(3, minmax(0, 1fr));" aria-label="3 by 3 source matrix with directional cells">
-          <span class="mx-corner">target ↓ / against →</span>
-          <span class="mx-col-head">provider-a</span>
-          <span class="mx-col-head">provider-b</span>
-          <span class="mx-col-head">provider-c</span>
-
-          <span class="mx-row-head">provider-a</span>
-          <span class="mx-cell diag"><span class="mx-ratio">—</span><span class="mx-hint">self</span></span>
-          <span class="mx-cell good"><span class="mx-ratio">98%</span><span class="mx-hint">res 4 · miss 1</span></span>
-          <span class="mx-cell warn"><span class="mx-ratio">93%</span><span class="mx-hint">res 11 · miss 3</span></span>
-
-          <span class="mx-row-head">provider-b</span>
-          <span class="mx-cell good"><span class="mx-ratio">99%</span><span class="mx-hint">res 1 · miss 4</span></span>
-          <span class="mx-cell diag"><span class="mx-ratio">—</span><span class="mx-hint">self</span></span>
-          <span class="mx-cell good"><span class="mx-ratio">96%</span><span class="mx-hint">res 6 · miss 2</span></span>
-
-          <span class="mx-row-head">provider-c</span>
-          <span class="mx-cell bad"><span class="mx-ratio">81%</span><span class="mx-hint">res 28 · miss 5</span></span>
-          <span class="mx-cell warn"><span class="mx-ratio">91%</span><span class="mx-hint">res 14 · miss 7</span></span>
-          <span class="mx-cell diag"><span class="mx-ratio">—</span><span class="mx-hint">self</span></span>
-        </div>
-        <p class="diagram-caption">
-          Read row by row. Provider C as the target is poorly covered by
-          provider A (81%) and only partly by provider B (91%) — strong evidence
-          C is reporting state the others miss. Reading column by column tells
-          the inverse story: how well each provider <em>covers</em> the rest.
-          Note the asymmetry — C→A is 81%, but A→C is 93%.
-        </p>
-      </div>
+      <div data-fig="D_SourceMatrix"></div>
     </section>
 
     <section class="doc-section">
@@ -246,6 +163,7 @@ var weakCells = matrix.Cells
     <span>Spanfold</span>
     <a href="concepts.html">Concepts overview</a>
   </footer>
+  <script src="sf-diagrams.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script src="syntax.js"></script>
   <script src="language.js"></script>

@@ -80,84 +80,7 @@
           still has to serve a live number while the window is still open.
         </p>
       </div>
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Scenario</span>
-          <span class="legend-chip lagoon">maintenance</span>
-          <span class="legend-chip target">primary (target)</span>
-          <span class="legend-chip compare">backup (covers)</span>
-          <span class="legend-chip residual">uncovered</span>
-          <span class="legend-chip overlap">eligible coverage</span>
-        </div>
-        <div class="state-diagram" aria-label="One audit combining containment, coverage, gap, and segment boundaries">
-          <div class="state-row annotated-row">
-            <span class="row-label">maintenance</span>
-            <span class="timeline">
-              <span class="window lagoon" style="left: 28%; width: 14%"></span>
-              <span class="lane-note" style="left: 35%">planned — excluded from SLA</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">primary</span>
-            <span class="timeline">
-              <span class="window target" style="left: 14%; width: 68%"></span>
-              <span class="lane-note" style="left: 22%">opened first</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">backup</span>
-            <span class="timeline">
-              <span class="window compare" style="left: 22%; width: 40%"></span>
-              <span class="window compare" style="left: 68%; width: 14%"></span>
-              <span class="lane-note" style="left: 65%">dropped</span>
-            </span>
-          </div>
-          <div class="state-row annotated-row">
-            <span class="row-label">lifecycle</span>
-            <span class="timeline">
-              <span class="window residual-amber" style="left: 14%; width: 34%"></span>
-              <span class="window rose" style="left: 48%; width: 34%"></span>
-              <span class="lane-note" style="left: 31%">triage</span>
-              <span class="lane-note" style="left: 65%">escalated</span>
-            </span>
-          </div>
-          <div class="measure-row">
-            <span class="row-label">SLA band</span>
-            <span class="measure-track">
-              <span class="measure residual" style="left: 14%; width: 8%">
-                <span class="measure-label">pre-backup</span>
-              </span>
-              <span class="measure overlap" style="left: 22%; width: 6%">
-                <span class="measure-label">covered</span>
-              </span>
-              <span class="measure gap" style="left: 28%; width: 14%">
-                <span class="measure-label">excluded (maintenance)</span>
-              </span>
-              <span class="measure overlap" style="left: 42%; width: 20%">
-                <span class="measure-label">covered</span>
-              </span>
-              <span class="measure residual" style="left: 62%; width: 6%">
-                <span class="measure-label">backup dropped</span>
-              </span>
-              <span class="measure overlap" style="left: 68%; width: 14%">
-                <span class="measure-label">covered</span>
-              </span>
-            </span>
-          </div>
-        </div>
-        <div class="formula">
-          <span class="formula-label">Derived measures</span>
-          <span><em>eligible</em> = <span class="target">primary</span> <span class="operator">−</span> (<span class="target">primary</span> <span class="operator">∩</span> maintenance)</span>
-          <span><em>covered</em> &nbsp;= <span class="target">primary</span> <span class="operator">∩</span> <span class="compare">backup</span> <span class="operator">∩</span> <span class="operator">¬</span>maintenance</span>
-          <span><em>gap</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <em>eligible</em> <span class="operator">−</span> <em>covered</em></span>
-          <span><em>ratio</em> &nbsp;&nbsp;&nbsp;= <span class="result">covered / eligible</span></span>
-        </div>
-        <p class="diagram-caption">
-          Every evidence row carries the original window ids and ranges, so the
-          same rows feed the SLA ratio, the gap alert, the segment-specific
-          coverage (triage vs escalated), and the live dashboard — no rederivation.
-        </p>
-      </div>
+      <div data-fig="D_Advanced"></div>
     </section>
 
     <section class="doc-section">
@@ -421,6 +344,7 @@ dashboard.Render(
     <span>Spanfold</span>
     <a href="concepts.html">Concepts overview</a>
   </footer>
+  <script src="sf-diagrams.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script src="syntax.js"></script>
   <script src="language.js"></script>

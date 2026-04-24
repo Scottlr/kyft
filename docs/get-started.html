@@ -86,58 +86,7 @@
         </p>
       </div>
 
-      <div class="diagram-panel">
-        <div class="legend-row" aria-hidden="true">
-          <span class="legend-title">Lanes</span>
-          <span class="legend-chip target">provider-a</span>
-          <span class="legend-chip compare">provider-b</span>
-        </div>
-        <div class="state-diagram" aria-label="Two provider windows aligned into residual, overlap, and residual rows">
-          <div class="state-row">
-            <span class="row-label">provider-a</span>
-            <span class="timeline">
-              <span class="window target" style="left: 24%; width: 48%"></span>
-            </span>
-          </div>
-          <div class="state-row">
-            <span class="row-label">provider-b</span>
-            <span class="timeline">
-              <span class="window compare" style="left: 40%; width: 16%"></span>
-            </span>
-          </div>
-          <div class="measure-row">
-            <span class="row-label">Rows</span>
-            <span class="measure-track">
-              <span class="measure residual" style="left: 24%; width: 16%">
-                <span class="measure-label">a-only 3..4</span>
-              </span>
-              <span class="measure overlap" style="left: 40%; width: 16%">
-                <span class="measure-label">overlap 4..5</span>
-              </span>
-              <span class="measure residual" style="left: 56%; width: 16%">
-                <span class="measure-label">a-only 5..6</span>
-              </span>
-            </span>
-          </div>
-          <div class="axis-row">
-            <span class="row-label">Position</span>
-            <span class="axis">
-              <span class="tick" style="left: 8%"></span><span class="tick-label" style="left: 8%">1</span>
-              <span class="tick" style="left: 24%"></span><span class="tick-label" style="left: 24%">3</span>
-              <span class="tick" style="left: 40%"></span><span class="tick-label" style="left: 40%">4</span>
-              <span class="tick" style="left: 56%"></span><span class="tick-label" style="left: 56%">5</span>
-              <span class="tick" style="left: 72%"></span><span class="tick-label" style="left: 72%">6</span>
-              <span class="tick" style="left: 88%"></span><span class="tick-label" style="left: 88%">7</span>
-            </span>
-          </div>
-        </div>
-        <p class="diagram-caption">
-          Provider A reported offline from <strong>3..6</strong>. Provider B reported
-          <strong>4..5</strong>. The same plan emits the three rows below the lanes:
-          two target-only spans on either side of the agreement, and one shared
-          overlap in the middle.
-        </p>
-      </div>
+      <div data-fig="D_GetStarted"></div>
     </section>
 
     <section class="doc-section" id="minimal-implementation">
@@ -318,6 +267,7 @@ a-only device-17: 5..6</code></pre>
     <span>Spanfold</span>
     <a href="https://github.com/Scottlr/spanfold">GitHub repository</a>
   </footer>
+  <script src="sf-diagrams.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/languages/powershell.min.js"></script>
   <script src="syntax.js"></script>
