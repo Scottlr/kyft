@@ -443,7 +443,7 @@ li,
 
 .diagram-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 14px;
 }
 
@@ -455,6 +455,7 @@ li,
 .comparison-list article,
 .summary-list a,
 .use-case-list article,
+.hard-example-list article,
 .api-tree,
 .api-member {
   border: 1px solid var(--rule);
@@ -1323,6 +1324,7 @@ li,
 }
 
 .code-grid article,
+.hard-example-list article,
 .wide-example {
   min-width: 0;
   padding: 20px;
@@ -1339,6 +1341,12 @@ li,
 
 .stacked-code {
   margin-top: 14px;
+}
+
+.hard-example-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
 }
 
 pre {

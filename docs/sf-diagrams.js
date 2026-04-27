@@ -504,10 +504,10 @@
     var hzX = 6.5 * U;
     g += '<rect x="' + hzX + '" y="' + (hzLaneY - 8) + '" width="' + (PW-hzX) + '" height="' + (BH+16) + '" fill="#faf2e4" opacity="0.7"/>';
     g += Lane(hzLaneY, 'Known-at', null, PW,
-      Block(5*U, 1.5*U, { h: BH, color: SF.missing, label: 'visible at decision' })
+      Block(5*U, 1.5*U, { h: BH, color: SF.missing, label: 'visible' })
     );
     g += Horizon(hzX, hzLaneY - 8, hzLaneY + BH + 16);
-    g += '<text x="' + (hzX + 8) + '" y="' + (hzLaneY + BH/2 + 6) + '" font-family="' + SF.fontUI + '" font-size="11" fill="' + SF.ink2 + '">decision @ pos 50</text>';
+    g += '<text x="' + (hzX + 8) + '" y="' + (hzLaneY + BH + 14) + '" font-family="' + SF.fontUI + '" font-size="11" fill="' + SF.ink2 + '">decision @ pos 50</text>';
 
     g += '<g transform="translate(0,' + (hzLaneY + LH + 10) + ')">' + Ruler([0,2,5,6.5,10], TOT, PW) + '</g>';
 
