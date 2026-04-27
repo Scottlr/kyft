@@ -205,7 +205,7 @@
   function FigCompact(svgContent, keyItems, svgW, svgH) {
     svgW = svgW || 700; svgH = svgH || 260;
     // max-width caps full-width size; height:auto gives proportional scaling in narrow containers.
-    return '<div style="max-width:' + (svgW + 48) + 'px;background:' + SF.paper + ';'
+    return '<div style="background:' + SF.paper + ';'
       + 'background-image:radial-gradient(rgba(26,23,20,0.035) 1px,transparent 1px);'
       + 'background-size:3px 3px;border:1px solid ' + SF.rule + ';overflow:hidden;">'
       + '<div style="padding:28px 24px 20px;">'
@@ -920,6 +920,139 @@
       { swatch: SF.against,  term: 'provider-b', desc: 'offline [4, 5) — the against lane' },
       { swatch: SF.residual, term: 'residual', desc: 'provider-a only — not covered by provider-b' },
       { swatch: SF.overlap,  term: 'overlap', desc: 'both active — agreement' },
+    ], PW + LX + 20, svgH);
+  };
+
+  // ── Use-case figures ──────────────────────────────────────────────────
+
+  figs.UC_Monitoring = function () {
+    var svgH = 220;
+    var g = '<g transform="translate(' + LX + ',20)">';
+    [1.8, 3.5, 6.5].forEach(function (p) { g += Guide(p * U, 0, 3 * LH + 8); });
+    g += Lane(0,      'Primary',   null, PW, Block(1.8 * U, 4.8 * U, { h: BH, color: SF.target,  label: 'Outage' }));
+    g += Lane(LH,     'Backup',    null, PW, Block(3.5 * U, 4.2 * U, { h: BH, color: SF.against, label: 'Missed' }));
+    g += Lane(2 * LH, 'Heartbeat', null, PW, Block(6.5 * U, 1.8 * U, { h: BH, color: SF.missing, label: 'Flapping' }));
+    g += '<g transform="translate(0,' + (3 * LH + 14) + ')">' + Ruler([0, 1.8, 3.5, 6.5, 10], TOT, PW) + '</g>';
+    g += '</g>';
+    return FigCompact(g, [
+      { swatch: SF.target,  term: 'Primary',   desc: 'outage window — primary provider' },
+      { swatch: SF.against, term: 'Backup',    desc: 'missed early window — comparison provider' },
+      { swatch: SF.missing, term: 'Heartbeat', desc: 'absent signal — flapping' },
+    ], PW + LX + 20, svgH);
+  };
+
+  figs.UC_IoT = function () {
+    var svgH = 220;
+    var g = '<g transform="translate(' + LX + ',20)">';
+    g += '<rect x="0" y="' + (2 * LH) + '" width="' + (4.8 * U) + '" height="' + BH + '" fill="' + SF.neutral.fill + '"/>';
+    g += '<rect x="' + (4.8 * U) + '" y="' + (2 * LH) + '" width="' + (5.2 * U) + '" height="' + BH + '" fill="' + SF.coverage.fill + '" opacity="0.55"/>';
+    g += Lane(0, 'Sensor A', null, PW,
+      Block(1.2 * U, 2.4 * U, { h: BH, color: SF.target })
+      + Block(6.0 * U, 2.5 * U, { h: BH, color: SF.target, label: 'Over-temp' }));
+    g += Lane(LH, 'Sensor B', null, PW,
+      Block(1.8 * U, 1.6 * U, { h: BH, color: SF.against })
+      + Block(6.4 * U, 1.7 * U, { h: BH, color: SF.against }));
+    g += Lane(2 * LH, 'Mode', null, PW,
+      '<text x="' + (2.4 * U) + '" y="' + (BH / 2 + 4) + '" text-anchor="middle" dominant-baseline="middle"'
+      + ' font-family="' + SF.fontUI + '" font-size="11" font-weight="600" fill="' + SF.ink2 + '">Idle</text>'
+      + '<text x="' + (7.4 * U) + '" y="' + (BH / 2 + 4) + '" text-anchor="middle" dominant-baseline="middle"'
+      + ' font-family="' + SF.fontUI + '" font-size="11" font-weight="600" fill="' + SF.ink + '">Calibration</text>');
+    g += '<g transform="translate(0,' + (3 * LH + 14) + ')">' + Ruler([0, 1.2, 4.8, 6.0, 10], TOT, PW) + '</g>';
+    g += '</g>';
+    return FigCompact(g, [
+      { swatch: SF.target,                                 term: 'Sensor A',    desc: 'over-temp windows — two events' },
+      { swatch: SF.against,                                term: 'Sensor B',    desc: 'corroborating sensor readings' },
+      { swatch: { fill: SF.coverage.fill, edge: SF.rule }, term: 'Calibration', desc: 'maintenance phase — risky mode' },
+    ], PW + LX + 20, svgH);
+  };
+
+  figs.UC_Weather = function () {
+    var svgH = 220;
+    var g = '<g transform="translate(' + LX + ',20)">';
+    [3.2, 6.1].forEach(function (p) { g += Guide(p * U, 0, 3 * LH + 8); });
+    g += Lane(0, 'Station', null, PW,
+      Block(1.4 * U, 1.8 * U, { h: BH, color: SF.neutral })
+      + Block(3.2 * U, 2.9 * U, { h: BH, color: SF.missing, label: 'Above 23.5\u00b0C' })
+      + Block(6.1 * U, 1.6 * U, { h: BH, color: SF.neutral }));
+    g += Lane(LH, 'Forecast', null, PW,
+      Block(2.5 * U, 4.7 * U, { h: BH, color: SF.against, label: 'Forecast miss' }));
+    g += Lane(2 * LH, 'Window', null, PW,
+      Block(3.2 * U, 2.9 * U, { h: BH, color: SF.overlap, label: 'Active' }));
+    g += '<g transform="translate(0,' + (3 * LH + 14) + ')">' + Ruler([0, 1.4, 2.5, 3.2, 6.1, 10], TOT, PW) + '</g>';
+    g += '</g>';
+    return FigCompact(g, [
+      { swatch: SF.neutral, term: 'Within range',    desc: 'reading below threshold' },
+      { swatch: SF.missing, term: 'Above 23.5\u00b0C', desc: 'threshold predicate true' },
+      { swatch: SF.against, term: 'Forecast',        desc: 'expected range — missed the exceedance' },
+      { swatch: SF.overlap, term: 'Window',          desc: 'derived threshold-crossing window' },
+    ], PW + LX + 20, svgH);
+  };
+
+  figs.UC_Payments = function () {
+    var svgH = 220;
+    var dpX = 4.8 * U;
+    var g = '<g transform="translate(' + LX + ',20)">';
+    g += Guide(dpX, -16, 3 * LH + 8);
+    g += '<text x="' + (dpX + 6) + '" y="-6" font-family="' + SF.fontUI + '" font-size="10" fill="' + SF.ink2 + '">decision</text>';
+    g += Lane(0, 'Risk Flag', null, PW,
+      Block(2.0 * U, 4.5 * U, { h: BH, color: SF.target, label: 'High risk' }));
+    g += Lane(LH, 'Annotation', null, PW,
+      Block(5.2 * U, 2.0 * U, { h: BH, color: SF.against, label: 'Late' }));
+    g += Lane(2 * LH, 'Known-at', null, PW,
+      Block(2.0 * U, 2.8 * U, { h: BH, color: SF.missing, label: 'Knowable' }));
+    g += '<g transform="translate(0,' + (3 * LH + 14) + ')">' + Ruler([0, 2.0, 4.8, 6.5, 10], TOT, PW) + '</g>';
+    g += '</g>';
+    return FigCompact(g, [
+      { swatch: SF.target,  term: 'Risk Flag',  desc: 'active at the decision point' },
+      { swatch: SF.missing, term: 'Known-at',   desc: 'evidence visible before decision' },
+      { swatch: SF.against, term: 'Annotation', desc: 'arrived after — not knowable at decision' },
+    ], PW + LX + 20, svgH);
+  };
+
+  figs.UC_Logistics = function () {
+    var svgH = 220;
+    var g = '<g transform="translate(' + LX + ',20)">';
+    [1.0, 2.6, 5.0].forEach(function (p) { g += Guide(p * U, 0, 3 * LH + 8); });
+    g += Lane(0,      'Carrier',   null, PW, Block(1.0 * U, 3.2 * U, { h: BH, color: SF.target,   label: 'Held' }));
+    g += Lane(LH,     'Warehouse', null, PW, Block(2.6 * U, 4.6 * U, { h: BH, color: SF.against,  label: 'Scan gap' }));
+    g += Lane(2 * LH, 'Portal',    null, PW, Block(5.0 * U, 2.8 * U, { h: BH, color: SF.residual, label: 'Delayed' }));
+    g += '<g transform="translate(0,' + (3 * LH + 14) + ')">' + Ruler([0, 1.0, 2.6, 5.0, 7.8, 10], TOT, PW) + '</g>';
+    g += '</g>';
+    return FigCompact(g, [
+      { swatch: SF.target,   term: 'Carrier',   desc: 'held window — carrier view' },
+      { swatch: SF.against,  term: 'Warehouse', desc: 'exception window — scan gap' },
+      { swatch: SF.residual, term: 'Portal',    desc: 'delayed — customer-facing view' },
+    ], PW + LX + 20, svgH);
+  };
+
+  figs.UC_Distributed = function () {
+    var svgH = 220;
+    var g = '<g transform="translate(' + LX + ',20)">';
+    [1.8, 2.2, 3.5, 7.0].forEach(function (p) { g += Guide(p * U, 0, 3 * LH + 8); });
+    g += Lane(0,      'Node A', null, PW, Block(1.8 * U, 5.2 * U, { h: BH, color: SF.target,  label: 'Leader' }));
+    g += Lane(LH,     'Node B', null, PW, Block(2.2 * U, 4.8 * U, { h: BH, color: SF.against, label: 'Quorum lost' }));
+    g += Lane(2 * LH, 'Node C', null, PW, Block(3.5 * U, 4.2 * U, { h: BH, color: SF.against, label: 'Quorum lost' }));
+    g += '<g transform="translate(0,' + (3 * LH + 14) + ')">' + Ruler([0, 1.8, 2.2, 3.5, 7.0, 10], TOT, PW) + '</g>';
+    g += '</g>';
+    return FigCompact(g, [
+      { swatch: SF.target,  term: 'Node A',     desc: 'primary — full leader window' },
+      { swatch: SF.against, term: 'Node B / C', desc: 'members — quorum lost at staggered times' },
+    ], PW + LX + 20, svgH);
+  };
+
+  figs.UC_Pipelines = function () {
+    var svgH = 220;
+    var g = '<g transform="translate(' + LX + ',20)">';
+    [1.2, 2.4, 3.8].forEach(function (p) { g += Guide(p * U, 0, 3 * LH + 8); });
+    g += Lane(0,      'Ingest',  null, PW, Block(1.2 * U, 5.5 * U, { h: BH, color: SF.target,  label: 'Active' }));
+    g += Lane(LH,     'Enrich',  null, PW, Block(2.4 * U, 4.7 * U, { h: BH, color: SF.against, label: 'Lag' }));
+    g += Lane(2 * LH, 'Publish', null, PW, Block(3.8 * U, 3.5 * U, { h: BH, color: SF.overlap, label: 'Gap' }));
+    g += '<g transform="translate(0,' + (3 * LH + 14) + ')">' + Ruler([0, 1.2, 2.4, 3.8, 7.1, 10], TOT, PW) + '</g>';
+    g += '</g>';
+    return FigCompact(g, [
+      { swatch: SF.target,  term: 'Ingest',  desc: 'upstream active window' },
+      { swatch: SF.against, term: 'Enrich',  desc: 'lag — started after ingest' },
+      { swatch: SF.overlap, term: 'Publish', desc: 'gap — narrower than upstream' },
     ], PW + LX + 20, svgH);
   };
 
